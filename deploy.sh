@@ -8,8 +8,8 @@ DOCKER_USERNAME="holyshithappens"
 DOCKER_IMAGE_NAME="flbst-bot-mdb"
 IMAGE_NAME="$DOCKER_USERNAME/$DOCKER_IMAGE_NAME"
 VPS_PATH="flbst-bot-mdb"
-GITHUB_REPO="https://github.com/holyshithappens/flibusta_bot_mariadb.git"
-BRANCH="master"
+GITHUB_REPO="https://github.com/holyshithappens/flibusta_bot.git"
+#BRANCH="main"
 
 # Переменные для хранения введенных данных
 VPS_IP=""
@@ -161,7 +161,12 @@ cd ~/$VPS_PATH
 
 echo "📥 Cloning latest code from GitHub..."
 rm -rf temp_build
-git clone $GITHUB_REPO --branch $BRANCH --single-branch temp_build
+#git clone $GITHUB_REPO --branch $BRANCH --single-branch temp_build
+read -p "Deploy from [branch/tag] (default: main): " DEPLOY_REF
+DEPLOY_REF=${DEPLOY_REF:-"main"}
+echo "📦 Deploying from: $DEPLOY_REF"
+
+git clone $GITHUB_REPO --branch $DEPLOY_REF --single-branch temp_build
 
 echo "🔐 Logging into Docker Hub..."
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
