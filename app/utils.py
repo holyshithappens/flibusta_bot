@@ -1,18 +1,26 @@
+import html
+
+# from bs4 import BeautifulSoup
+import importlib.util
 import os
 import re
 import sys
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 # from urllib.parse import unquote
 import aiohttp
-# from bs4 import BeautifulSoup
-import importlib.util
-from typing import List, Dict, Any, Tuple, Optional, Callable
-import html
-
-from logger import logger
+from constants import (
+    HEADING_POP,
+    SEARCH_TYPE_AUTHORS,
+    SEARCH_TYPE_BOOKS,
+    SEARCH_TYPE_SERIES,
+    SETTING_SEARCH_AREA_AA,
+    SETTING_SEARCH_AREA_B,
+    SETTING_SEARCH_AREA_BA,
+)
 from flibusta_client import FlibustaClient
-from constants import SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, \
-    SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, HEADING_POP
+from logger import logger
 
 # Пространство имен FB2
 FB2_NAMESPACE = "http://www.gribuser.ru/xml/fictionbook/2.0"
@@ -37,20 +45,28 @@ def format_size(size_in_bytes: int) -> str:
     return f"{size_in_bytes:.1f}{units[unit_index]}"
 
 
-def form_header_books(page, max_books, found_count, search_type=SEARCH_TYPE_BOOKS, series_name=None, author_name=None,
-                      search_area=SETTING_SEARCH_AREA_B, show_pop=None):
-    """ Оформление заголовка сообщения с результатом поиска книг """
+def form_header_books(
+    page,
+    max_books,
+    found_count,
+    search_type=SEARCH_TYPE_BOOKS,
+    series_name=None,
+    author_name=None,
+    search_area=SETTING_SEARCH_AREA_B,
+    show_pop=None,
+):
+    """Оформление заголовка сообщения с результатом поиска книг"""
     start = max_books * page + 1
     end = min(max_books * (page + 1), found_count)
 
-    text = f"{HEADING_POP.get(show_pop)} " if show_pop else ''
+    text = f"{HEADING_POP.get(show_pop)} " if show_pop else ""
 
     if search_type == SEARCH_TYPE_BOOKS or show_pop:
-        text += 'книг'
+        text += "книг"
     elif search_type == SEARCH_TYPE_SERIES:
-        text += 'серий'
+        text += "серий"
     elif search_type == SEARCH_TYPE_AUTHORS:
-        text += 'авторов'
+        text += "авторов"
 
     header = f"Показываю с {start} по {end} из {found_count} найденных {text}"
 
@@ -88,22 +104,19 @@ def get_platform_recommendations() -> str:
 
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====
 
+
 async def upload_to_tmpfiles(file, file_name: str) -> Optional[str]:
     """Загружает файл на tmpfiles.org и возвращает URL для скачивания"""
     try:
         async with aiohttp.ClientSession() as session:
             form_data = aiohttp.FormData()
-            form_data.add_field('file', file, filename=file_name)
-            params = {'duration': '15m'}
+            form_data.add_field("file", file, filename=file_name)
+            params = {"duration": "15m"}
 
-            async with session.post(
-                    'https://tmpfiles.org/api/v1/upload',
-                    data=form_data,
-                    params=params
-            ) as response:
+            async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params) as response:
                 if response.status == 200:
                     result = await response.json()
-                    return result['data']['url']
+                    return result["data"]["url"]
                 return None
     except Exception as e:
         print(f"Ошибка загрузки: {e}")
@@ -112,13 +125,14 @@ async def upload_to_tmpfiles(file, file_name: str) -> Optional[str]:
 
 # ===== ВСПОМОГАТЕЛЬНЫЕ ОБРАБОТЧИКИ ДЛЯ ГРУППОВОГО ЧАТА =====
 
+
 def is_message_for_bot(message_text, bot_username):
     """Проверяет, обращается ли пользователь к боту"""
     if not bot_username:
         return False
 
     # Проверяем упоминание бота в начале сообщения
-    return message_text.startswith(f'@{bot_username}')
+    return message_text.startswith(f"@{bot_username}")
 
 
 def extract_clean_query(message_text, bot_username):
@@ -127,12 +141,13 @@ def extract_clean_query(message_text, bot_username):
         return message_text.strip()
 
     # Убираем упоминание бота
-    clean_text = message_text.replace(f'@{bot_username}', '').strip()
+    clean_text = message_text.replace(f"@{bot_username}", "").strip()
 
     return clean_text
 
 
 # ===== ЗАГРУЗКА НОВОСТЕЙ ИЗ PYTHON ФАЙЛА =====
+
 
 async def load_bot_news(file_path: str) -> List[Dict[str, Any]]:
     """Загружает новости бота из Python файла"""
@@ -149,7 +164,7 @@ async def load_bot_news(file_path: str) -> List[Dict[str, Any]]:
         news_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(news_module)
 
-        news = getattr(news_module, 'BOT_NEWS', [])
+        news = getattr(news_module, "BOT_NEWS", [])
         print(f"Загружено {len(news)} новостей из {file_path}")
         return news
 
@@ -179,14 +194,14 @@ def truncate_text(text: str, no_more_len: int, stop_sep: str) -> str:
             return truncated[:last_stop_char] + "..."
         else:
             # Если запятых нет — значит, один очень длинный текст
-             return truncated + "..."
+            return truncated + "..."
 
 
 def format_links_from_flat_string(url_routine, flat_str: str, max_num_elem: int) -> Tuple[str, bool]:
     if not flat_str:
         return "", False
 
-    parts = [part.strip() for part in flat_str.split(',') if part.strip()]
+    parts = [part.strip() for part in flat_str.split(",") if part.strip()]
     orig_len = len(parts)
     parts = parts[:max_num_elem]
     trunc_len = len(parts)
@@ -208,20 +223,21 @@ def format_links_from_flat_string(url_routine, flat_str: str, max_num_elem: int)
 
     return ", ".join(links), orig_len != trunc_len
 
+
 def format_book_info(book_info):
     """Форматирует информацию о книге для сообщения"""
     text = f"📚 <b><a href='{FlibustaClient.get_book_url(book_info['bookid'])}'>{book_info['title']}</a></b>\n"
     # authors = book_info['authors'][:300] + ("..." if len(book_info['authors']) > 300 else "")
-    author_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_author_url, book_info['authors'], 20)
+    author_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_author_url, book_info["authors"], 20)
     text += f"\n👤 <b>Автор(ы):</b> {(author_links + (',...' if is_truncated else '')) or 'Не указаны'}"
-    year = book_info['year']
-    series = book_info['series']
-    genre_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_genre_url, book_info['genres'], 10)
-    lang = book_info['lang']
-    pages = book_info['pages']
-    rate = book_info['rate']
+    year = book_info["year"]
+    series = book_info["series"]
+    genre_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_genre_url, book_info["genres"], 10)
+    lang = book_info["lang"]
+    pages = book_info["pages"]
+    rate = book_info["rate"]
     # book_id = book_info['bookid']
-    series_id = book_info['seqid']
+    series_id = book_info["seqid"]
     if genre_links:
         text += f"\n📑 <b>Жанр(ы):</b> {(genre_links + (',...' if is_truncated else '')) or 'Не указаны'}"
     if series:
@@ -232,7 +248,7 @@ def format_book_info(book_info):
         text += f"\n🗣️ <b>Язык:</b> {lang}"
     if pages:
         text += f"\n📃 <b>Страниц:</b> {pages}"
-    size = format_size(book_info['size'])
+    size = format_size(book_info["size"])
     text += f"\n📦 <b>Размер:</b> {size}"
     if rate:
         text += f"\n⭐ <b>Рейтинг:</b> {rate:.1f}"
@@ -244,24 +260,24 @@ def format_book_info(book_info):
 def format_book_details(book_details):
     """Форматирует детальную информацию о книге"""
     text = f"📖 <b>Аннотация о книге:</b> {book_details.get('title', 'Неизвестно')}\n\n"
-    if book_details.get('annotation'):
+    if book_details.get("annotation"):
         # Очищаем HTML теги для телеграма
-        clean_annotation = clean_html_tags(book_details['annotation'])
+        clean_annotation = clean_html_tags(book_details["annotation"])
         # text += f"{clean_annotation[:4000]}" + ("..." if len(clean_annotation) > 4000 else "")
         text += clean_annotation
 
-    return truncate_text(text, 4000, '.')
+    return truncate_text(text, 4000, ".")
 
 
 def format_author_info(author_info):
     """Форматирует информацию об авторе"""
     text = f"👤 <b>Об авторе:</b> <a href='{FlibustaClient.get_author_url(author_info['author_id'])}'>{author_info['name']}</a>\n\n"
-    if author_info.get('biography'):
-        clean_bio = clean_html_tags(author_info['biography'])
+    if author_info.get("biography"):
+        clean_bio = clean_html_tags(author_info["biography"])
         # text += f"{clean_bio[:4000]}" + ("..." if len(clean_bio) > 4000 else "")
         text += clean_bio
 
-    return truncate_text(text, 4000, '.')
+    return truncate_text(text, 4000, ".")
 
 
 def format_book_reviews(reviews):
@@ -279,15 +295,16 @@ def format_book_reviews(reviews):
 
     return text
 
+
 def clean_html_tags(text: str) -> str:
     """Удаляем html-теги и очищаем от лишнего мусора"""
     clean_text = text
-    clean_text = re.sub(r'<br\s*/?>', '\n', clean_text)  # <br> → перенос
-    clean_text = re.sub(r'</?p[^>]*>', '\n', clean_text)  # <p> → перенос
-    clean_text = re.sub(r'<[^<]+?>', '', clean_text)
-    clean_text = re.sub(r'\[[^\]]*?\]', '', clean_text)  # Квадратные скобки
+    clean_text = re.sub(r"<br\s*/?>", "\n", clean_text)  # <br> → перенос
+    clean_text = re.sub(r"</?p[^>]*>", "\n", clean_text)  # <p> → перенос
+    clean_text = re.sub(r"<[^<]+?>", "", clean_text)
+    clean_text = re.sub(r"\[[^\]]*?\]", "", clean_text)  # Квадратные скобки
     # Убираем множественные переносы
-    clean_text = re.sub(r'\n\s*\n', '\n\n', clean_text)
+    clean_text = re.sub(r"\n\s*\n", "\n\n", clean_text)
     clean_text = html.escape(clean_text)
     clean_text = clean_text.strip()
     return clean_text
@@ -295,11 +312,11 @@ def clean_html_tags(text: str) -> str:
 
 def get_short_donation_notice():
     # Получаем дату окончания из переменных окружения
-    end_date_str = os.getenv('VPS_EXPIRY_DATE', '2026-04-04')
-    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    end_date_str = os.getenv("VPS_EXPIRY_DATE", "2026-04-04")
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
     days_left = (end_date - datetime.now()).days
 
-    return f"💡 До конца аренды VPS: {days_left} дней ({end_date_str}). Поддержи бота! /donate." + \
-        " Все средства пойдут на оплату аренды VPS. Даже небольшой вклад поможет сохранить бота."
-
-
+    return (
+        f"💡 До конца аренды VPS: {days_left} дней ({end_date_str}). Поддержи бота! /donate."
+        + " Все средства пойдут на оплату аренды VPS. Даже небольшой вклад поможет сохранить бота."
+    )
