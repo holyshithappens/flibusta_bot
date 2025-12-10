@@ -6,9 +6,10 @@ from datetime import datetime
 import aiohttp
 # from bs4 import BeautifulSoup
 import importlib.util
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional, Callable
 import html
 
+from logger import logger
 from flibusta_client import FlibustaClient
 from constants import SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, \
     SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, HEADING_POP
@@ -27,7 +28,7 @@ NAMESPACES = {
 BOT_USERNAME = os.getenv("BOT_USERNAME", "")
 
 
-def format_size(size_in_bytes):
+def format_size(size_in_bytes: int) -> str:
     units = ["B", "K", "M", "G", "T"]
     unit_index = 0
     while size_in_bytes >= 1024 and unit_index < len(units) - 1:
@@ -87,7 +88,7 @@ def get_platform_recommendations() -> str:
 
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====
 
-async def upload_to_tmpfiles(file, file_name: str) -> str:
+async def upload_to_tmpfiles(file, file_name: str) -> Optional[str]:
     """Загружает файл на tmpfiles.org и возвращает URL для скачивания"""
     try:
         async with aiohttp.ClientSession() as session:
@@ -142,6 +143,9 @@ async def load_bot_news(file_path: str) -> List[Dict[str, Any]]:
 
         # Динамически импортируем модуль с новостями
         spec = importlib.util.spec_from_file_location("bot_news", file_path)
+        if spec is None or spec.loader is None:
+            logger.log_system_action("Error loading bot_news.py: spec is None")
+            return []
         news_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(news_module)
 
@@ -164,7 +168,7 @@ async def get_latest_news(file_path: str, count: int = 3) -> List[Dict[str, Any]
 
 
 # ===== ФОРМАТИРОВАНИЕ ВЫВОДА =====
-def truncate_text(text, no_more_len, stop_sep) -> str:
+def truncate_text(text: str, no_more_len: int, stop_sep: str) -> str:
     if len(text) <= no_more_len:
         return text
     else:
@@ -275,7 +279,7 @@ def format_book_reviews(reviews):
 
     return text
 
-def clean_html_tags(text):
+def clean_html_tags(text: str) -> str:
     """Удаляем html-теги и очищаем от лишнего мусора"""
     clean_text = text
     clean_text = re.sub(r'<br\s*/?>', '\n', clean_text)  # <br> → перенос
