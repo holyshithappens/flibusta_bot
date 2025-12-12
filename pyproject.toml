@@ -1,0 +1,37 @@
+# Конфигурация для Python инструментов
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Пока false, потом включим
+check_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+
+# Исключаем некоторые файлы
+exclude = [
+    'venv',
+    'bak',
+    'db_init',
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+skip-string-normalization = false
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | bak
+  | db_init
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+known_first_party = ["app"]

@@ -1,14 +1,15 @@
-/.idea/
+.idea/
 .env
 .env.vps
-/logs/
-/data/
+logs/
+data/
 *local*
-/db_init/sql/
-/db_backups/
-/bak/
-/sandbox/
-
+db_init/sql/
+db_backups/
+bak/
+sandbox/
+*backup*
+*.bak
 
 # Python cache
 __pycache__/
