@@ -60,19 +60,18 @@ class ContextManager:
     def _get_context_data(cls, context: CallbackContext) -> dict[str, Any]:
         """Получает соответствующий словарь контекста с автоматическим определением типа чата"""
         user_id, chat_id = cls._get_ids_from_context(context)
-        is_private_chat = user_id == chat_id
+        is_private_chat = (user_id == chat_id)
 
         if is_private_chat:
-            if hasattr(context, "user_data") and context.user_data is not None:
-                return dict(context.user_data)  # ← Явное приведение к dict
+            if hasattr(context, 'user_data'):
+                return context.user_data  # type: ignore[return-value]
             return {}
         else:
-            if chat_id and hasattr(context, "bot_data") and context.bot_data is not None:
+            if chat_id and hasattr(context, 'bot_data'):
                 search_context_key = cls._get_bot_context_key(context)
                 if search_context_key not in context.bot_data:
                     context.bot_data[search_context_key] = {}
-                result = context.bot_data[search_context_key]
-                return result if isinstance(result, dict) else {}  # ← Проверка типа
+                return context.bot_data[search_context_key]  # type: ignore [no-any-return]
             return {}
 
     @classmethod
