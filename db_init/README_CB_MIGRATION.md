@@ -18,7 +18,7 @@
 docker-compose stop bot
 
 # 2. Переименуйте lib* → cb_lib*
-docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_60_migrate_to_cb_tables.sql
 
 # 3. Запустите бот с обновлённым кодом (использующим cb_*)
 docker-compose start bot
@@ -142,7 +142,7 @@ echo "✅ Оптимизация FTS таблицы"
 #### Шаг 4: Переименование lib* → cb_lib* (production)
 ```bash
 # Переименуйте staging таблицы в production (мгновенная операция)
-docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_60_migrate_to_cb_tables.sql
 
 echo "✅ Таблицы переименованы: lib* → cb_lib*"
 ```
@@ -337,7 +337,7 @@ docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_
 docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_50_repair_FT.sql
 
 echo "🔄 Переименование lib* → cb_lib*..."
-docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_60_migrate_to_cb_tables.sql
 
 echo "🚀 Запуск бота..."
 docker-compose start bot
