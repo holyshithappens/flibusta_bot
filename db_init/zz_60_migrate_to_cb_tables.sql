@@ -11,14 +11,14 @@
 --   mysql -u flibusta -p flibusta < migrate_to_cb_tables.sql
 --
 
-SET NAMES utf8mb3;
-SET CHARACTER SET utf8mb3;
-
--- Проверка что таблицы существуют
-SELECT 'Checking tables...' as Status;
-SELECT COUNT(*) as lib_tables_count
-FROM information_schema.tables
-WHERE table_schema = 'flibusta' AND table_name LIKE 'lib%';
+--SET NAMES utf8mb3;
+--SET CHARACTER SET utf8mb3;
+--
+---- Проверка что таблицы существуют
+--SELECT 'Checking tables...' as Status;
+--SELECT COUNT(*) as lib_tables_count
+--FROM information_schema.tables
+--WHERE table_schema = 'flibusta' AND table_name LIKE 'lib%';
 
 -- ============================================
 -- Переименование таблиц
@@ -33,7 +33,10 @@ RENAME TABLE libgenrelist TO cb_libgenrelist;
 RENAME TABLE libseq TO cb_libseq;
 RENAME TABLE libseqname TO cb_libseqname;
 RENAME TABLE librate TO cb_librate;
+RENAME TABLE librecs TO cb_librecs;
 RENAME TABLE libreviews TO cb_libreviews;
+RENAME TABLE libapics TO cb_libapics;
+RENAME TABLE libbpics TO cb_libbpics;
 
 -- Аннотации
 RENAME TABLE libbannotations TO cb_libbannotations;
@@ -46,16 +49,16 @@ RENAME TABLE libbook_fts TO cb_libbook_fts;
 -- Проверка результата
 -- ============================================
 
-SELECT 'Migration completed!' as Status;
-
-SELECT COUNT(*) as cb_tables_count
-FROM information_schema.tables
-WHERE table_schema = 'flibusta' AND table_name LIKE 'cb_lib%';
-
-SELECT
-    table_name,
-    table_rows,
-    ROUND((data_length + index_length) / 1024 / 1024, 2) as size_mb
-FROM information_schema.tables
-WHERE table_schema = 'flibusta' AND table_name LIKE 'cb_lib%'
-ORDER BY table_name;
+--SELECT 'Migration completed!' as Status;
+--
+--SELECT COUNT(*) as cb_tables_count
+--FROM information_schema.tables
+--WHERE table_schema = 'flibusta' AND table_name LIKE 'cb_lib%';
+--
+--SELECT
+--    table_name,
+--    table_rows,
+--    ROUND((data_length + index_length) / 1024 / 1024, 2) as size_mb
+--FROM information_schema.tables
+--WHERE table_schema = 'flibusta' AND table_name LIKE 'cb_lib%'
+--ORDER BY table_name;

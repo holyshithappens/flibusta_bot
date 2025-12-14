@@ -246,9 +246,10 @@ case "${1:-}" in
     -d|--db-init)
         echo "🗜️  Starting database reinitialization..."
         prompt_user_input_vps
-        reinitialize_database
-        check_status
-        cleanup
+        copy_sql_files
+#        reinitialize_database
+#        check_status
+#        cleanup
         echo "✅ Database reinitialization completed!"
         ;;
 

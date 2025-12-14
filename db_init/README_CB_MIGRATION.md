@@ -18,7 +18,7 @@
 docker-compose stop bot
 
 # 2. Переименуйте lib* → cb_lib*
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
 
 # 3. Запустите бот с обновлённым кодом (использующим cb_*)
 docker-compose start bot
@@ -38,7 +38,7 @@ docker-compose start bot
 docker-compose stop bot
 
 # 2. Переименуйте текущие cb_lib* → cb_lib_old* (бэкап на случай проблем)
-docker exec -i db mysql -u flibusta -pflibusta flibusta << 'SQL'
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta << 'SQL'
 RENAME TABLE 
   cb_libbook TO cb_libbook_old,
   cb_libavtor TO cb_libavtor_old,
@@ -48,6 +48,7 @@ RENAME TABLE
   cb_libseq TO cb_libseq_old,
   cb_libseqname TO cb_libseqname_old,
   cb_librate TO cb_librate_old,
+  cb_librecs TO cb_librecs_old,
   cb_libreviews TO cb_libreviews_old,
   cb_libbannotations TO cb_libbannotations_old,
   cb_libaannotations TO cb_libaannotations_old,
@@ -61,27 +62,24 @@ echo "✅ Бэкап создан: cb_lib* → cb_lib_old*"
 ```bash
 # Положите новые .sql.gz файлы в db_init/sql/
 # Например:
-# - libbook.sql.gz
-# - libavtor.sql.gz
-# - libgenre.sql.gz
+# - lib.a.annotations.sql.gz
+# - lib.a.annotations_pics.sql.gz
 # и т.д.
 
 cd db_init/sql/
 
-# Распакуйте (опционально, mysql понимает .gz)
-gunzip *.sql.gz
-
 # Импортируйте все дампы в lib* таблицы
-docker exec -i db mysql -u flibusta -pflibusta flibusta < libbook.sql
-docker exec -i db mysql -u flibusta -pflibusta flibusta < libavtor.sql
-docker exec -i db mysql -u flibusta -pflibusta flibusta < libgenre.sql
+gunzip -c lib.a.annotations.sql.gz | docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta
+gunzip -c lib.a.annotations_pics.sql.gz | docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta
+gunzip -c lib.b.annotations.sql.gz | docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta
+gunzip -c lib.b.annotations_pics.sql.gz | docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta
 # ... и остальные файлы
 
 # Или скриптом (если все файлы в db_init/sql/):
 cd db_init/sql/
-for file in *.sql; do
+for file in *.sql.gz; do
     echo "Importing $file..."
-    docker exec -i db mysql -u flibusta -pflibusta flibusta < "$file"
+    gunzip -c "$file" | docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta
 done
 
 cd ../..
@@ -96,23 +94,23 @@ echo "✅ Дампы восстановлены в lib* таблицы"
 Эти скрипты создают дополнительные индексы и таблицы:
 ```bash
 # 1. zz_10_convert_charset.sql - выравнивание набора символов для всех таблиц
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_10_convert_charset.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_10_convert_charset.sql
 echo "✅ Выравнивание набора символов"
 
 # 2. zz_20_create_indexes.sql - создание дополнительных индексов для ускорения запросов
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_20_create_indexes.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_20_create_indexes.sql
 echo "✅ Создание дополнительных индексов"
 
 # 3. zz_30_create_FT_indexes.sql - создание FT индексов для полнотекстового поиска
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_30_create_FT.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_30_create_FT.sql
 echo "✅ Создание FT индексов"
 
 # 4. zz_40_fill_FT.sql - создание и заполнение таблицы libbook_fts основными данными книг для полнотекстового поиска
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_40_fill_FT.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_40_fill_FT.sql
 echo "✅ Создание и заполнение FTS таблицы"
 
 # 5. zz_50_repair_FT.sql - дополнительная оптимизация таблицы libbook_fts (можно пропустить)
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_50_repair_FT.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_50_repair_FT.sql
 echo "✅ Оптимизация FTS таблицы"
 ```
 
@@ -144,7 +142,7 @@ echo "✅ Оптимизация FTS таблицы"
 #### Шаг 4: Переименование lib* → cb_lib* (production)
 ```bash
 # Переименуйте staging таблицы в production (мгновенная операция)
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
 
 echo "✅ Таблицы переименованы: lib* → cb_lib*"
 ```
@@ -172,7 +170,7 @@ echo "✅ Бот запущен с новыми данными"
 
 Если всё работает стабильно несколько дней, удалите бэкап:
 ```bash
-docker exec -i mariadb mysql -u flibusta -pflibusta flibusta << 'SQL'
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta << 'SQL'
 DROP TABLE IF EXISTS 
   cb_libbook_old,
   cb_libavtor_old,
@@ -182,10 +180,13 @@ DROP TABLE IF EXISTS
   cb_libseq_old,
   cb_libseqname_old,
   cb_librate_old,
+  cb_librecs_old,
   cb_libreviews_old,
   cb_libbannotations_old,
   cb_libaannotations_old,
   cb_libbook_fts_old;
+  cb_libapics_old;
+  cb_libbpica_old;
 SQL
 
 echo "✅ Старые таблицы удалены"
@@ -203,16 +204,16 @@ echo "✅ Старые таблицы удалены"
 docker-compose stop bot
 
 # 2. Удалите новые cb_lib* (с проблемами)
-docker exec -i db mysql -u flibusta -pflibusta flibusta << 'SQL'
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta << 'SQL'
 DROP TABLE IF EXISTS 
   cb_libbook, cb_libavtor, cb_libavtorname, cb_libgenre, 
   cb_libgenrelist, cb_libseq, cb_libseqname, cb_librate, 
   cb_libreviews, cb_libbannotations, cb_libaannotations, 
-  cb_libbook_fts;
+  cb_libbook_fts, cb_librecs, cb_libapics, cb_libbpics;
 SQL
 
 # 3. Переименуйте old обратно
-docker exec -i db mysql -u flibusta -pflibusta flibusta << 'SQL'
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta << 'SQL'
 RENAME TABLE 
   cb_libbook_old TO cb_libbook,
   cb_libavtor_old TO cb_libavtor,
@@ -222,10 +223,13 @@ RENAME TABLE
   cb_libseq_old TO cb_libseq,
   cb_libseqname_old TO cb_libseqname,
   cb_librate_old TO cb_librate,
+  cb_librecs_old TO cb_librecs,
   cb_libreviews_old TO cb_libreviews,
   cb_libbannotations_old TO cb_libbannotations,
   cb_libaannotations_old TO cb_libaannotations,
   cb_libbook_fts_old TO cb_libbook_fts;
+  cb_libapics_old TO cb_libapics;
+  cb_libbpics_old TO cb_libbpics;
 SQL
 
 # 4. Запустите бот
@@ -239,7 +243,7 @@ echo "✅ Откат выполнен, работают старые данны�
 ## 📊 Проверка статуса таблиц
 ```bash
 # Посмотреть все таблицы с lib/cb_lib префиксом
-docker exec -i db mysql -u flibusta -pflibusta flibusta << 'SQL'
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta << 'SQL'
 SELECT 
     table_name, 
     table_rows, 
@@ -268,9 +272,12 @@ MariaDB (flibusta):
 │   ├── cb_libseq
 │   ├── cb_libseqname
 │   ├── cb_librate
+│   ├── cb_librecs
 │   ├── cb_libreviews
 │   ├── cb_libbannotations
 │   ├── cb_libaannotations
+│   ├── cb_libapics
+│   ├── cb_libbpics
 │   └── cb_libbook_fts (полнотекстовый индекс)
 │
 ├── cb_lib*_old (бэкап) ← можно удалить после проверки
@@ -295,7 +302,7 @@ echo "🛑 Остановка бота..."
 docker-compose stop bot
 
 echo "💾 Создание бэкапа cb_lib* → cb_lib_old*..."
-docker exec -i db mysql -u flibusta -pflibusta flibusta << 'SQL'
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta << 'SQL'
 RENAME TABLE 
   cb_libbook TO cb_libbook_old,
   cb_libavtor TO cb_libavtor_old,
@@ -305,29 +312,32 @@ RENAME TABLE
   cb_libseq TO cb_libseq_old,
   cb_libseqname TO cb_libseqname_old,
   cb_librate TO cb_librate_old,
+  cb_librecs TO cb_librecs_old,
   cb_libreviews TO cb_libreviews_old,
   cb_libbannotations TO cb_libbannotations_old,
   cb_libaannotations TO cb_libaannotations_old,
   cb_libbook_fts TO cb_libbook_fts_old;
+  cb_libapics TO cb_libapics_old;
+  cb_libbpics TO cb_libbpics_old;
 SQL
 
 echo "📦 Импорт дампов в lib* таблицы..."
 cd db_init/sql/
-for file in *.sql; do
+for file in *.sql.gz; do
     echo "  - $file"
-    docker exec -i db mysql -u flibusta -pflibusta flibusta < "$file"
+    gunzip -c "$file" | docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta
 done
 cd ../..
 
 echo "⚙️  Выполнение скриптов инициализации..."
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_10_convert_charset.sql
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_20_create_indexes.sql
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_30_create_FT_indexes.sql
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_40_fill_FT.sql
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/zz_50_repair_FT.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_10_convert_charset.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_20_create_indexes.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_30_create_FT_indexes.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_40_fill_FT.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/zz_50_repair_FT.sql
 
 echo "🔄 Переименование lib* → cb_lib*..."
-docker exec -i db mysql -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
+docker exec -i flibusta-db mariadb -u flibusta -pflibusta flibusta < db_init/migrate_to_cb_tables.sql
 
 echo "🚀 Запуск бота..."
 docker-compose start bot
