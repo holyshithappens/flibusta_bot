@@ -42,18 +42,18 @@ BASE_FIELDS = """
 
 # Базовые JOIN (БЕЗ FROM)
 BASE_JOINS = """
--- LEFT JOIN (select bookid, min(avtorid) as avtorid from libavtor group by bookid) a ON a.BookID = b.BookID
-LEFT JOIN libavtor a ON a.BookID = b.BookID
-LEFT JOIN libavtorname an ON an.AvtorID = a.AvtorID
-LEFT JOIN (select bookid, min(genreid) as genreid from libgenre group by bookid) g ON g.BookID = b.BookID
--- LEFT JOIN libgenre g ON g.BookID = b.BookID
-LEFT JOIN libgenrelist gl ON gl.GenreID = g.GenreID
--- LEFT JOIN (select bookid, min(SeqID) as SeqID from libseq group by bookid) s ON s.BookID = b.BookID
-LEFT JOIN libseq s ON s.BookID = b.BookID
-LEFT JOIN libseqname sn on sn.SeqID = s.SeqID
+-- LEFT JOIN (select bookid, min(avtorid) as avtorid from cb_libavtor group by bookid) a ON a.BookID = b.BookID
+LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
+LEFT JOIN cb_libavtorname an ON an.AvtorID = a.AvtorID
+LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre group by bookid) g ON g.BookID = b.BookID
+-- LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
+LEFT JOIN cb_libgenrelist gl ON gl.GenreID = g.GenreID
+-- LEFT JOIN (select bookid, min(SeqID) as SeqID from cb_libseq group by bookid) s ON s.BookID = b.BookID
+LEFT JOIN cb_libseq s ON s.BookID = b.BookID
+LEFT JOIN cb_libseqname sn on sn.SeqID = s.SeqID
 LEFT JOIN (
     SELECT BookId, AVG(CAST(Rate AS SIGNED)) as LibRate
-    FROM librate 
+    FROM cb_librate 
     GROUP BY BookId
 ) r ON r.BookId = b.BookId
 """
@@ -64,8 +64,8 @@ select * from (
 SELECT 
     {BASE_FIELDS},
     MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE) as Relevance
-FROM libbook_fts fts
-JOIN libbook b ON b.BookID = fts.BookID
+FROM cb_libbook_fts fts
+JOIN cb_libbook b ON b.BookID = fts.BookID
 {BASE_JOINS}
 WHERE b.Deleted = '0'
   AND MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)
@@ -78,8 +78,8 @@ select * from (
 SELECT 
     {BASE_FIELDS},
     MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE) as Relevance
-FROM libbannotations ba
-JOIN libbook b ON b.BookID = ba.BookID
+FROM cb_libbannotations ba
+JOIN cb_libbook b ON b.BookID = ba.BookID
 {BASE_JOINS}
 WHERE b.Deleted = '0'
   AND MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)
@@ -92,9 +92,9 @@ select * from (
 SELECT 
     {BASE_FIELDS},
     MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE) as Relevance
-FROM libaannotations aa
-JOIN libavtor ab ON ab.AvtorId = aa.AvtorId
-JOIN libbook b ON b.BookID = ab.BookID
+FROM cb_libaannotations aa
+JOIN cb_libavtor ab ON ab.AvtorId = aa.AvtorId
+JOIN cb_libbook b ON b.BookID = ab.BookID
 {BASE_JOINS}
 WHERE b.Deleted = '0'
   AND MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE)
@@ -109,9 +109,9 @@ SELECT_SQL_QUERY = {
 
 SQL_QUERY_PARENT_GENRES_COUNT = """
 	select coalesce(gl.GenreMeta,'Неотсортированное'), count(b.BookId)
-      from libbook b
-        left outer join libgenre g on g.BookId = b.BookId 
-        left outer join libgenrelist gl on gl.GenreId = g.GenreId 
+      from cb_libbook b
+        left outer join cb_libgenre g on g.BookId = b.BookId 
+        left outer join cb_libgenrelist gl on gl.GenreId = g.GenreId 
     where b.Deleted = '0'
       -- AND (#s = '' OR b.Lang = #s)
     group by coalesce(gl.GenreMeta, 'Неотсортированное')
@@ -121,9 +121,9 @@ SQL_QUERY_PARENT_GENRES_COUNT = """
 SQL_QUERY_CHILDREN_GENRES_COUNT = """
 	select gl.GenreDesc, count(g.BookId), 
 	  gl.GenreId
-      from libbook b
-	    left outer join libgenre g on g.BookId = b.BookId 
-        left outer join libgenrelist gl on gl.GenreId = g.GenreId 
+      from cb_libbook b
+	    left outer join cb_libgenre g on g.BookId = b.BookId 
+        left outer join cb_libgenrelist gl on gl.GenreId = g.GenreId 
     Where 
       b.Deleted = '0'
       and gl.GenreMeta = %s
@@ -133,7 +133,7 @@ SQL_QUERY_CHILDREN_GENRES_COUNT = """
 
 SQL_QUERY_LANGS = """
     SELECT Lang, COUNT(Lang) AS count
-    FROM libbook b
+    FROM cb_libbook b
     where b.Deleted = '0'
     GROUP BY Lang
     ORDER BY count DESC
@@ -802,25 +802,25 @@ class DatabaseBooks():
                             MAX(date(time)) as max_update_date,
                             COUNT(*) as books_cnt,
                             MAX(bookid) as max_filename
-                        FROM libbook b
+                        FROM cb_libbook b
                         where b.Deleted = '0'
                     """)
                     books_stats = cursor.fetchone()
 
                     # Количество авторов
-                    cursor.execute("SELECT COUNT(*) FROM libavtorname")
+                    cursor.execute("SELECT COUNT(*) FROM cb_libavtorname")
                     authors_cnt = cursor.fetchone()[0]
 
                     # Количество жанров
-                    cursor.execute("SELECT COUNT(*) FROM libgenrelist")
+                    cursor.execute("SELECT COUNT(*) FROM cb_libgenrelist")
                     genres_cnt = cursor.fetchone()[0]
 
                     # Количество серий
-                    cursor.execute("SELECT COUNT(*) FROM libseqname")
+                    cursor.execute("SELECT COUNT(*) FROM cb_libseqname")
                     series_cnt = cursor.fetchone()[0]
 
                     # Количество языков
-                    cursor.execute("SELECT COUNT(DISTINCT Lang) FROM libbook WHERE Deleted = '0'")
+                    cursor.execute("SELECT COUNT(DISTINCT Lang) FROM cb_libbook WHERE Deleted = '0'")
                     langs_cnt = cursor.fetchone()[0]
 
                     self._class_stats = {
@@ -911,19 +911,19 @@ class DatabaseBooks():
                        GROUP_CONCAT(DISTINCT CONCAT(an.AvtorID, ',', an.LastName, ' ', an.FirstName, ' ', an.MiddleName) SEPARATOR ',') as Authors,
                        bp.File, b.FileSize, b.Pages, b.Lang, r.LibRate, b.BookId,
                        sn.SeqID
-                FROM libbook b
-                LEFT JOIN libavtor a ON a.BookID = b.BookID
-                LEFT JOIN libavtorname an ON a.AvtorID = an.AvtorID
-                LEFT JOIN libseq s ON s.BookID = b.BookID
-                LEFT JOIN libseqname sn ON s.SeqID = sn.SeqID
-                LEFT JOIN libgenre g ON g.BookID = b.BookID
-                LEFT JOIN libgenrelist gl ON g.GenreID = gl.GenreID
-                LEFT JOIN libbpics bp ON b.BookID = bp.BookID
+                FROM cb_libbook b
+                LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
+                LEFT JOIN cb_libavtorname an ON a.AvtorID = an.AvtorID
+                LEFT JOIN cb_libseq s ON s.BookID = b.BookID
+                LEFT JOIN cb_libseqname sn ON s.SeqID = sn.SeqID
+                LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
+                LEFT JOIN cb_libgenrelist gl ON g.GenreID = gl.GenreID
+                LEFT JOIN cb_libbpics bp ON b.BookID = bp.BookID
                 left outer join ( 
                     select 
                         r.BookId, 
                         avg(cast(r.Rate as signed)) as Librate
-                    from librate r 
+                    from cb_librate r 
                     group by r.BookId 
                     ) r on r.BookId = b.BookId
                 WHERE b.BookID = %s
@@ -959,8 +959,8 @@ class DatabaseBooks():
 
             # Получаем аннотацию
             cursor.execute("""
-                SELECT b.title, ba.Body FROM libbannotations ba 
-                INNER JOIN libbook b ON ba.BookId = b.BookId
+                SELECT b.title, ba.Body FROM cb_libbannotations ba 
+                INNER JOIN cb_libbook b ON ba.BookId = b.BookId
                 WHERE ba.BookID = %s
                 """, (book_id,))
             annotation_result = cursor.fetchone()
@@ -1019,7 +1019,7 @@ class DatabaseBooks():
             # Получаем id всех авторов книги
             cursor.execute("""
                 SELECT DISTINCT a.AvtorID 
-                FROM libavtor a 
+                FROM cb_libavtor a 
                 WHERE a.BookID = %s
             """, (book_id,))
             author_result = cursor.fetchall()
@@ -1038,9 +1038,9 @@ class DatabaseBooks():
             # Получаем первого автора книги
             cursor.execute("""
                 SELECT an.AvtorID, an.LastName, an.FirstName, an.MiddleName 
-                -- FROM libavtor a 
-                -- JOIN libavtorname an ON a.AvtorID = an.AvtorID 
-                FROM libavtorname an
+                -- FROM cb_libavtor a 
+                -- JOIN cb_libavtorname an ON a.AvtorID = an.AvtorID 
+                FROM cb_libavtorname an
                 WHERE an.AvtorID = %s
                 LIMIT 1
             """, (author_id,))
@@ -1050,12 +1050,12 @@ class DatabaseBooks():
                 return None
 
             # Получаем фото автора
-            cursor.execute("SELECT File FROM libapics WHERE AvtorID = %s", (author_id,))
+            cursor.execute("SELECT File FROM cb_libapics WHERE AvtorID = %s", (author_id,))
             photo_result = cursor.fetchone()
             photo_url = FlibustaClient.get_author_photo_url(photo_result[0]) if photo_result else None
 
             # Получаем аннотацию автора
-            cursor.execute("SELECT title, Body FROM libaannotations WHERE AvtorID = %s", (author_id,))
+            cursor.execute("SELECT title, Body FROM cb_libaannotations WHERE AvtorID = %s", (author_id,))
             annotation_result = cursor.fetchone()
 
             return {
@@ -1073,7 +1073,7 @@ class DatabaseBooks():
             cursor = conn.cursor(buffered=True)
             cursor.execute("""
                 SELECT Name, Time, Text 
-                FROM libreviews 
+                FROM cb_libreviews 
                 WHERE BookID = %s 
                 ORDER BY Time DESC
             """, (book_id,))
@@ -1236,22 +1236,22 @@ class DatabaseBooks():
             WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
             WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
         END AS relevance_oppos
-    FROM libbook b
+    FROM cb_libbook b
     LEFT JOIN (
         SELECT bookid, COUNT(DISTINCT id) AS cnt
-        FROM librate
+        FROM cb_librate
         GROUP BY bookid
     ) ra ON ra.BookId = b.BookId
     LEFT JOIN (
         SELECT bid AS bookid, COUNT(DISTINCT id) AS cnt
-        FROM librecs
+        FROM cb_librecs
         WHERE '{current_date}' - INTERVAL {days_back} DAY <= timestamp
            OR {filter_recent} = 0
         GROUP BY bid
     ) re ON re.BookId = b.BookId
     LEFT JOIN (
         SELECT bookid, COUNT(DISTINCT time) AS cnt
-        FROM libreviews
+        FROM cb_libreviews
         WHERE '{current_date}' - INTERVAL {days_back} DAY <= time
            OR {filter_recent} = 0
         GROUP BY bookid
@@ -1287,7 +1287,7 @@ class DatabaseBooks():
         b.Year,
         b.BookID AS relevance,
         0 AS relevance_oppos
-    FROM libbook b
+    FROM cb_libbook b
     WHERE b.Deleted = '0'
     ORDER BY b.BookID desc 
     LIMIT {MAX_BOOKS_SEARCH}

@@ -57,6 +57,7 @@ EOF
     scp .env.vps $VPS_USER@$VPS_IP:$VPS_PATH/.env
     scp config/my.cnf.vps $VPS_USER@$VPS_IP:$VPS_PATH/config/my.cnf
     scp docker-compose.vps.yml $VPS_USER@$VPS_IP:$VPS_PATH/docker-compose.yml
+    scp db_init/download_flibusta.sh $VPS_USER@$VPS_IP:$VPS_PATH/db_init/download_flibusta.sh
 #    scp db_init/init_db.sh $VPS_USER@$VPS_IP:$VPS_PATH/db_init/init_db.sh
 
     echo "✅ Directories and files setup completed"
@@ -246,9 +247,10 @@ case "${1:-}" in
     -d|--db-init)
         echo "🗜️  Starting database reinitialization..."
         prompt_user_input_vps
-        reinitialize_database
-        check_status
-        cleanup
+        copy_sql_files
+#        reinitialize_database
+#        check_status
+#        cleanup
         echo "✅ Database reinitialization completed!"
         ;;
 
