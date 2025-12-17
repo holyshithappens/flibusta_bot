@@ -1,9 +1,9 @@
 -- ============================================
--- Откат: Переименование cb_lib* обратно в lib*
+-- Очистка: удаление старых _old таблиц
 -- ============================================
 --
 -- Использование:
---   mysql -u flibusta -p flibusta < rollback_cb_tables.sql
+--   mysql -u flibusta -p flibusta < zz_01_cleanup_old_tables.sql
 --
 
 --SET NAMES utf8mb3;

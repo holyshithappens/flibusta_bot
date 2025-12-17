@@ -3,7 +3,7 @@
 -- ============================================
 --
 -- Использование:
---   mysql -u flibusta -p flibusta < rollback_cb_tables.sql
+--   mysql -u flibusta -p flibusta < zz_00_rollback_cb_tables.sql
 --
 
 --SET NAMES utf8mb3;
