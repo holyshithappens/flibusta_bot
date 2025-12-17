@@ -8,7 +8,7 @@
 -- ВАЖНО: Выполнять ПОСЛЕ создания всех индексов!
 --
 -- Использование:
---   mysql -u flibusta -p flibusta < zz_60_migrate_to_cb_tables.sql
+--   mysql -u flibusta -p flibusta < zz_59_migrate_cb_tables_to_old.sql
 --
 
 --SET NAMES utf8mb3;
@@ -25,25 +25,25 @@
 -- ============================================
 
 -- Основные таблицы
-RENAME TABLE libbook TO cb_libbook;
-RENAME TABLE libavtor TO cb_libavtor;
-RENAME TABLE libavtorname TO cb_libavtorname;
-RENAME TABLE libgenre TO cb_libgenre;
-RENAME TABLE libgenrelist TO cb_libgenrelist;
-RENAME TABLE libseq TO cb_libseq;
-RENAME TABLE libseqname TO cb_libseqname;
-RENAME TABLE librate TO cb_librate;
-RENAME TABLE librecs TO cb_librecs;
-RENAME TABLE libreviews TO cb_libreviews;
-RENAME TABLE libapics TO cb_libapics;
-RENAME TABLE libbpics TO cb_libbpics;
+RENAME TABLE cb_libbook TO cb_libbook_old;
+RENAME TABLE cb_libavtor TO cb_libavtor_old;
+RENAME TABLE cb_libavtorname TO cb_libavtorname_old;
+RENAME TABLE cb_libgenre TO cb_libgenre_old;
+RENAME TABLE cb_libgenrelist TO cb_libgenrelist_old;
+RENAME TABLE cb_libseq TO cb_libseq_old;
+RENAME TABLE cb_libseqname TO cb_libseqname_old;
+RENAME TABLE cb_librate TO cb_librate_old;
+RENAME TABLE cb_librecs TO cb_librecs_old;
+RENAME TABLE cb_libreviews TO cb_libreviews_old;
+RENAME TABLE cb_libapics TO cb_libapics_old;
+RENAME TABLE cb_libbpics TO cb_libbpics_old;
 
 -- Аннотации
-RENAME TABLE libbannotations TO cb_libbannotations;
-RENAME TABLE libaannotations TO cb_libaannotations;
+RENAME TABLE cb_libbannotations TO cb_libbannotations_old;
+RENAME TABLE cb_libaannotations TO cb_libaannotations_old;
 
 -- Полнотекстовый индекс
-RENAME TABLE libbook_fts TO cb_libbook_fts;
+RENAME TABLE cb_libbook_fts TO cb_libbook_fts_old;
 
 -- ============================================
 -- Проверка результата
