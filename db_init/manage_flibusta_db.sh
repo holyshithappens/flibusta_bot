@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-DB_DIR="/home/holy/flbst-bot-mdb/db_init"
+DB_DIR="$HOME/flbst-bot-mdb/db_init"
 SQL_DIR="$DB_DIR/sql"
 SCRIPTS_DIR="$DB_DIR"
 
@@ -15,7 +15,7 @@ CONTAINER="flibusta-db"
 
 # Утилита выполнения SQL
 _run_sql() {
-    docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" <<< "$1"
+    docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<< "$1"
 }
 
 show_menu() {
@@ -26,8 +26,8 @@ show_menu() {
 2) Загрузить lib*.sql в БД (staging)
 3) Применить скрипты подготовки (zz_10 → zz_50)
 4) Переименовать lib* → cb_lib* (активация)
-5) Откат: cb_lib_old* → cb_lib*
-6) Удалить старые cb_lib_old*
+5) Откат: cb_lib*_old → cb_lib*
+6) Удалить старые cb_lib*_old
 0) Выйти
 
 EOF
@@ -86,7 +86,7 @@ load_sql_to_lib_tables() {
         [[ -f "$gz" ]] || continue
         base=$(basename "$gz" .sql.gz)
         echo "  → $base"
-        gunzip -c "$gz" | docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME"
+        gunzip -c "$gz" | docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME"
     done
     echo "✅ Данные загружены в lib*"
 }
@@ -99,27 +99,27 @@ apply_preparation_scripts() {
                   zz_40_fill_FT.sql \
                   zz_50_repair_FT.sql; do
         echo "  → $script"
-        docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/$script"
+        docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/$script"
     done
     echo "✅ Подготовка завершена"
 }
 
 activate_cb_tables() {
     echo "🚀 Активация cb_lib* таблиц..."
-    docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_59_migrate_cb_tables_to_old.sql"
-    docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_60_migrate_to_cb_tables.sql"
+    docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_59_migrate_cb_tables_to_old.sql"
+    docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_60_migrate_to_cb_tables.sql"
     echo "✅ Переименование выполнено: lib* → cb_lib*"
 }
 
 rollback_to_old() {
     echo "🔙 Откат к cb_lib_old*..."
-    docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_00_rollback_cb_tables.sql"
+    docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_00_rollback_cb_tables.sql"
     echo "✅ Откат выполнен"
 }
 
 cleanup_old_tables() {
     echo "🗑️  Удаление cb_lib_old*..."
-    docker exec -i "$CONTAINER" mariadb -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_01_cleanup_old_tables.sql"
+    docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCRIPTS_DIR/zz_01_cleanup_old_tables.sql"
     echo "✅ Старые таблицы удалены"
 }
 
