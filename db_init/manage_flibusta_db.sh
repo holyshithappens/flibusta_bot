@@ -28,6 +28,7 @@ show_menu() {
 4) Переименовать lib* → cb_lib* (активация)
 5) Откат: cb_lib*_old → cb_lib*
 6) Удалить старые cb_lib*_old
+7) Удалить все .sql.gz в sql/
 0) Выйти
 
 EOF
@@ -86,7 +87,7 @@ load_sql_to_lib_tables() {
         [[ -f "$gz" ]] || continue
         base=$(basename "$gz" .sql.gz)
         echo "  → $base"
-        gunzip -c "$gz" | docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME"
+        gunzip -c "$gz" 2>/dev/null | docker exec -i "$CONTAINER" mariadb -u "$DB_USER" -p"$DB_PASS" "$DB_NAME"
     done
     echo "✅ Данные загружены в lib*"
 }
@@ -123,6 +124,13 @@ cleanup_old_tables() {
     echo "✅ Старые таблицы удалены"
 }
 
+cleanup_sql_files() {
+    echo "🗑️  Удаление всех .sql.gz файлов в $SQL_DIR..."
+    cd "$SQL_DIR"
+    rm -f *.sql.gz
+    echo "✅ Все .sql.gz файлы удалены"
+}
+
 # === Основной цикл ===
 while true; do
     show_menu
@@ -134,6 +142,7 @@ while true; do
         4) activate_cb_tables ;;
         5) rollback_to_old ;;
         6) cleanup_old_tables ;;
+        7) cleanup_sql_files ;;
         0) exit 0 ;;
         *) echo "❌ Неверный выбор" ;;
     esac

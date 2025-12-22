@@ -4,31 +4,50 @@ character-set-server=utf8mb3
 collation-server=utf8mb3_unicode_ci
 skip-character-set-client-handshake
 
-# Full-text search
+# InnoDB — основной движок
+innodb-buffer-pool-size=1400M
+innodb-log-file-size=128M
+innodb-flush-log-at-trx-commit=2
+innodb-file-per-table=ON          # можно оставить для совместимости, но не обязательно
+innodb-flush-method=O_DIRECT      # можно оставить, несмотря на warning
+
+# Memory
+key-buffer-size=16M
+max-heap-table-size=32M
+tmp-table-size=64M
+join-buffer-size=256K
+sort-buffer-size=256K
+read-buffer-size=128K
+read-rnd-buffer-size=256K
+
+# Connections
+max-connections=50
+thread-cache-size=10
+table-open-cache=1000
+table-definition-cache=500
+
+# Query cache — ОТКЛЮЧЕН (deprecated в новых версиях)
+query_cache_type=OFF
+query_cache_size=0
+
+# Performance schema — можно оставить OFF для экономии RAM
+performance-schema=OFF
+
+# Network
+skip-name-resolve
+wait_timeout=300
+interactive_timeout=300
+
+# Full-text
 ft-min-word-len=3
 innodb-ft-min-token-size=3
-#innodb-ft-cache-size=64M #8000000
-#innodb-ft-total-cache-size=256M # 640000000
 
-# Performance
-#innodb-buffer-pool-size=384M # 128M
-#innodb-log-file-size=64M # 96M
-#innodb-online-alter-log-max-size=64M # 128M
-#innodb-sort-buffer-size=16M # 1M
-#key-buffer-size=32M # 128M
-#max-heap-table-size=32M # 16M
-#max-connections=100 # 151
-#query-cache-size=0 # 1M
-#performance-schema=ON # OFF
-#table-open-cache=1000 # 2000
-#tmp-table-size=32M # 16M
-#thread-cache-size=8 # 151
+# Логирование (минимум)
+slow_query_log=OFF
+general_log=OFF
 
-# Network and security
-#bind-address=0.0.0.0
-#skip-name-resolve
-
-# SSL - правильные опции
-#ssl=0
-#skip-ssl
-#require-secure-transport=OFF
+# SSD tweaks (опционально, но безопасно)
+innodb-io-capacity=2000
+innodb-io-capacity-max=4000
+innodb-read-io-threads=4
+innodb-write-io-threads=4
