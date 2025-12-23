@@ -312,7 +312,7 @@ def clean_html_tags(text: str) -> str:
 
 def get_short_donation_notice():
     # Получаем дату окончания из переменных окружения
-    end_date_str = os.getenv("VPS_EXPIRY_DATE", "2026-04-04")
+    end_date_str = os.getenv("VPS_EXPIRY_DATE", "2026-03-26")
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
     days_left = (end_date - datetime.now()).days
 

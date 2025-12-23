@@ -1,7 +1,7 @@
 #!/bin/bash
 # deploy.sh - Deployment script with functions and options
 
-set -e
+set -euo pipefail
 
 # Базовые переменные
 DOCKER_USERNAME="holyshithappens"
@@ -18,48 +18,45 @@ DOCKER_PASSWORD=""
 
 # Функции
 show_usage() {
-    echo "Usage: $0 [OPTION]"
-    echo "Deploy script for Flibusta Bot"
-    echo ""
-    echo "Options:"
-    echo "  -u, --update    Quick update (pull and restart containers)"
-    echo "  -n, --news      Update only news file"
-    echo "  -d, --db-init   Extract SQL files and reinitialize database"
-    echo "  -h, --help      Show this help message"
-    echo ""
-    echo "Without options: Full deployment (build and deploy)"
+    cat <<EOF
+Usage: $0 [OPTION]
+Deploy Flibusta Bot configuration and Docker containers (no DB logic)
+
+Options:
+  -u, --update    Quick update (pull image and restart containers)
+  -h, --help      Show this help
+  -n, --news      Copy only news file to VPS
+  -s, --sql       Copy only sql and db manager scripts to VPS
+  (no option)     Full deploy: push new image and deploy
+EOF
 }
 
 prompt_user_input_vps() {
     echo "🔐 VPS Connection Details"
-    read -p "Enter VPS IP address [162.199.167.194]: " input_ip
-    read -p "Enter VPS username [holy]: " input_user
-
+    read -rp "Enter VPS IP address [162.199.167.194]: " input_ip
+    read -rp "Enter VPS username [holy]: " input_user
     VPS_IP=${input_ip:-"162.199.167.194"}
     VPS_USER=${input_user:-"holy"}
 }
 
 prompt_user_input_docker() {
     echo ""
-    echo "🔐 Docker Hub authentication needed for user: $DOCKER_USERNAME"
-    read -s -p "Enter Docker Hub password or access token: " DOCKER_PASSWORD
+    echo "🔐 Docker Hub auth for user: $DOCKER_USERNAME"
+    read -rsp "Enter Docker Hub PAT or password: " DOCKER_PASSWORD
     echo
 }
 
-setup_directories_and_files() {
+copy_config_files() {
     echo ""
-    echo "📁 Setting up directories and files on VPS..."
-
-    ssh $VPS_USER@$VPS_IP << EOF
-mkdir -p ~/$VPS_PATH/data ~/$VPS_PATH/logs ~/$VPS_PATH/db_init/sql ~/$VPS_PATH/db_backups ~/$VPS_PATH/config
-EOF
-
-    scp .env.vps $VPS_USER@$VPS_IP:$VPS_PATH/.env
-    scp config/my.cnf.vps $VPS_USER@$VPS_IP:$VPS_PATH/config/my.cnf
-    scp docker-compose.vps.yml $VPS_USER@$VPS_IP:$VPS_PATH/docker-compose.yml
+    echo "📁 Copying config files to VPS..."
+    ssh "$VPS_USER@$VPS_IP" "mkdir -p ~/$VPS_PATH/{data,logs,config}"
+    scp .env.vps "$VPS_USER@$VPS_IP:$VPS_PATH/.env"
+    scp config/my.cnf.vps "$VPS_USER@$VPS_IP:$VPS_PATH/config/my.cnf"
+    scp docker-compose.vps.yml "$VPS_USER@$VPS_IP:$VPS_PATH/docker-compose.yml"
+#    scp ./data/bot_news.py "$VPS_USER@$VPS_IP:$VPS_PATH/data/bot_news.py"
+#    scp db_init/download_flibusta.sh $VPS_USER@$VPS_IP:$VPS_PATH/db_init/download_flibusta.sh
 #    scp db_init/init_db.sh $VPS_USER@$VPS_IP:$VPS_PATH/db_init/init_db.sh
-
-    echo "✅ Directories and files setup completed"
+    echo "✅ Config files copied"
 }
 
 copy_sql_files() {
@@ -67,66 +64,22 @@ copy_sql_files() {
     echo "📁 Copying SQL files on VPS..."
 
     # Копируем SQL файлы если они существуют
+    scp db_init/manage_flibusta_db.sh $VPS_USER@$VPS_IP:$VPS_PATH/db_init/manage_flibusta_db.sh
     scp db_init/zz_*.sql $VPS_USER@$VPS_IP:$VPS_PATH/db_init/
-    if ls db_init/sql/*.sql.gz 1> /dev/null 2>&1; then
-        echo "📦 Copying SQL.gz files to VPS..."
-#        scp db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql/
-        rsync -avz --progress --partial db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql
-    else
-        echo "⚠️  No SQL.gz files found in db_init/sql/"
-    fi
+#    if ls db_init/sql/*.sql.gz 1> /dev/null 2>&1; then
+#        echo "📦 Copying SQL.gz files to VPS..."
+##        scp db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql/
+#        rsync -avz --progress --partial db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql
+#    else
+#        echo "⚠️  No SQL.gz files found in db_init/sql/"
+#    fi
 
     echo "✅ SQL files setup completed"
 }
 
-extract_sql_files_on_vps() {
-    echo ""
-    echo "🗜️  Extracting SQL files on VPS..."
-
-    ssh $VPS_USER@$VPS_IP << EOF
-cd ~/$VPS_PATH
-
-echo "📦 Extracting SQL.gz files in db_init/sql/..."
-for gz_file in db_init/sql/*.sql.gz; do
-    if [ -f "\$gz_file" ]; then
-        filename=\$(basename "\$gz_file" .sql.gz)
-        echo "Extracting \$gz_file -> db_init/\${filename}.sql"
-        gunzip -c "\$gz_file" > "db_init/\${filename}.sql"
-    fi
-done
-
-echo "✅ SQL files extracted on VPS"
-EOF
-}
-
-reinitialize_database() {
-    echo ""
-    echo "🔄 Reinitializing database..."
-
-    ssh $VPS_USER@$VPS_IP << EOF
-cd ~/$VPS_PATH
-
-echo "🗑️  Removing old database volume..."
-#docker-compose down || true
-docker-compose down -v || true
-
-echo "🗜️  Extracting SQL files..."
-for gz_file in db_init/sql/*.sql.gz; do
-    if [ -f "\$gz_file" ]; then
-        filename=\$(basename "\$gz_file" .sql.gz)
-        echo "Extracting \$gz_file -> db_init/\${filename}.sql"
-        gunzip -c "\$gz_file" > "db_init/\${filename}.sql"
-    fi
-done
-
-echo "🚀 Starting fresh database..."
-docker-compose up -d --force-recreate
-
-echo "⏳ Waiting for database initialization..."
-sleep 30
-
-echo "✅ Database reinitialization completed"
-EOF
+read_deploy_ref() {
+    read -rp "Deploy from [branch/tag] (default: main): " DEPLOY_REF
+    echo "${DEPLOY_REF:-main}"
 }
 
 copy_news_file() {
@@ -145,97 +98,62 @@ setup_permissions() {
 
     ssh $VPS_USER@$VPS_IP << EOF
 cd ~/$VPS_PATH
-#chmod +x db_init/init_db.sh
-#chmod 755 data logs db_backups
+chmod +x db_init/init_db.sh
+chmod 755 data logs db_backups
 EOF
 
     echo "✅ Permissions setup completed"
 }
 
 build_and_push_image() {
+    local deploy_ref="$1"
     echo ""
-    echo "🚀 Building and pushing Docker image..."
+    echo "🚀 Building and pushing Docker image from '$deploy_ref'..."
 
-    ssh $VPS_USER@$VPS_IP << EOF
-cd ~/$VPS_PATH
+    # Build locally
+    echo "📥 Cloning repo..."
+    rm -rf /tmp/flibusta_build
+    git clone --branch "$deploy_ref" --single-branch "$GITHUB_REPO" /tmp/flibusta_build
 
-echo "📥 Cloning latest code from GitHub..."
-rm -rf temp_build
-#git clone $GITHUB_REPO --branch $BRANCH --single-branch temp_build
-read -p "Deploy from [branch/tag] (default: main): " DEPLOY_REF
-DEPLOY_REF=${DEPLOY_REF:-"main"}
-echo "📦 Deploying from: $DEPLOY_REF"
+    echo "🐳 Building image..."
+    docker build -t "$IMAGE_NAME:latest" /tmp/flibusta_build
 
-git clone $GITHUB_REPO --branch $DEPLOY_REF --single-branch temp_build
+    echo "📤 Pushing to Docker Hub..."
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    docker push "$IMAGE_NAME:latest"
+    docker logout
 
-echo "🔐 Logging into Docker Hub..."
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-echo "🐳 Building Docker image..."
-docker build -t $IMAGE_NAME:latest ./temp_build
-
-echo "📤 Pushing to Docker Hub..."
-docker push $IMAGE_NAME:latest
-
-echo "🔐 Logging out from Docker Hub..."
-docker logout
-
-echo "🧹 Cleaning up temp files..."
-rm -rf temp_build
-
-echo "✅ Image build and push completed"
-EOF
+    rm -rf /tmp/flibusta_build
+    echo "✅ Image pushed"
 }
 
 deploy_containers() {
     echo ""
-    echo "🚀 Deploying containers..."
-
-    ssh $VPS_USER@$VPS_IP << EOF
-cd ~/$VPS_PATH
-
-echo "🔄 Starting containers..."
-docker-compose down || true
-docker-compose pull
-docker-compose up -d --force-recreate
-
-echo "🧹 Cleaning up Docker..."
-docker system prune -f
-
-echo "✅ Container deployment completed"
-EOF
+    echo "🚀 Pulling and starting containers..."
+    ssh "$VPS_USER@$VPS_IP" "cd ~/$VPS_PATH && \
+        docker-compose down 2>/dev/null || true && \
+        docker-compose pull && \
+        docker-compose up -d --force-recreate && \
+        docker system prune -f"
+    echo "✅ Containers deployed"
 }
 
 check_status() {
     echo ""
     echo "🔍 Checking service status..."
-
-    ssh $VPS_USER@$VPS_IP << EOF
-cd ~/$VPS_PATH
-sleep 10
-docker-compose ps
-echo ""
-docker-compose logs --tail=15 db
-EOF
-
-    echo "✅ Status check completed"
-}
-
-cleanup() {
-    unset DOCKER_PASSWORD
-    unset VPS_IP
-    unset VPS_USER
+    ssh "$VPS_USER@$VPS_IP" "cd ~/$VPS_PATH && sleep 5 && docker-compose ps"
+    echo ""
+    ssh "$VPS_USER@$VPS_IP" "cd ~/$VPS_PATH && docker-compose logs --tail=20 db | grep -E 'ready|started|error|ERROR'"
+    echo "✅ Status check done"
 }
 
 # Обработка аргументов командной строки
 case "${1:-}" in
     -u|--update)
-        echo "🔄 Starting QUICK update..."
+        echo "🔄 Quick update (pull + restart)"
         prompt_user_input_vps
         deploy_containers
         check_status
-        cleanup
-        echo "✅ Quick update completed!"
         ;;
 
     -n|--news)
@@ -243,13 +161,9 @@ case "${1:-}" in
         copy_news_file
         ;;
 
-    -d|--db-init)
-        echo "🗜️  Starting database reinitialization..."
+    -s|--sql)
         prompt_user_input_vps
-        reinitialize_database
-        check_status
-        cleanup
-        echo "✅ Database reinitialization completed!"
+        copy_sql_files
         ;;
 
     -h|--help)
@@ -257,23 +171,21 @@ case "${1:-}" in
         ;;
 
     "")
-        echo "🚀 Starting FULL deployment..."
+        echo "🚀 Full deployment (build + push + deploy)"
         prompt_user_input_vps
         prompt_user_input_docker
-        setup_directories_and_files
-#        copy_sql_files
-#        extract_sql_files_on_vps
+        DEPLOY_REF=$(read_deploy_ref)
+        copy_config_files
+        copy_sql_files
         copy_news_file
-        setup_permissions
-        build_and_push_image
+#        setup_permissions
+        build_and_push_image "$DEPLOY_REF"
         deploy_containers
         check_status
-        cleanup
-        echo "✅ Full deployment completed!"
         ;;
 
     *)
-        echo "Error: Unknown option $1"
+        echo "❌ Unknown option: $1" >&2
         show_usage
         exit 1
         ;;
