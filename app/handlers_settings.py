@@ -7,9 +7,9 @@ from database import DB_BOOKS
 from constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
     SETTING_SEARCH_AREA
-from context import get_user_params, update_user_params
+from core.context_manager import get_user_params, update_user_params
 from logger import logger
-
+from structured_logger import structured_logger
 
 # ===== НАСТРОЙКИ =====
 async def show_settings_menu(update_or_query, context, from_callback=False):
@@ -124,17 +124,39 @@ async def handle_set_rating_filter(query, context, action, params):
 async def handle_set_actions(query, context, action, params):
     """Обрабатывает все set_ действия"""
     user = query.from_user
+    action = query.data
+    user_params = get_user_params(context)
 
     # Определяем тип настройки из action
     if action.startswith(f'set_{SETTING_MAX_BOOKS}_to_'):
         setting_type = SETTING_MAX_BOOKS
+        old_value = user_params.MaxBooks
         new_value = int(action.removeprefix(f'set_{SETTING_MAX_BOOKS}_to_'))
         update_user_params(context, MaxBooks=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="MaxBooks",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_LANG_SEARCH}_to_'):
         setting_type = SETTING_LANG_SEARCH
+        old_value = user_params.Lang
         new_value = action.removeprefix(f'set_{SETTING_LANG_SEARCH}_to_')
         update_user_params(context, Lang=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="Lang",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     # elif action.startswith(f'set_{SETTING_SORT_ORDER}_to_'):
     #     setting_type = SETTING_SORT_ORDER
@@ -143,24 +165,63 @@ async def handle_set_actions(query, context, action, params):
 
     elif action.startswith(f'set_{SETTING_SIZE_LIMIT}_to_'):
         setting_type = SETTING_SIZE_LIMIT
+        old_value = user_params.BookSize
         new_value = action.removeprefix(f'set_{SETTING_SIZE_LIMIT}_to_')
         update_user_params(context, BookSize=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="BookSize",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_BOOK_FORMAT}_to_'):
         setting_type = SETTING_BOOK_FORMAT
+        old_value = user_params.BookFormat
         new_value = action.removeprefix(f'set_{SETTING_BOOK_FORMAT}_to_')
         update_user_params(context, BookFormat=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="BookFormat",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_SEARCH_TYPE}_to_'):
         setting_type = SETTING_SEARCH_TYPE
+        old_value = user_params.SearchType
         new_value = action.removeprefix(f'set_{SETTING_SEARCH_TYPE}_to_')
         update_user_params(context, SearchType=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="SearchType",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_SEARCH_AREA}_to_'):
         setting_type = SETTING_SEARCH_AREA
+        old_value = user_params.SearchArea
         new_value = action.removeprefix(f'set_{SETTING_SEARCH_AREA}_to_')
         update_user_params(context, SearchArea=new_value)
-
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="SearchArea",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
     else:
         return
 
