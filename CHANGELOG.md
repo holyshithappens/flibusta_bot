@@ -6,26 +6,19 @@
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
 ## [Unreleased]
-<<<<<<< HEAD
-### In Progress
-- Рефакторинг в Service/Repository/Handler архитектуру
-- Разделение database.py на репозитории
-- Создание слоя сервисов
-=======
 
 ### Added
+- Рефакторинг в Service/Repository/Handler архитектуру
 - Структурированное логирование в JSON формате
-- Аналитические представления для статистики
-- Парсер старых логов в новую структуру
+- Базовые классы BaseMariaDBRepository и BaseSQLiteRepository
+- LogsRepository для работы с логами
+- StructuredLogger для единообразного логирования
+- Аналитические методы для статистики
 
-### Changed
+### Changed  
+- Разделение database.py на репозитории
 - Логи записываются в БД с типизированными полями
 - Исключено логирование действий администратора
->>>>>>> feature/structured-logging
-
-### Планируется
-- Оптимизация SQL запросов (Query Builder)
-- Структурированное логирование
 
 ## [1.1.0] - 2025-12-14
 
