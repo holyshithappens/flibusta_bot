@@ -16,6 +16,9 @@ from health import cleanup_old_sessions
 from flibusta_client import flibusta_client
 from handlers_payments import pre_checkout, successful_payment
 
+from structured_logger import structured_logger
+from repositories.logs_repository import LogsRepository
+from logging_schema import EventType
 
 async def post_stop(app: Application) -> None:
     """Вызывается после остановки бота"""
@@ -75,6 +78,15 @@ def main():
     request = HTTPXRequest(connect_timeout=60, read_timeout=60)
     #application = Application.builder().token(TOKEN).read_timeout(60).build()
     application = Application.builder().token(TOKEN).request(request).build()
+
+    # Инициализация structured logger
+    logs_repo = LogsRepository()
+    structured_logger.set_db_logger(logs_repo)
+    structured_logger.log_system(
+        EventType.SYSTEM_STARTUP,
+        "Bot started successfully",
+        {"version": "1.1.0"}
+    )
 
     application.add_error_handler(error_handler)
 
