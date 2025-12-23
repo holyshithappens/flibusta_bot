@@ -3,11 +3,13 @@
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime
 from logging_schema import LogEvent, EventCategory, EventType
 from logging_schema import SearchEvent, DownloadEvent, SettingsChangeEvent
 
+if TYPE_CHECKING:
+    from repositories.logs_repository import LogsRepository
 
 class StructuredLogger:
     """
@@ -34,7 +36,7 @@ class StructuredLogger:
             self._db_logger = None
             self._initialized = True
 
-    def set_db_logger(self, db_logger):
+    def set_db_logger(self, db_logger: 'LogsRepository') -> None:
         """Установить database logger (LogsRepository)"""
         self._db_logger = db_logger
 
