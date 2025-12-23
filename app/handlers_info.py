@@ -6,11 +6,14 @@ from telegram.ext import CallbackContext
 
 from database import DB_BOOKS
 from utils import format_book_reviews, format_author_info, format_book_details, format_book_info
+from logging_schema import EventType
+from structured_logger import structured_logger
 
 # ===== ИНФОРМАЦИЯ О КНИГАХ И АВТОРАХ =====
 async def handle_book_info(query, context, action, params):
     """Показывает информацию о книге с дополнительными кнопками"""
     try:
+        user = query.from_user
         file_name = params[0]
         book_id = int(file_name)
 
@@ -66,11 +69,18 @@ async def handle_book_info(query, context, action, params):
 
         await info_message.edit_reply_markup(reply_markup)
 
+        structured_logger.log_user_action(
+            event_type=EventType.BOOK_INFO_VIEW,
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            data={"book_id": book_id},
+            chat_type="private",
+            chat_id=user.id
+        )
 
     except Exception as e:
         print(f"Error in handle_book_info: {e}")
         await query.answer("❌ Ошибка при загрузке информации о книге")
-
 
 async def handle_book_details(query, context, action, params):
     """Показывает детальную информацию о книге с обложкой и аннотацией"""
