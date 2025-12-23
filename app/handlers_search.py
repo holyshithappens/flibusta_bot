@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from time import time
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
@@ -12,14 +13,14 @@ from utils import form_header_books
 from database import DB_BOOKS
 from constants import SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SEARCH_AREA_B, \
     SETTING_SEARCH_AREA_BA
-from context import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
+from app.core.context_manager import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
     set_last_search_query, set_series, set_last_series_page, get_last_search_query, set_current_series_name, \
     set_authors, set_last_authors_page, set_current_author_id, set_current_author_name, get_pages_of_books, \
     get_current_author_id, get_found_books_count, get_current_series_name, get_current_author_name, get_pages_of_series, \
     get_found_series_count, get_pages_of_authors, get_found_authors_count, get_switch_search, set_switch_search
 from logger import logger
 from health import log_stats
-
+from structured_logger import structured_logger
 
 # ===== ПОИСК И НАВИГАЦИЯ =====
 async def handle_message(update: Update, context: CallbackContext):
@@ -97,6 +98,7 @@ async def handle_search_books(update: Update, context: CallbackContext):
 async def async_search_books(context: CallbackContext, query_text: str, processing_msg, user, series_id=0, author_id=0):
     """Асинхронная задача поиска книг"""
     try:
+        start_time = time()
         # Извлекаем из контекста или БД настройки пользователя
         user_params = get_user_params(context)
 
@@ -125,6 +127,27 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                 )
             )
         found_books_count = len(books)
+
+        duration_ms = int((time() - start_time) * 1000)
+
+        # Структурированное логирование ← ДОБАВИТЬ ВСЁ ЭТО
+        structured_logger.log_search(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            query=query_text,
+            search_type=user_params.SearchType,
+            search_area=user_params.SearchArea,
+            results_count=len(books),
+            duration_ms=duration_ms,
+            chat_type="private",  # или определить из context
+            chat_id=user.id,
+            # Фильтры
+            lang=user_params.Lang,
+            rating_filter=user_params.Rating,
+            size_limit=user_params.BookSize,
+            series_id=series_id,
+            author_id=author_id
+        )
 
         # Обрабатываем результаты
         await process_search_books(context, books, found_books_count, processing_msg, query_text, user, author_id)
