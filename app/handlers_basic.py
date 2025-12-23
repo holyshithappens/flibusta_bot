@@ -11,6 +11,8 @@ from constants import BOT_NEWS_FILE_PATH, SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30
 from database import DB_BOOKS
 from logger import logger
 from health import log_stats
+from structured_logger import structured_logger
+from logging_schema import EventType
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
 CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"), 'pikabu': os.getenv("FEEDBACK_PIKABU", ""),
@@ -39,8 +41,15 @@ async def start_cmd(update: Update, context: CallbackContext):
 
     await log_stats(context)
 
-    logger.log_user_action(user, "started bot")
-
+    # logger.log_user_action(user, "started bot")
+    structured_logger.log_user_action(
+        event_type=EventType.BOT_START,
+        user_id=user.id,
+        username=user.username or user.first_name or "Unknown",
+        data={},
+        chat_type="private",
+        chat_id=user.id
+    )
 
 async def genres_cmd(update: Update, context: CallbackContext):
     """Показывает родительские жанры"""
@@ -69,8 +78,15 @@ async def genres_cmd(update: Update, context: CallbackContext):
 
     await log_stats(context)
     user = update.message.from_user
-    logger.log_user_action(user, "viewed parent genres")
-
+    # logger.log_user_action(user, "viewed parent genres")
+    structured_logger.log_user_action(
+        event_type=EventType.GENRES_VIEW,
+        user_id=user.id,
+        username=user.username or user.first_name or "Unknown",
+        data={},
+        chat_type="private",
+        chat_id=user.id
+    )
 
 async def pop_cmd(update: Update, context: CallbackContext):
     """Показывает варианты просмотра популярных книг и новинок публикаций"""
