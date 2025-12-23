@@ -18,7 +18,7 @@ from handlers_utils import create_authors_keyboard, create_series_keyboard, hand
 from constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, \
     SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT
-from context import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
+from core.context_manager import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
     get_user_params, update_user_params, get_last_series_page, get_last_authors_page, set_switch_search, \
     get_switch_search
 from flibusta_client import FlibustaClient

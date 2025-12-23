@@ -2,12 +2,15 @@ from telegram import InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.error import TimedOut
 
-from context import get_user_params
+from core.context_manager import get_user_params
 from constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from utils import format_size, upload_to_tmpfiles,  get_short_donation_notice
 from logger import logger
 from flibusta_client import flibusta_client, FlibustaClient
+
+from structured_logger import structured_logger
+from logging_schema import EventType
 
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
 async def handle_send_file(query, context, action, params, for_user = None):
@@ -20,7 +23,7 @@ async def handle_send_file(query, context, action, params, for_user = None):
 
     log_detail = f"{book_id}.{book_format}"
     log_detail += ":" + public_filename if public_filename else ""
-    logger.log_user_action(query.from_user, "send file", log_detail)
+    # logger.log_user_action(query.from_user, "send file", log_detail)
 
 
 async def process_book_download(query, book_id, book_format, for_user=None):
@@ -54,6 +57,21 @@ async def process_book_download(query, book_id, book_format, for_user=None):
                 caption=message,
                 parse_mode=ParseMode.MARKDOWN
             )
+
+            # ✅ ЛОГИРОВАНИЕ УСПЕШНОГО СКАЧИВАНИЯ
+            structured_logger.log_download(
+                user_id=query.from_user.id,
+                username=query.from_user.username or query.from_user.first_name or "Unknown",
+                book_id=book_id,
+                book_title=None,  # если есть
+                format=format,
+                file_size=len(book_data) if book_data else 0,
+                success=True,
+                via_tmpfiles=False,
+                chat_type="private",
+                chat_id=query.from_user.id
+            )
+
         else:
             await query.message.reply_text(
                 "😞 Не удалось скачать книгу в этом формате" + (f" для {for_user.first_name}" if for_user else ""),
@@ -65,13 +83,37 @@ async def process_book_download(query, book_id, book_format, for_user=None):
 
     except TimedOut:
         await handle_timeout_error(processing_msg, book_data, book_id, book_format, query)
+
+        structured_logger.log_download(
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            book_id=book_id,
+            book_title=None,
+            format=format,
+            file_size=len(book_data),
+            success=True,
+            via_tmpfiles=True,
+            chat_type="private",
+            chat_id=query.from_user.id
+        )
+
     except Exception as e:
         """Обрабатывает ошибку загрузки"""
         print(f"Общая ошибка при отправке книги: {e}")
         await processing_msg.edit_text(
             f"❌ Произошла ошибка при подготовке книги {book_url}. Возможно она доступна только в локальной базе"
         )
-        logger.log_user_action(query.from_user.id, "error sending book direct", book_url)
+        # logger.log_user_action(query.from_user.id, "error sending book direct", book_url)
+        structured_logger.log_error(
+            error_type="download_failed",
+            error_message=str(e),
+            context={
+                "book_id": book_id,
+                "format": format
+            },
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown"
+        )
 
     return None
 
