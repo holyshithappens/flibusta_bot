@@ -112,6 +112,11 @@ class StructuredLogger:
             chat_id: Optional[int] = None
     ) -> None:
         """Логирует скачивание книги"""
+        # print(f"DEBUG: book_id={book_id}, type={type(book_id)}")
+        # print(f"DEBUG: book_title={book_title}, type={type(book_title)}")
+        # print(f"DEBUG: book_format={format}, type={type(format)}")
+        # print(f"DEBUG: file_size={file_size}, type={type(file_size)}")
+
         download_data = DownloadEvent(
             book_id=book_id,
             book_title=book_title,

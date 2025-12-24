@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.error import TimedOut
+from telegram.ext import CallbackContext
 
 from core.context_manager import get_user_params
 from constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
@@ -15,20 +16,21 @@ from logging_schema import EventType
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
 async def handle_send_file(query, context, action, params, for_user = None):
     """Обрабатывает отправку файла"""
-    book_id = params[0]
+    book_id = int(params[0])
     user_params = get_user_params(context)
     book_format = user_params.BookFormat if user_params else DEFAULT_BOOK_FORMAT
 
-    public_filename = await process_book_download(query, book_id, book_format, for_user)
+    public_filename = await process_book_download(query, context, book_id, book_format, for_user)
 
-    log_detail = f"{book_id}.{book_format}"
-    log_detail += ":" + public_filename if public_filename else ""
+    # log_detail = f"{book_id}.{book_format}"
+    # log_detail += ":" + public_filename if public_filename else ""
     # logger.log_user_action(query.from_user, "send file", log_detail)
 
 
-async def process_book_download(query, book_id, book_format, for_user=None):
+async def process_book_download(query, context, book_id: int, book_format, for_user=None):
     """Обрабатывает скачивание и отправку книги сначала без авторизации на сайте, потом с авторизацией"""
     book_url = FlibustaClient.get_book_url(book_id)
+    book_title = get_book_title_safe(context, book_id)
 
     try:
         processing_msg = await query.message.reply_text(
@@ -63,8 +65,8 @@ async def process_book_download(query, book_id, book_format, for_user=None):
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown",
                 book_id=book_id,
-                book_title="",  # TODO нужно извлечь заголовок книги
-                format=format,
+                book_title=book_title,
+                format=book_format,
                 file_size=len(book_data) if book_data else 0,
                 success=True,
                 via_tmpfiles=False,
@@ -88,8 +90,8 @@ async def process_book_download(query, book_id, book_format, for_user=None):
             user_id=query.from_user.id,
             username=query.from_user.username or query.from_user.first_name or "Unknown",
             book_id=book_id,
-            book_title="", # TODO нужно извлечь заголовок книги
-            format=format,
+            book_title=book_title,
+            format=book_format,
             file_size=len(book_data),
             success=True,
             via_tmpfiles=True,
@@ -261,3 +263,46 @@ def create_authors_keyboard(page, pages_of_authors):
             add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors)
 
     return keyboard
+
+
+def get_book_title_safe(context: CallbackContext, book_id: int) -> str:
+    """
+    Получает название книги безопасно (кеш → БД → fallback)
+
+    Args:
+        context: Telegram context
+        book_id: ID книги
+
+    Returns:
+        Название книги или "Book #{book_id}"
+    """
+    from core.context_manager import ContextManager
+
+    # 1. Пробуем получить из кеша
+    cached_title = ContextManager.get_cached_book_title(context, book_id)
+    # print(f"DEBUG: cached in context: {cached_title}")
+    if cached_title:
+        # print(f"DEBUG: get book title from context")
+        return cached_title
+
+    # 2. Запрашиваем из БД (используем старый DatabaseBooks)
+    try:
+        from database import DB_BOOKS
+
+        # Используем метод connect() старого класса
+        with DB_BOOKS.connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT Title FROM cb_libbook WHERE BookID = %s LIMIT 1", (book_id,))
+            result = cursor.fetchone()
+
+            if result and result[0]:
+                title = str(result[0])
+                # Кешируем для следующих использований
+                ContextManager.cache_book_info(context, book_id, title)
+                # print(f"DEBUG: get book title from DB")
+                return title
+    except Exception as e:
+        print(f"Error fetching book title from DB: {e}")
+
+    # 3. Fallback - если всё упало
+    return f"Book #{book_id}"
