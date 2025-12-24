@@ -4,7 +4,7 @@ from datetime import datetime
 
 from telegram.ext import CallbackContext
 
-from context import ContextManager
+from core.context_manager import ContextManager
 from constants import CLEANUP_INTERVAL
 from logger import logger
 
