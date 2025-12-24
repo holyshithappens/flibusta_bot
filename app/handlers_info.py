@@ -69,6 +69,10 @@ async def handle_book_info(query, context, action, params):
 
         await info_message.edit_reply_markup(reply_markup)
 
+        # ✅ КЕШИРУЕМ ИНФОРМАЦИЮ О КНИГЕ
+        from core.context_manager import ContextManager
+        ContextManager.cache_book_info(context, book_id, book_info.get('title'))
+
         structured_logger.log_user_action(
             event_type=EventType.BOOK_INFO_VIEW,
             user_id=user.id,

@@ -22,6 +22,7 @@ class CMConst:
         LAST_BOT_MESSAGE_ID = "last_bot_message_id"
         LAST_SEARCH_QUERY = "last_search_query"
         SWITCH_SEARCH = "switch_search"  # переключатель поиска по популярным и новинкам
+        BOOKS_CACHE = 'books_cache'
 
     # Ключи для поисковых данных
     class CMC_SearchData:
@@ -230,6 +231,47 @@ class ContextManager:
             if key in user_data:
                 del user_data[key]
 
+    @classmethod
+    def cache_book_info(cls, context: CallbackContext, book_id: int, book_title: str) -> None:
+        """
+        Кеширует информацию о книге в контексте
+
+        Args:
+            context: Telegram context
+            book_id: ID книги
+            book_title: Название книги
+        """
+        data = cls._get_context_data(context)
+
+        if CMConst.CMC_Proc.BOOKS_CACHE not in data:
+            data[CMConst.CMC_Proc.BOOKS_CACHE] = {}
+
+        data[CMConst.CMC_Proc.BOOKS_CACHE][book_id] = book_title
+
+        # print(f"DEBUG: cache_book_info: context: {context}")
+        # print(f"DEBUG: cache_book_info: data: {data}")
+        # print(f"DEBUG: cached in context: {data[CMConst.CMC_Proc.BOOKS_CACHE][book_id]}")
+
+    @classmethod
+    def get_cached_book_title(cls, context: CallbackContext, book_id: int) -> Optional[str]:
+        """
+        Получает название книги из кеша
+
+        Args:
+            context: Telegram context
+            book_id: ID книги
+
+        Returns:
+            Название книги или None если не найдено
+        """
+        data = cls._get_context_data(context)
+        cache = data.get(CMConst.CMC_Proc.BOOKS_CACHE, {})
+        book_title = cache.get(book_id)
+        # print(f"DEBUG: get_cached_book_title: context: {context}")
+        # print(f"DEBUG: get_cached_book_title: data: {data}")
+        # print(f"DEBUG: get_cached_book_title: cache: {cache}")
+        # print(f"DEBUG: get_cached_book_title: book_title: {book_title}")
+        return book_title
 
 # Специализированные геттеры для часто используемых ключей
 def set_last_activity(context: CallbackContext, dt: Any) -> None:
