@@ -6,6 +6,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 from telegram.error import Forbidden
+
+from core.context_manager import ContextManager
 # from telegram._message import Message
 
 from handlers_utils import create_books_keyboard, create_series_keyboard, create_authors_keyboard
@@ -130,17 +132,18 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
 
         duration_ms = int((time() - start_time) * 1000)
 
-        # Структурированное логирование ← ДОБАВИТЬ ВСЁ ЭТО
+        # Структурированное логирование
+        user_id, chat_id = ContextManager._get_ids_from_context(context)
         structured_logger.log_search(
-            user_id=user.id,
+            user_id=user_id,
             username=user.username or user.first_name or "Unknown",
             query=query_text,
             search_type=user_params.SearchType,
             search_area=user_params.SearchArea,
             results_count=len(books),
             duration_ms=duration_ms,
-            chat_type="private",  # или определить из context
-            chat_id=user.id,
+            chat_type="private" if user_id == chat_id else "group",  # или определить из context
+            chat_id=chat_id,
             # Фильтры
             lang=user_params.Lang,
             rating_filter=user_params.Rating,
@@ -218,20 +221,20 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
             parse_mode=ParseMode.HTML
         )
 
-    if show_pop:
-        by = ' popular'
-    elif search_type == SEARCH_TYPE_SERIES:
-        by = f' in series {series_name}'
-    elif search_type == SEARCH_TYPE_AUTHORS:
-        by = f' for author {author_name}'
-    elif search_area == SETTING_SEARCH_AREA_B:
-        by = ' by book info'
-    elif search_area == SETTING_SEARCH_AREA_BA:
-        by = ' by book annotation'
-    else:
-        by = ''
-
-    logger.log_user_action(user, "searched for books" + by, f"{query_text}; count:{found_books_count}")
+    # if show_pop:
+    #     by = ' popular'
+    # elif search_type == SEARCH_TYPE_SERIES:
+    #     by = f' in series {series_name}'
+    # elif search_type == SEARCH_TYPE_AUTHORS:
+    #     by = f' for author {author_name}'
+    # elif search_area == SETTING_SEARCH_AREA_B:
+    #     by = ' by book info'
+    # elif search_area == SETTING_SEARCH_AREA_BA:
+    #     by = ' by book annotation'
+    # else:
+    #     by = ''
+    #
+    # logger.log_user_action(user, "searched for books" + by, f"{query_text}; count:{found_books_count}")
 
 
 async def handle_search_series(update: Update, context: CallbackContext):
@@ -268,6 +271,7 @@ async def handle_search_series(update: Update, context: CallbackContext):
 
 async def async_search_series(context: CallbackContext, query_text: str, processing_msg, user):
     try:
+        start_time = time()
         # Извлекаем настройки пользователя из контекста или БД
         user_params = get_user_params(context)
 
@@ -280,6 +284,26 @@ async def async_search_series(context: CallbackContext, query_text: str, process
             )
         )
         found_series_count = len(series)
+
+        duration_ms = int((time() - start_time) * 1000)
+
+        # Структурированное логирование
+        user_id, chat_id = ContextManager._get_ids_from_context(context)
+        structured_logger.log_search(
+            user_id=user_id,
+            username=user.username or user.first_name or "Unknown",
+            query=query_text,
+            search_type=user_params.SearchType,
+            search_area=user_params.SearchArea,
+            results_count=len(series),
+            duration_ms=duration_ms,
+            chat_type="private" if user_id == chat_id else "group",  # или определить из context
+            chat_id=chat_id,
+            # Фильтры
+            lang=user_params.Lang,
+            rating_filter=user_params.Rating,
+            size_limit=user_params.BookSize
+        )
 
         # Обрабатываем результаты
         await process_search_series(context, series, found_series_count, processing_msg, query_text, user)
@@ -321,13 +345,13 @@ async def process_search_series(context: CallbackContext, series, found_series_c
             parse_mode=ParseMode.HTML
         )
 
-    by = ''
-    if search_area == SETTING_SEARCH_AREA_B:
-        by = ' by book info'
-    elif search_area == SETTING_SEARCH_AREA_BA:
-        by = ' by book annotation'
-
-    logger.log_user_action(user, "searched for series" + by, f"{query_text}; count:{found_series_count}")
+    # by = ''
+    # if search_area == SETTING_SEARCH_AREA_B:
+    #     by = ' by book info'
+    # elif search_area == SETTING_SEARCH_AREA_BA:
+    #     by = ' by book annotation'
+    #
+    # logger.log_user_action(user, "searched for series" + by, f"{query_text}; count:{found_series_count}")
 
 
 async def handle_search_series_books(query, context, action, params):
@@ -415,6 +439,7 @@ async def handle_search_authors(update: Update, context: CallbackContext):
 
 async def async_search_authors(context: CallbackContext, query_text: str, processing_msg, user):
     try:
+        start_time = time()
         # Извлекаем настройки пользователя из контекста или БД
         user_params = get_user_params(context)
 
@@ -427,6 +452,26 @@ async def async_search_authors(context: CallbackContext, query_text: str, proces
             )
         )
         found_authors_count = len(authors)
+
+        duration_ms = int((time() - start_time) * 1000)
+
+        # Структурированное логирование
+        user_id, chat_id = ContextManager._get_ids_from_context(context)
+        structured_logger.log_search(
+            user_id=user_id,
+            username=user.username or user.first_name or "Unknown",
+            query=query_text,
+            search_type=user_params.SearchType,
+            search_area=user_params.SearchArea,
+            results_count=len(authors),
+            duration_ms=duration_ms,
+            chat_type="private" if user_id == chat_id else "group",  # или определить из context
+            chat_id=chat_id,
+            # Фильтры
+            lang=user_params.Lang,
+            rating_filter=user_params.Rating,
+            size_limit=user_params.BookSize
+        )
 
         # Обрабатываем результаты
         await process_search_authors(context, authors, found_authors_count, processing_msg, query_text, user)
@@ -467,14 +512,14 @@ async def process_search_authors(context: CallbackContext, authors, found_author
             parse_mode=ParseMode.HTML
         )
 
-    if search_area == SETTING_SEARCH_AREA_B:
-        by = ' by book info'
-    elif search_area == SETTING_SEARCH_AREA_BA:
-        by = ' by book annotation'
-    else:
-        by = ''
-
-    logger.log_user_action(user, "searched for authors" + by, f"{query_text}; count:{found_authors_count}")
+    # if search_area == SETTING_SEARCH_AREA_B:
+    #     by = ' by book info'
+    # elif search_area == SETTING_SEARCH_AREA_BA:
+    #     by = ' by book annotation'
+    # else:
+    #     by = ''
+    #
+    # logger.log_user_action(user, "searched for authors" + by, f"{query_text}; count:{found_authors_count}")
 
 
 async def handle_search_author_books(query, context, action, params):
@@ -580,7 +625,7 @@ async def handle_books_page_change(query, context, action, params):
         print(f"Error in page change: {e}")
         await query.answer("❌ Произошла ошибка при смене страницы")
 
-    logger.log_user_action(query.from_user, "changed page of books", page)
+    # logger.log_user_action(query.from_user, "changed page of books", page)
 
 
 async def handle_series_page_change(query, context, action, params):
@@ -618,7 +663,7 @@ async def handle_series_page_change(query, context, action, params):
         print(f"Error in series page change: {e}")
         await query.answer("❌ Произошла ошибка при смене страницы")
 
-    logger.log_user_action(query.from_user, "changed page of series", page)
+    # logger.log_user_action(query.from_user, "changed page of series", page)
 
 
 async def handle_authors_page_change(query, context, action, params):
@@ -657,4 +702,4 @@ async def handle_authors_page_change(query, context, action, params):
         print(f"Error in authors page change: {e}")
         await query.answer("❌ Произошла ошибка при смене страницы")
 
-    logger.log_user_action(query.from_user, "changed page of authors", page)
+    # logger.log_user_action(query.from_user, "changed page of authors", page)
