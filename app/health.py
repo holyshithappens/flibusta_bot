@@ -6,7 +6,8 @@ from telegram.ext import CallbackContext
 
 from core.context_manager import ContextManager
 from constants import CLEANUP_INTERVAL
-from logger import logger
+from structured_logger import structured_logger
+from logging_schema import EventType
 
 def get_memory_usage():
     """Возвращает использование памяти в MB"""
@@ -29,7 +30,11 @@ def get_system_stats():
 def log_system_stats():
     """Логирует системную статистику"""
     stats = get_system_stats()
-    logger.log_system_action("System stats", str(stats))
+    structured_logger.log_system(
+        event_type=EventType.SYSTEM_STARTUP,
+        message="System stats",
+        data=stats
+    )
     return stats
 
 

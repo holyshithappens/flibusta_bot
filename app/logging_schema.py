@@ -8,14 +8,12 @@ from typing import Optional, Dict, Any
 from enum import Enum
 import json
 
-
 class EventCategory(Enum):
     """Категории событий"""
     USER_ACTION = "user_action"
     SYSTEM = "system"
     ERROR = "error"
     PAYMENT = "payment"
-
 
 class EventType(Enum):
     """Типы событий"""
@@ -30,6 +28,13 @@ class EventType(Enum):
     AUTHOR_INFO_VIEW = "author.info.view"
     SETTINGS_CHANGE = "settings.change"
     GENRES_VIEW = "genres.view"
+    BOOK_DETAILS_VIEW = "book.details.view"
+    BOOK_REVIEWS_VIEW = "book.reviews.view"
+    # Новые типы для главных команд
+    HELP_VIEW = "help.view"
+    ABOUT_VIEW = "about.view"
+    NEWS_VIEW = "news.view"
+    DONATE_VIEW = "donate.view"
 
     # Системные события
     SYSTEM_STARTUP = "system.startup"
