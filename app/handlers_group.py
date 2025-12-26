@@ -13,7 +13,8 @@ from core.context_manager import set_last_activity, get_pages_of_books, get_foun
     set_last_bot_message_id, get_user_params, update_user_params, set_books, get_last_bot_message_id
 from utils import is_message_for_bot, extract_clean_query, form_header_books
 from health import log_stats
-from logger import logger
+from structured_logger import structured_logger
+# from logging_schema import EventType
 
 # ===== РАБОТА В ГРУППЕ =====
 async def handle_group_message(update: Update, context: CallbackContext):
@@ -135,7 +136,17 @@ async def handle_group_search(update: Update, context: CallbackContext):
             # Сохраняем контекст поиска в bot_data (доступно всем пользователям группы)
             set_last_bot_message_id(context, result_message.message_id)
 
-        logger.log_user_action(user, "searched for books in group", f"{clean_query_text}; count:{found_books_count}; chat:{chat.title}")
+        structured_logger.log_search(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            query=clean_query_text,
+            search_type="books",
+            search_area=user_params.SearchArea,
+            results_count=found_books_count,
+            duration_ms=0,
+            chat_type="group",
+            chat_id=chat.id
+        )
 
     except Exception as e:
         print(f"Ошибка при обработке поиска из группы: {e}")

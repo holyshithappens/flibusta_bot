@@ -9,9 +9,8 @@ from handlers_settings import show_settings_menu
 from utils import get_latest_news, get_platform_recommendations
 from constants import BOT_NEWS_FILE_PATH, SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30_DAYS, SHOW_POPULAR_7_DAYS, SHOW_NOVELTY
 from database import DB_BOOKS
-from logger import logger
-from health import log_stats
 from structured_logger import structured_logger
+from health import log_stats
 from logging_schema import EventType
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
@@ -43,7 +42,6 @@ async def start_cmd(update: Update, context: CallbackContext):
 
     await log_stats(context)
 
-    # logger.log_user_action(user, "started bot")
     structured_logger.log_user_action(
         event_type=EventType.BOT_START,
         user_id=user.id,
@@ -80,7 +78,6 @@ async def genres_cmd(update: Update, context: CallbackContext):
 
     await log_stats(context)
     user = update.message.from_user
-    # logger.log_user_action(user, "viewed parent genres")
     structured_logger.log_user_action(
         event_type=EventType.GENRES_VIEW,
         user_id=user.id,
@@ -147,7 +144,14 @@ async def donate_cmd(update: Update, context: CallbackContext):
     )
 
     user = update.message.from_user
-    logger.log_user_action(user, "viewed donate page")
+    structured_logger.log_user_action(
+        event_type=EventType.DONATE_VIEW,
+        user_id=user.id,
+        username=user.username or user.first_name or "Unknown",
+        data={},
+        chat_type="private",
+        chat_id=user.id
+    )
 
     try:
         chat_id = update.message.chat_id
@@ -208,7 +212,7 @@ async def help_cmd(update: Update, context: CallbackContext):
     👤 <code>+награждён +(медалями орденами)</code> - авторы, награжденные медалями или орденами
     👤 <code>"умер 1980 году" @5</code> - авторы, умершие в 1980 году (слова в пределах 5 слов друг от друга)
     👤 <code>+(родился проживал умер) +Пензенской +губернии</code> - авторы, связанные с Пензенской губернией
-    👤 <code>+филолог +переводчик +журналист</code> - авторы-филологи, переводчики и журналисты  
+    👤 <code>+филолог +переводчик +журналист</code> - авторы-филологи, переводчики и журналисты
     👤 <code>"настоящее время проживает Москве" @5</code> - ныне живущие в Москве авторы
     👤 <code>"воевал получил ранение" @10</code> - авторы, получившие ранения в боях
     
@@ -224,7 +228,14 @@ async def help_cmd(update: Update, context: CallbackContext):
     await update.message.reply_text(help_text, parse_mode='HTML', disable_web_page_preview=True)
 
     user = update.message.from_user
-    logger.log_user_action(user, "showed help")
+    structured_logger.log_user_action(
+        event_type=EventType.HELP_VIEW,
+        user_id=user.id,
+        username=user.username or user.first_name or "Unknown",
+        data={},
+        chat_type="private",
+        chat_id=user.id
+    )
 
 
 async def about_cmd(update: Update, context: CallbackContext):
@@ -288,7 +299,14 @@ async def about_cmd(update: Update, context: CallbackContext):
     await log_stats(context)
 
     user = update.message.from_user
-    logger.log_user_action(user, "viewed about")
+    structured_logger.log_user_action(
+        event_type=EventType.ABOUT_VIEW,
+        user_id=user.id,
+        username=user.username or user.first_name or "Unknown",
+        data={},
+        chat_type="private",
+        chat_id=user.id
+    )
 
 
 async def news_cmd(update: Update, context: CallbackContext):
@@ -323,7 +341,14 @@ async def news_cmd(update: Update, context: CallbackContext):
 
         # Логируем действие
         user = update.message.from_user
-        logger.log_user_action(user, "viewed news")
+        structured_logger.log_user_action(
+            event_type=EventType.NEWS_VIEW,
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            data={},
+            chat_type="private",
+            chat_id=user.id
+        )
 
     except Exception as e:
         print(f"Error in news command: {e}")

@@ -20,9 +20,9 @@ from core.context_manager import get_user_params, get_last_bot_message_id, set_b
     set_authors, set_last_authors_page, set_current_author_id, set_current_author_name, get_pages_of_books, \
     get_current_author_id, get_found_books_count, get_current_series_name, get_current_author_name, get_pages_of_series, \
     get_found_series_count, get_pages_of_authors, get_found_authors_count, get_switch_search, set_switch_search
-from logger import logger
 from health import log_stats
 from structured_logger import structured_logger
+from logging_schema import EventType
 
 # ===== ПОИСК И НАВИГАЦИЯ =====
 async def handle_message(update: Update, context: CallbackContext):
@@ -134,12 +134,16 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
 
         # Структурированное логирование
         user_id, chat_id = ContextManager._get_ids_from_context(context)
+        # Логгируем поиск популярных книг тут
+        search_type = SEARCH_TYPE_BOOKS if switch_search else user_params.SearchType
+        search_area = switch_search if switch_search else user_params.SearchArea
+
         structured_logger.log_search(
             user_id=user_id,
             username=user.username or user.first_name or "Unknown",
             query=query_text,
-            search_type=user_params.SearchType,
-            search_area=user_params.SearchArea,
+            search_type=search_type,
+            search_area=search_area,
             results_count=len(books),
             duration_ms=duration_ms,
             chat_type="private" if user_id == chat_id else "group",  # или определить из context

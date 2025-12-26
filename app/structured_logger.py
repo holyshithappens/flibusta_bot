@@ -84,6 +84,8 @@ class StructuredLogger:
             filters=filters
         )
 
+        # print(f"DEBUG: search_data={search_data}")
+
         event = LogEvent(
             timestamp=datetime.now(),
             category=EventCategory.USER_ACTION,
@@ -170,13 +172,14 @@ class StructuredLogger:
         self.log_event(event)
 
     def log_user_action(
-            self,
-            event_type: EventType,
-            user_id: int,
-            username: str,
-            data: Optional[Dict[str, Any]] = None,
-            chat_type: str = "private",
-            chat_id: Optional[int] = None
+        self,
+        event_type: EventType,
+        user_id: int,
+        username: str,
+        data: Optional[Dict[str, Any]] = None,
+        chat_type: str = "private",
+        chat_id: Optional[int] = None,
+        duration_ms: Optional[int] = None
     ) -> None:
         """Логирует произвольное действие пользователя"""
         event = LogEvent(
@@ -187,7 +190,78 @@ class StructuredLogger:
             username=username,
             chat_type=chat_type,
             chat_id=chat_id or user_id,
-            data=data or {}
+            data=data or {},
+            duration_ms=duration_ms or 0
+        )
+
+        self.log_event(event)
+
+    def log_author_info_view(
+        self,
+        user_id: int,
+        username: str,
+        author_id: int,
+        author_name: Optional[str] = None,
+        chat_type: str = "private",
+        chat_id: Optional[int] = None
+    ) -> None:
+        """Логирует просмотр информации об авторе"""
+        event = LogEvent(
+            timestamp=datetime.now(),
+            category=EventCategory.USER_ACTION,
+            event_type=EventType.AUTHOR_INFO_VIEW,
+            user_id=user_id,
+            username=username,
+            chat_type=chat_type,
+            chat_id=chat_id or user_id,
+            data={"author_id": author_id,
+                  "author_name": author_name}
+        )
+
+        self.log_event(event)
+
+    def log_book_reviews_view(
+        self,
+        user_id: int,
+        username: str,
+        book_id: int,
+        chat_type: str = "private",
+        chat_id: Optional[int] = None
+    ) -> None:
+        """Логирует просмотр отзывов о книге"""
+        event = LogEvent(
+            timestamp=datetime.now(),
+            category=EventCategory.USER_ACTION,
+            event_type=EventType.BOOK_REVIEWS_VIEW,
+            user_id=user_id,
+            username=username,
+            chat_type=chat_type,
+            chat_id=chat_id or user_id,
+            data={"book_id": book_id}
+        )
+
+        self.log_event(event)
+
+    def log_book_details_view(
+        self,
+        user_id: int,
+        username: str,
+        book_id: int,
+        book_title: Optional[str] = None,
+        chat_type: str = "private",
+        chat_id: Optional[int] = None
+    ) -> None:
+        """Логирует просмотр детальной информации о книге"""
+        event = LogEvent(
+            timestamp=datetime.now(),
+            category=EventCategory.USER_ACTION,
+            event_type=EventType.BOOK_DETAILS_VIEW,
+            user_id=user_id,
+            username=username,
+            chat_type=chat_type,
+            chat_id=chat_id or user_id,
+            data={"book_id": book_id,
+                  "book_title": book_title}
         )
 
         self.log_event(event)

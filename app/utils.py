@@ -20,7 +20,8 @@ from constants import (
     SETTING_SEARCH_AREA_BA,
 )
 from flibusta_client import FlibustaClient
-from logger import logger
+from structured_logger import structured_logger
+from logging_schema import EventType
 
 # Пространство имен FB2
 FB2_NAMESPACE = "http://www.gribuser.ru/xml/fictionbook/2.0"
@@ -159,7 +160,10 @@ async def load_bot_news(file_path: str) -> List[Dict[str, Any]]:
         # Динамически импортируем модуль с новостями
         spec = importlib.util.spec_from_file_location("bot_news", file_path)
         if spec is None or spec.loader is None:
-            logger.log_system_action("Error loading bot_news.py: spec is None")
+            structured_logger.log_error(
+                error_type="news_load_failed",
+                error_message="Error loading bot_news.py: spec is None"
+            )
             return []
         news_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(news_module)

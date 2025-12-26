@@ -7,10 +7,8 @@ from core.context_manager import get_user_params
 from constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from utils import format_size, upload_to_tmpfiles,  get_short_donation_notice
-from logger import logger
-from flibusta_client import flibusta_client, FlibustaClient
-
 from structured_logger import structured_logger
+from flibusta_client import flibusta_client, FlibustaClient
 from logging_schema import EventType
 
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
@@ -148,7 +146,16 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
     except Exception as upload_error:
         print(f"Ошибка загрузки на tmpfiles: {upload_error}")
         await processing_msg.edit_text("❌ Не удалось отправить книгу. Попробуйте позже.")
-        logger.log_user_action(query.from_user.id, "error sending book cloud", f"{file_name}{file_ext}")
+        structured_logger.log_error(
+            error_type="upload_failed",
+            error_message="Failed to upload book to cloud storage",
+            context={
+                "file_name": file_name,
+                "file_ext": file_ext
+            },
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown"
+        )
 
 
 async def edit_or_reply_message(query, text, reply_markup=None):

@@ -89,7 +89,7 @@ async def handle_book_info(query, context, action, params):
 async def handle_book_details(query, context, action, params):
     """Показывает детальную информацию о книге с обложкой и аннотацией"""
     try:
-        book_id = params[0]
+        book_id = int(params[0])
         book_details = await DB_BOOKS.get_book_details(book_id)
 
         # print(f"DEBUG: book_details = {book_details}")
@@ -112,6 +112,16 @@ async def handle_book_details(query, context, action, params):
     except Exception as e:
         print(f"Error in handle_book_details: {e}")
         await query.answer("❌ Ошибка при загрузке детальной информации")
+    else:
+        # Логируем успешный просмотр детальной информации о книге
+        structured_logger.log_book_details_view(
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            book_id=book_id,
+            book_title=book_details.get('title'),
+            chat_type="private",
+            chat_id=query.from_user.id
+        )
 
 
 async def handle_author_info(query: CallbackQuery, context: CallbackContext, action, params):
@@ -144,6 +154,16 @@ async def handle_author_info(query: CallbackQuery, context: CallbackContext, act
     except Exception as e:
         print(f"Error in handle_author_info: {e}")
         await query.answer("❌ Ошибка при загрузке информации об авторе")
+    else:
+        # Логируем успешный просмотр информации об авторе
+        structured_logger.log_author_info_view(
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            author_id=author_id,
+            author_name=author_info.get('name'),
+            chat_type="private",
+            chat_id=query.from_user.id
+        )
 
 
 async def handle_book_reviews(query, context, action, params):
@@ -174,6 +194,15 @@ async def handle_book_reviews(query, context, action, params):
     except Exception as e:
         print(f"Error in handle_book_reviews: {e}")
         await query.answer("❌ Ошибка при загрузке отзывов")
+    else:
+        # Логируем успешный просмотр отзывов о книге
+        structured_logger.log_book_reviews_view(
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            book_id=book_id,
+            chat_type="private",
+            chat_id=query.from_user.id
+        )
 
 
 async def add_close_button_to_message(to_message, close_message_ids: List[Any]):

@@ -24,7 +24,8 @@ from core.context_manager import get_pages_of_series, get_found_series_count, ge
 from flibusta_client import FlibustaClient
 from utils import form_header_books
 from health import log_stats
-from logger import logger
+from structured_logger import structured_logger
+from logging_schema import EventType
 
 # ===== CALLBACK ОБРАБОТЧИКИ =====
 async def button_callback(update: Update, context: CallbackContext):
@@ -163,7 +164,14 @@ async def handle_show_genres(query, context, action, params):
         else:
            await query.message.reply_text("❌ Жанры не найдены для этой категории", parse_mode=ParseMode.HTML)
 
-        logger.log_user_action(query.from_user, "show genres of parent genre", parent_genre)
+        structured_logger.log_user_action(
+            event_type=EventType.GENRES_VIEW,
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            data={"parent_genre": parent_genre},
+            chat_type=query.message.chat.type,
+            chat_id=query.message.chat.id
+        )
 
     except Exception as e:
         print(f"Error in handle_show_genres: {e}")
@@ -273,7 +281,15 @@ async def handle_toggle_rating(query, context, action, params):
         if "Message is not modified" not in str(e):
             raise e
 
-    logger.log_user_action(query.from_user, f"toggled rating filter: {new_filter}")
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="rating_filter",
+        old_value=current_filter,
+        new_value=new_filter,
+        chat_type=query.message.chat.type,
+        chat_id=query.message.chat.id
+    )
 
 
 async def handle_reset_ratings(query, context, action, params):
@@ -285,7 +301,15 @@ async def handle_reset_ratings(query, context, action, params):
     reply_markup = create_rating_filter_keyboard([], options)
 
     await query.edit_message_text(SETTING_TITLES[SETTING_RATING_FILTER], reply_markup=reply_markup)
-    logger.log_user_action(query.from_user, "reset rating filter")
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="rating_filter",
+        old_value="reset",
+        new_value="",
+        chat_type=query.message.chat.type,
+        chat_id=query.message.chat.id
+    )
 
 
 async def handle_show_pops(update, context, action, params):
@@ -294,8 +318,6 @@ async def handle_show_pops(update, context, action, params):
         set_switch_search(context, action)
         # await handle_message(update, context)
         await handle_search_books(update, context)
-
-        logger.log_user_action(update.callback_query.from_user, "show populars", action)
 
     except Exception as e:
         print(f"Error in handle_show_pops: {e}")
