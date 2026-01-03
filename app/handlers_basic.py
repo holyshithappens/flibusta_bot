@@ -13,8 +13,8 @@ from .health import log_stats
 from .core.logging_schema import EventType
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
-CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"), 'pikabu': os.getenv("FEEDBACK_PIKABU", ""),
-                'pikabu_username': os.getenv("FEEDBACK_PIKABU_USERNAME", "не указан")}
+CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"), 'blog': os.getenv("FEEDBACK_BLOG", ""),
+                'blog_username': os.getenv("FEEDBACK_BLOG_USERNAME", "не указан")}
 
 
 # ===== КОМАНДЫ БОТА =====
@@ -272,7 +272,7 @@ async def about_cmd(update: Update, context: CallbackContext):
 {reader_recommendations}
 📞 <b>Обратная связь:</b>
 • 📧 Email: <code>{CONTACT_INFO['email']}</code>
-• 🎮 Пикабу: <a href="{CONTACT_INFO['pikabu']}">{CONTACT_INFO['pikabu_username']}</a>
+• 🎮 Дзен: <a href="{CONTACT_INFO['blog']}">{CONTACT_INFO['blog_username']}</a>
 • 📢 ТГ-канал: https://t.me/FlibustaBotNews
 
 🛠 <b>Технологии:</b>
