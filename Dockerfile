@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -U pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Копируем исходный код
-COPY app/ /app/
+COPY app/ /app/app/
 
 # Создаем директории для данных
 RUN mkdir -p /app/data /app/logs && \
@@ -38,4 +38,4 @@ USER botuser
 EXPOSE 8000
 
 # Запускаем бота
-CMD ["python", "-u", "main.py"]
+CMD ["python", "-m", "app.main"]

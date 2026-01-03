@@ -7,10 +7,10 @@ import re
 import sys
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import aiohttp
 
 # from urllib.parse import unquote
-import aiohttp
-from constants import (
+from .constants import (
     HEADING_POP,
     SEARCH_TYPE_AUTHORS,
     SEARCH_TYPE_BOOKS,
@@ -19,9 +19,8 @@ from constants import (
     SETTING_SEARCH_AREA_B,
     SETTING_SEARCH_AREA_BA,
 )
-from flibusta_client import FlibustaClient
-from structured_logger import structured_logger
-from logging_schema import EventType
+from .flibusta_client import FlibustaClient
+from .core.structured_logger import structured_logger
 
 # Пространство имен FB2
 FB2_NAMESPACE = "http://www.gribuser.ru/xml/fictionbook/2.0"

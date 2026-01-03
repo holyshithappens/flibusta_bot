@@ -5,11 +5,11 @@
 import logging
 from typing import Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime
-from logging_schema import LogEvent, EventCategory, EventType
-from logging_schema import SearchEvent, DownloadEvent, SettingsChangeEvent
+
+from .logging_schema import LogEvent, EventCategory, EventType, SearchEvent, DownloadEvent, SettingsChangeEvent
 
 if TYPE_CHECKING:
-    from repositories.logs_repository import LogsRepository
+    from .repositories.logs_repository import LogsRepository
 
 class StructuredLogger:
     """

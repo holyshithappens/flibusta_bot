@@ -4,14 +4,13 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Callbac
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
-from handlers_utils import add_close_button
-from handlers_settings import show_settings_menu
-from utils import get_latest_news, get_platform_recommendations
-from constants import BOT_NEWS_FILE_PATH, SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30_DAYS, SHOW_POPULAR_7_DAYS, SHOW_NOVELTY
-from database import DB_BOOKS
-from structured_logger import structured_logger
-from health import log_stats
-from logging_schema import EventType
+from .handlers_settings import show_settings_menu
+from .tools import get_latest_news, get_platform_recommendations
+from .constants import BOT_NEWS_FILE_PATH, SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30_DAYS, SHOW_POPULAR_7_DAYS, SHOW_NOVELTY
+from .database import DB_BOOKS
+from .core.structured_logger import structured_logger
+from .health import log_stats
+from .core.logging_schema import EventType
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
 CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"), 'pikabu': os.getenv("FEEDBACK_PIKABU", ""),

@@ -5,27 +5,27 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from database import DB_BOOKS
-from handlers_group import handle_group_callback
-from handlers_info import handle_close_info, handle_book_reviews, handle_book_info, handle_book_details, \
+from .database import DB_BOOKS
+from .handlers_group import handle_group_callback
+from .handlers_info import handle_close_info, handle_book_reviews, handle_book_info, handle_book_details, \
     handle_author_info, add_close_button_to_message
-from handlers_search import handle_authors_page_change, handle_series_page_change, handle_books_page_change, \
+from .handlers_search import handle_authors_page_change, handle_series_page_change, handle_books_page_change, \
     handle_search_series_books, handle_search_author_books, handle_search_books
-from handlers_settings import create_rating_filter_keyboard, show_settings_menu, handle_set_actions, \
+from .handlers_settings import create_rating_filter_keyboard, show_settings_menu, handle_set_actions, \
     handle_set_max_books, handle_set_lang_search, handle_set_size_limit, handle_set_book_format, \
     handle_set_search_type, handle_set_rating_filter, handle_set_search_area
-from handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file
-from constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
+from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file
+from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, \
     SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT
-from core.context_manager import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
+from .context import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
     get_user_params, update_user_params, get_last_series_page, get_last_authors_page, set_switch_search, \
     get_switch_search
-from flibusta_client import FlibustaClient
-from utils import form_header_books
-from health import log_stats
-from structured_logger import structured_logger
-from logging_schema import EventType
+from .flibusta_client import FlibustaClient
+from .tools import form_header_books
+from .health import log_stats
+from .core.structured_logger import structured_logger
+from .core.logging_schema import EventType
 
 # ===== CALLBACK ОБРАБОТЧИКИ =====
 async def button_callback(update: Update, context: CallbackContext):

@@ -6,8 +6,8 @@ from typing import Dict, List, Any, Coroutine
 import mysql.connector
 from contextlib import contextmanager
 
-from flibusta_client import FlibustaClient, flibusta_client
-from constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
+from .flibusta_client import FlibustaClient, flibusta_client
+from .constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
     SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH
 
 Book = namedtuple('Book',
