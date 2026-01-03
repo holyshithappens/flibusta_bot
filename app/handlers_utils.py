@@ -3,13 +3,12 @@ from telegram.constants import ParseMode
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 
-from core.context_manager import get_user_params
-from constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
+from .context import get_user_params
+from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
-from utils import format_size, upload_to_tmpfiles,  get_short_donation_notice
-from structured_logger import structured_logger
-from flibusta_client import flibusta_client, FlibustaClient
-from logging_schema import EventType
+from .tools import format_size, upload_to_tmpfiles,  get_short_donation_notice
+from .core.structured_logger import structured_logger
+from .flibusta_client import flibusta_client, FlibustaClient
 
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
 async def handle_send_file(query, context, action, params, for_user = None):

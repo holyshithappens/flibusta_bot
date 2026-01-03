@@ -4,10 +4,10 @@ from datetime import datetime
 
 from telegram.ext import CallbackContext
 
-from core.context_manager import ContextManager
-from constants import CLEANUP_INTERVAL
-from structured_logger import structured_logger
-from logging_schema import EventType
+from .context import ContextManager
+from .constants import CLEANUP_INTERVAL
+from .core.structured_logger import structured_logger
+from .core.logging_schema import EventType
 
 def get_memory_usage():
     """Возвращает использование памяти в MB"""

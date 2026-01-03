@@ -4,17 +4,16 @@ from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
-from database import DB_BOOKS
-from handlers_info import handle_book_info, handle_book_details, handle_author_info, handle_book_reviews, \
+from .database import DB_BOOKS
+from .handlers_info import handle_book_info, handle_book_details, handle_author_info, handle_book_reviews, \
     handle_close_info
-from handlers_utils import create_books_keyboard, handle_send_file
-from constants import SEARCH_TYPE_BOOKS
-from core.context_manager import set_last_activity, get_pages_of_books, get_found_books_count, set_last_search_query, \
+from .handlers_utils import create_books_keyboard, handle_send_file
+from .constants import SEARCH_TYPE_BOOKS
+from .context import set_last_activity, get_pages_of_books, get_found_books_count, set_last_search_query, \
     set_last_bot_message_id, get_user_params, update_user_params, set_books, get_last_bot_message_id
-from utils import is_message_for_bot, extract_clean_query, form_header_books
-from health import log_stats
-from structured_logger import structured_logger
-# from logging_schema import EventType
+from .tools import is_message_for_bot, extract_clean_query, form_header_books
+from .health import log_stats
+from .core.structured_logger import structured_logger
 
 # ===== РАБОТА В ГРУППЕ =====
 async def handle_group_message(update: Update, context: CallbackContext):

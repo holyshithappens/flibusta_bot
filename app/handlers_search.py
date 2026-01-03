@@ -7,22 +7,20 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 from telegram.error import Forbidden
 
-from core.context_manager import ContextManager
-# from telegram._message import Message
+from .context import ContextManager
 
-from handlers_utils import create_books_keyboard, create_series_keyboard, create_authors_keyboard
-from utils import form_header_books
-from database import DB_BOOKS
-from constants import SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SEARCH_AREA_B, \
+from .handlers_utils import create_books_keyboard, create_series_keyboard, create_authors_keyboard
+from .tools import form_header_books
+from .database import DB_BOOKS
+from .constants import SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SEARCH_AREA_B, \
     SETTING_SEARCH_AREA_BA
-from core.context_manager import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
+from .context import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
     set_last_search_query, set_series, set_last_series_page, get_last_search_query, set_current_series_name, \
     set_authors, set_last_authors_page, set_current_author_id, set_current_author_name, get_pages_of_books, \
     get_current_author_id, get_found_books_count, get_current_series_name, get_current_author_name, get_pages_of_series, \
     get_found_series_count, get_pages_of_authors, get_found_authors_count, get_switch_search, set_switch_search
-from health import log_stats
-from structured_logger import structured_logger
-from logging_schema import EventType
+from .health import log_stats
+from .core.structured_logger import structured_logger
 
 # ===== ПОИСК И НАВИГАЦИЯ =====
 async def handle_message(update: Update, context: CallbackContext):

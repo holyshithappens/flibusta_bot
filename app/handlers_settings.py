@@ -2,13 +2,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from handlers_utils import add_close_button, edit_or_reply_message, create_back_button
-from database import DB_BOOKS
-from constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
+from .handlers_utils import add_close_button, edit_or_reply_message, create_back_button
+from .database import DB_BOOKS
+from .constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
     SETTING_SEARCH_AREA
-from core.context_manager import get_user_params, update_user_params
-from structured_logger import structured_logger
+from .context import get_user_params, update_user_params
+from .core.structured_logger import structured_logger
 
 # ===== НАСТРОЙКИ =====
 async def show_settings_menu(update_or_query, context, from_callback=False):

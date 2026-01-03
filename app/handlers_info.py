@@ -4,10 +4,10 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
-from database import DB_BOOKS
-from utils import format_book_reviews, format_author_info, format_book_details, format_book_info
-from logging_schema import EventType
-from structured_logger import structured_logger
+from .database import DB_BOOKS
+from .tools import format_book_reviews, format_author_info, format_book_details, format_book_info
+from .core.logging_schema import EventType
+from .core.structured_logger import structured_logger
 
 # ===== ИНФОРМАЦИЯ О КНИГАХ И АВТОРАХ =====
 async def handle_book_info(query, context, action, params):

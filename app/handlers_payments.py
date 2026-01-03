@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from structured_logger import structured_logger
+from .core.structured_logger import structured_logger
 
 
 # ==== ОБРАБОТКА ПОЛУЧЕНИЯ ДОНАТОВ ====
