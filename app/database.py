@@ -1347,11 +1347,12 @@ class DatabaseBooks():
             {from_clause}
             -- GROUP BY {fields[0]}
             ORDER BY Relevance DESC, FileName {sort_order}
-            LIMIT {MAX_BOOKS_SEARCH}
+            -- LIMIT {MAX_BOOKS_SEARCH}
+            LIMIT 10000
             ) as ranked
             where rn = 1
             ORDER BY Relevance DESC, FileName {sort_order}
-            -- LIMIT {MAX_BOOKS_SEARCH}
+            LIMIT {MAX_BOOKS_SEARCH}
         """
 
         return sql_query
