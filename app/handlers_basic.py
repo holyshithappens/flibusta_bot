@@ -13,8 +13,10 @@ from logger import logger
 from health import log_stats
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
-CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"), 'pikabu': os.getenv("FEEDBACK_PIKABU", ""),
-                'pikabu_username': os.getenv("FEEDBACK_PIKABU_USERNAME", "не указан")}
+CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"),
+                'blog': os.getenv("FEEDBACK_BLOG", ""), 'blog_name': os.getenv("FEEDBACK_BLOG_USERNAME", "не указан"),
+                'tg_channel': os.getenv("FEEDBACK_TG_CHANNEL",""),'tg_channel_name': os.getenv("FEEDBACK_TG_CHANNEL_NAME","")
+                }
 
 
 # ===== КОМАНДЫ БОТА =====
@@ -246,8 +248,8 @@ async def about_cmd(update: Update, context: CallbackContext):
 {reader_recommendations}
 📞 <b>Обратная связь:</b>
 • 📧 Email: <code>{CONTACT_INFO['email']}</code>
-• 🎮 Пикабу: <a href="{CONTACT_INFO['pikabu']}">{CONTACT_INFO['pikabu_username']}</a>
-• 📢 ТГ-канал: https://t.me/FlibustaBotNews
+• 🎮 Блог: <a href="{CONTACT_INFO['blog']}">{CONTACT_INFO['blog_name']}</a>
+• 📢 ТГ-канал: <a href="{CONTACT_INFO['tg_channel']}">{CONTACT_INFO['tg_channel_name']}</a>
 
 🛠 <b>Технологии:</b>
 • Python 3.11 + python-telegram-bot
