@@ -1,6 +1,6 @@
 import os
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, LabeledPrice
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
