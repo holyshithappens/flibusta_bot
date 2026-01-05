@@ -105,7 +105,7 @@ def main():
     application.add_handler(CommandHandler("donate", donate_cmd))
     # Обработчик ДЛЯ ГРУПП (только группы + сообщения для бота)
     application.add_handler(
-        MessageHandler(filters.ChatType.GROUP & filters.TEXT, handle_group_message))
+        MessageHandler((filters.ChatType.GROUP | filters.ChatType.SUPERGROUP) & filters.TEXT, handle_group_message))
     # Обработчик ДЛЯ ЛИЧНЫХ СООБЩЕНИЙ (только приватные чаты)
     application.add_handler(
         MessageHandler(filters.ChatType.PRIVATE & filters.TEXT & ~filters.COMMAND, handle_message))

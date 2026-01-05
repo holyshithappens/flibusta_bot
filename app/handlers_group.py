@@ -4,13 +4,14 @@ from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
+from handlers_search import handle_search_books, handle_books_page_change
 from database import DB_BOOKS
 from handlers_info import handle_book_info, handle_book_details, handle_author_info, handle_book_reviews, \
     handle_close_info
 from handlers_utils import create_books_keyboard, handle_send_file
 from constants import SEARCH_TYPE_BOOKS
 from context import set_last_activity, get_pages_of_books, get_found_books_count, set_last_search_query, \
-    set_last_bot_message_id, get_user_params, update_user_params, set_books, get_last_bot_message_id
+    set_last_bot_message_id, get_user_params, update_user_params, set_books, get_last_bot_message_id, set_switch_search
 from utils import is_message_for_bot, extract_clean_query, form_header_books
 from health import log_stats
 from logger import logger
@@ -75,13 +76,14 @@ async def handle_group_search(update: Update, context: CallbackContext):
         processing_msg = await message.reply_text(
             f"⏰ <i>Ищу книги по запросу от {user.first_name}...</i>",
             parse_mode=ParseMode.HTML,
-            reply_to_message_id=message.message_id
+            reply_to_message_id=message.message_id,
+            message_thread_id = message.message_thread_id
         )
 
         # Получаем или создаем настройки пользователя
         user_params = get_user_params(context)
 
-        print(f"DEBUG: clean_query_text = {clean_query_text}")
+        # print(f"DEBUG: clean_query_text = {clean_query_text}")
 
         # Выполняем поиск книг
         books = DB_BOOKS.search_books(
@@ -112,7 +114,10 @@ async def handle_group_search(update: Update, context: CallbackContext):
                 result_message = await context.bot.send_message(
                     chat_id=chat.id,
                     text=header_found_text,
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
+                    # message_thread_id=message.message_thread_id
+                    reply_to_message_id=message.message_id,
+                    allow_sending_without_reply=True
                 )
 
                 # Сохраняем контекст поиска в bot_data (доступно всем пользователям группы)
@@ -130,7 +135,9 @@ async def handle_group_search(update: Update, context: CallbackContext):
             result_message = await context.bot.send_message(
                 chat_id=chat.id,
                 text=f"😞 Не нашёл подходящих книг для запроса '{clean_query_text}'",
-                reply_to_message_id=message.message_id
+                reply_to_message_id=message.message_id,
+                # message_thread_id=message.message_thread_id
+                allow_sending_without_reply=True
             )
             # Сохраняем контекст поиска в bot_data (доступно всем пользователям группы)
             set_last_bot_message_id(context, result_message.message_id)
@@ -144,13 +151,15 @@ async def handle_group_search(update: Update, context: CallbackContext):
             chat_id=update.effective_chat.id,
             text="❌ Произошла ошибка при поиске книг",
             reply_to_message_id=update.effective_message.message_id
+            # message_thread_id=update.effective_message.message_thread_id
         )
 
 
-async def handle_group_callback(query, context, action, params, user):
+async def handle_group_callback(update, context, action, params, user):
     """Обрабатывает callback-запросы из групп"""
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
+    query = update.callback_query
 
     if not search_context_user_params:
         await query.edit_message_text("❌ Сессия поиска истекла. Начните поиск заново.")
@@ -169,6 +178,12 @@ async def handle_group_callback(query, context, action, params, user):
         await handle_group_page_change(query, context, action, params, user)
     elif action == 'send_file':
         await handle_send_file(query, context, action, params, user)
+    # Обработка просмотра популярных книг и новинок
+    elif action.startswith('show_pop_'):
+        await handle_group_show_pops(update, context, action, params)
+    # Затем проверяем префиксы
+    elif action.startswith(f"{SEARCH_TYPE_BOOKS}_page_"):
+        await handle_books_page_change(query, context, action, params)
     # Прямой поиск обработчика в словаре
     elif action in action_handlers:
         handler = action_handlers[action]
@@ -211,3 +226,34 @@ async def handle_group_page_change(query, context, action, params, user):
         )
 
         await query.edit_message_text(header_text, reply_markup=reply_markup)
+
+
+async def handle_group_show_pops(update, context, action, params):
+    """Запуск поиска популярных книг и новинок"""
+    try:
+        set_switch_search(context, action)
+        # await handle_message(update, context)
+        await handle_search_books(update, context)
+
+        logger.log_user_action(update.callback_query.from_user, "show populars from group", action)
+
+    except Exception as e:
+        print(f"Error in handle_show_pops: {e}")
+        await update.callback_query.message.reply_text("❌ Ошибка при загрузке популярных книг/новинок")
+
+    await log_stats(context)
+
+
+# # Временный обработчик для отладки ВСЕХ сообщений
+# async def debug_all_messages(update: Update, context: CallbackContext):
+#     """Отладочный обработчик для всех сообщений"""
+#     print(f"\n{'#'*60}")
+#     print(f"[DEBUG ALL MESSAGES]")
+#     print(f"Chat ID: {update.effective_chat.id}")
+#     print(f"Chat Type: {update.effective_chat.type}")
+#     print(f"Chat Title: {getattr(update.effective_chat, 'title', 'No title')}")
+#     print(f"Message Text: {update.effective_message.text if update.effective_message else 'No text'}")
+#     print(f"From User: {update.effective_user.username if update.effective_user else 'None'}")
+#     print(f"Message ID: {update.effective_message.message_id if update.effective_message else 'No ID'}")
+#     print(f"{'#'*60}\n")
+

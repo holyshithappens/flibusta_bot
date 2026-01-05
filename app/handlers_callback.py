@@ -53,7 +53,7 @@ async def button_callback(update: Update, context: CallbackContext):
 
     if is_group:
         # Для групп используем отдельную логику с привязкой к пользователю
-        await handle_group_callback(query, context, action, params, user)
+        await handle_group_callback(update, context, action, params, user)
     else:
         # Сначала проверяем АДМИНСКИЕ действия
         if action in ['users_list', 'user_detail', 'toggle_block', 'recent_searches',
