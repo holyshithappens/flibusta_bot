@@ -9,7 +9,7 @@ from datetime import datetime
 from .logging_schema import LogEvent, EventCategory, EventType, SearchEvent, DownloadEvent, SettingsChangeEvent
 
 if TYPE_CHECKING:
-    from .repositories.logs_repository import LogsRepository
+    from ..repositories.logs_repository import LogsRepository
 
 class StructuredLogger:
     """
