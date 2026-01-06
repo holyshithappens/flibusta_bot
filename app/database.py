@@ -889,7 +889,7 @@ class DatabaseBooks():
         params.extend([query] * 2)
 
         # #DEBUG
-        # print(f"DEBUG: sql_query = {sql_query}")
+        # print(f"[DEBUG] search_books, sql_query = {sql_query}")
         # print(f"DEBUG: params = {params}")
 
         # выполняем запросы поиска книг и подсчёта количества найденных книг
@@ -1089,7 +1089,7 @@ class DatabaseBooks():
             AuthorID
         FROM ({sql_query_nested} ) as subquery
         {sql_where}
-          and LastName <> '' OR FirstName <> '' OR MiddleName <> ''
+          and (LastName <> '' OR FirstName <> '' OR MiddleName <> '')
         GROUP BY AuthorName, AuthorID
         ORDER BY book_count DESC, AuthorName
         LIMIT {MAX_AUTHORS_SEARCH}
@@ -1106,6 +1106,8 @@ class DatabaseBooks():
         # Модифицируем запрос для поиска авторов
         sql_query_nested = SELECT_SQL_QUERY.get(search_area)
         sql_query = self.build_sql_query_authors(sql_query_nested, sql_where)
+
+        # print(f"[DEBUG] search_authors, sql_query={sql_query}")
 
         with self.connect() as conn:
             cursor = conn.cursor(buffered=True)
