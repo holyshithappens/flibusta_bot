@@ -24,26 +24,45 @@
 -- Переименование таблиц
 -- ============================================
 
+SELECT 'Starting migration: cb_lib* tables to cb_lib*_old' AS OperationStatus;
+
 -- Основные таблицы
 RENAME TABLE cb_libbook TO cb_libbook_old;
+SELECT 'Renamed cb_libbook to cb_libbook_old' AS OperationStatus;
 RENAME TABLE cb_libavtor TO cb_libavtor_old;
+SELECT 'Renamed cb_libavtor to cb_libavtor_old' AS OperationStatus;
 RENAME TABLE cb_libavtorname TO cb_libavtorname_old;
+SELECT 'Renamed cb_libavtorname to cb_libavtorname_old' AS OperationStatus;
 RENAME TABLE cb_libgenre TO cb_libgenre_old;
+SELECT 'Renamed cb_libgenre to cb_libgenre_old' AS OperationStatus;
 RENAME TABLE cb_libgenrelist TO cb_libgenrelist_old;
+SELECT 'Renamed cb_libgenrelist to cb_libgenrelist_old' AS OperationStatus;
 RENAME TABLE cb_libseq TO cb_libseq_old;
+SELECT 'Renamed cb_libseq to cb_libseq_old' AS OperationStatus;
 RENAME TABLE cb_libseqname TO cb_libseqname_old;
+SELECT 'Renamed cb_libseqname to cb_libseqname_old' AS OperationStatus;
 RENAME TABLE cb_librate TO cb_librate_old;
+SELECT 'Renamed cb_librate to cb_librate_old' AS OperationStatus;
 RENAME TABLE cb_librecs TO cb_librecs_old;
+SELECT 'Renamed cb_librecs to cb_librecs_old' AS OperationStatus;
 RENAME TABLE cb_libreviews TO cb_libreviews_old;
+SELECT 'Renamed cb_libreviews to cb_libreviews_old' AS OperationStatus;
 RENAME TABLE cb_libapics TO cb_libapics_old;
+SELECT 'Renamed cb_libapics to cb_libapics_old' AS OperationStatus;
 RENAME TABLE cb_libbpics TO cb_libbpics_old;
+SELECT 'Renamed cb_libbpics to cb_libbpics_old' AS OperationStatus;
 
 -- Аннотации
 RENAME TABLE cb_libbannotations TO cb_libbannotations_old;
+SELECT 'Renamed cb_libbannotations to cb_libbannotations_old' AS OperationStatus;
 RENAME TABLE cb_libaannotations TO cb_libaannotations_old;
+SELECT 'Renamed cb_libaannotations to cb_libaannotations_old' AS OperationStatus;
 
 -- Полнотекстовый индекс
 RENAME TABLE cb_libbook_fts TO cb_libbook_fts_old;
+SELECT 'Renamed cb_libbook_fts to cb_libbook_fts_old' AS OperationStatus;
+
+SELECT 'Migration completed: All cb_lib* tables renamed to cb_lib*_old' AS OperationStatus;
 
 -- ============================================
 -- Проверка результата
