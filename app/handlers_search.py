@@ -13,7 +13,7 @@ from utils import form_header_books
 from database import DB_BOOKS
 from constants import SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SEARCH_AREA_B, \
     SETTING_SEARCH_AREA_BA
-from app.core.context_manager import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
+from core.context_manager import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
     set_last_search_query, set_series, set_last_series_page, get_last_search_query, set_current_series_name, \
     set_authors, set_last_authors_page, set_current_author_id, set_current_author_name, get_pages_of_books, \
     get_current_author_id, get_found_books_count, get_current_series_name, get_current_author_name, get_pages_of_series, \
