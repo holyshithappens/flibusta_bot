@@ -103,15 +103,15 @@ class ContextManager:
         if key in data:
             del data[key]
 
-    @classmethod
-    def clear_search_data(cls, context: CallbackContext) -> None:
-        """Очищает все поисковые данные"""
-        search_keys = [value for key, value in vars(CMConst.CMC_SearchData).items() if not key.startswith("_")]
-
-        data = cls._get_context_data(context)
-        for key in search_keys:
-            if key in data:
-                del data[key]
+    # @classmethod
+    # def clear_search_data(cls, context: CallbackContext) -> None:
+    #     """Очищает все поисковые данные"""
+    #     search_keys = [value for key, value in vars(CMConst.CMC_SearchData).items() if not key.startswith("_")]
+    #
+    #     data = cls._get_context_data(context)
+    #     for key in search_keys:
+    #         if key in data:
+    #             del data[key]
 
     @classmethod
     def _get_user_params(cls, context: CallbackContext) -> Optional[UserSettingsType]:
@@ -229,7 +229,10 @@ class ContextManager:
         for key in [value for key, value in vars(CMConst.CMC_Proc).items() if not key.startswith("_")]:
             if key in user_data:
                 del user_data[key]
-
+        # Очищает все поисковые данные
+        for key in [value for key, value in vars(CMConst.CMC_SearchData).items() if not key.startswith("_")]:
+            if key in user_data:
+                del user_data[key]
 
 # Специализированные геттеры для часто используемых ключей
 def set_last_activity(context: CallbackContext, dt: Any) -> None:
