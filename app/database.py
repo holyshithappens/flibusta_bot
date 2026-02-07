@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from flibusta_client import FlibustaClient, flibusta_client
 from constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
     SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH
+# from logger import logger
 
 Book = namedtuple('Book',
                   ['FileName', 'Title', 'LastName', 'FirstName', 'MiddleName', 'Genre', 'BookSize',
@@ -789,6 +790,20 @@ class DatabaseBooks():
     def lib_last_update(self):
         return self.get_library_stats().get('last_update')
 
+    def get_max_book_id(self) -> int | None:
+        """Get current maximum book ID from database (bypasses cache)."""
+        try:
+            with self.connect() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT MAX(bookid) FROM cb_libbook WHERE Deleted = '0'
+                """)
+                result = cursor.fetchone()
+                return result[0] if result and result[0] is not None else None
+        except Exception as e:
+            # logger.log_system_action("Failed to get max book ID", str(e))
+            return None
+
     def get_library_stats(self):
         """Возвращает статистику библиотеки"""
         try:
@@ -798,7 +813,7 @@ class DatabaseBooks():
 
                     # Статистика книг
                     cursor.execute("""
-                        SELECT 
+                        SELECT
                             MAX(date(time)) as max_update_date,
                             COUNT(*) as books_cnt,
                             MAX(bookid) as max_filename
@@ -1359,6 +1374,43 @@ class DatabaseBooks():
 
         return sql_query
 
+    def invalidate_db_cache(self):
+        """
+        Hourly check to detect database updates and invalidate cache if needed.
+        Called from cleanup_old_sessions task.
+        """
+        from logger import logger
+        try:
+            # Get current max book ID from DB
+            current_max = self.get_max_book_id()
+            if current_max is None:
+                return  # Cannot determine, skip
+
+            # Get cached max from _class_stats
+            cached_max = self._class_stats.get('max_filename') if self._class_stats else None
+
+            if cached_max is None:
+                # First run or cache already cleared - establish baseline
+                self.get_library_stats()
+                return
+
+            if current_max != cached_max:
+                # Database updated - clear all class-level caches
+                DatabaseBooks._class_cached_langs = None
+                DatabaseBooks._class_cached_parent_genres = None
+                DatabaseBooks._class_cached_genres = {}
+                DatabaseBooks._class_stats = {}
+
+                # Repopulate to establish new baseline
+                DatabaseBooks.get_library_stats()
+
+                logger.log_system_action("Cache invalidated due to database update",
+                                         f"old_max={cached_max}, new_max={current_max}, difference={current_max - cached_max if isinstance(cached_max, int) else None}")
+        except Exception as e:
+            logger.log_system_action("Cache invalidation check failed", str(e))
+            pass
+    
+    
 DB_BOOKS = DatabaseBooks({
     'host': os.getenv('DB_HOST'),
     'port': int(os.getenv('DB_PORT', 3306)),
