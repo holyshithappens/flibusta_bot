@@ -2,8 +2,8 @@
 Версия проекта
 """
 
-__version__ = "1.1.4"
-__version_info__ = (1, 1, 4)
+__version__ = "1.1.5"
+__version_info__ = (1, 1, 5)
 
 # История версий:
 # 1.1.5 (2026-02-07) - Hotfix cleanup interval to 3600 secs

@@ -807,7 +807,7 @@ class DatabaseBooks():
     def get_library_stats(self):
         """Возвращает статистику библиотеки"""
         try:
-            if not self._class_stats:
+            if not DatabaseBooks._class_stats:
                 with self.connect() as conn:
                     cursor = conn.cursor()
 
@@ -838,7 +838,7 @@ class DatabaseBooks():
                     cursor.execute("SELECT COUNT(DISTINCT Lang) FROM cb_libbook WHERE Deleted = '0'")
                     langs_cnt = cursor.fetchone()[0]
 
-                    self._class_stats = {
+                    DatabaseBooks._class_stats = {
                         'last_update': books_stats[0],
                         'books_count': books_stats[1],
                         'max_filename': books_stats[2],
@@ -848,7 +848,7 @@ class DatabaseBooks():
                         'languages_count': langs_cnt
                     }
 
-            return self._class_stats
+            return DatabaseBooks._class_stats
 
         except Exception as e:
             print(f"Error getting library stats: {e}")
@@ -1387,12 +1387,7 @@ class DatabaseBooks():
                 return  # Cannot determine, skip
 
             # Get cached max from _class_stats
-            cached_max = self._class_stats.get('max_filename') if self._class_stats else None
-
-            if cached_max is None:
-                # First run or cache already cleared - establish baseline
-                self.get_library_stats()
-                return
+            cached_max = DatabaseBooks._class_stats.get('max_filename') if DatabaseBooks._class_stats else None
 
             if current_max != cached_max:
                 # Database updated - clear all class-level caches
@@ -1400,9 +1395,6 @@ class DatabaseBooks():
                 DatabaseBooks._class_cached_parent_genres = None
                 DatabaseBooks._class_cached_genres = {}
                 DatabaseBooks._class_stats = {}
-
-                # Repopulate to establish new baseline
-                DatabaseBooks.get_library_stats()
 
                 logger.log_system_action("Cache invalidated due to database update",
                                          f"old_max={cached_max}, new_max={current_max}, difference={current_max - cached_max if isinstance(cached_max, int) else None}")
