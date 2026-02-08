@@ -1379,7 +1379,7 @@ class DatabaseBooks():
         Hourly check to detect database updates and invalidate cache if needed.
         Called from cleanup_old_sessions task.
         """
-        from logger import logger
+        # from logger import logger
         try:
             # Get current max book ID from DB
             current_max = self.get_max_book_id()
@@ -1404,10 +1404,10 @@ class DatabaseBooks():
                 # Repopulate to establish new baseline
                 DatabaseBooks.get_library_stats()
 
-                logger.log_system_action("Cache invalidated due to database update",
-                                         f"old_max={cached_max}, new_max={current_max}, difference={current_max - cached_max if isinstance(cached_max, int) else None}")
+                # logger.log_system_action("Cache invalidated due to database update",
+                #                          f"old_max={cached_max}, new_max={current_max}, difference={current_max - cached_max if isinstance(cached_max, int) else None}")
         except Exception as e:
-            logger.log_system_action("Cache invalidation check failed", str(e))
+            # logger.log_system_action("Cache invalidation check failed", str(e))
             pass
     
     

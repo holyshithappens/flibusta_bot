@@ -226,13 +226,14 @@ class ContextManager:
     @classmethod
     def _cleanup_user_session(cls, user_data):
         """Очищает данные пользовательской сессии"""
-        for key in [value for key, value in vars(CMConst.CMC_Proc).items() if not key.startswith("_")]:
-            if key in user_data:
-                del user_data[key]
-        # Очищает все поисковые данные
-        for key in [value for key, value in vars(CMConst.CMC_SearchData).items() if not key.startswith("_")]:
-            if key in user_data:
-                del user_data[key]
+        """Очищает данные пользовательской сессии"""
+        for key in [
+            value
+            for cls in [CMConst.CMC_Proc, CMConst.CMC_SearchData]
+            for key, value in vars(cls).items()
+            if not key.startswith("_")
+        ]:
+            user_data.pop(key, None)
 
 # Специализированные геттеры для часто используемых ключей
 def set_last_activity(context: CallbackContext, dt: Any) -> None:

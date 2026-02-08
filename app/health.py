@@ -8,6 +8,7 @@ from .context import ContextManager
 from .constants import CLEANUP_INTERVAL
 from .core.structured_logger import structured_logger
 from .core.logging_schema import EventType
+from .database import DB_BOOKS
 
 def get_memory_usage():
     """Возвращает использование памяти в MB"""
@@ -141,6 +142,8 @@ async def cleanup_old_sessions(context: CallbackContext):
         if cleaned_private > 0 or cleaned_group > 0:
             cleanup_memory()
             await log_stats(context)
+
+        DB_BOOKS.invalidate_db_cache()
 
     except Exception as e:
         print(f"❌ Cleanup error: {e}")
