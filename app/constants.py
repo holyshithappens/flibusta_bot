@@ -118,6 +118,17 @@ SHOW_POPULAR_30_DAYS = 'show_pop_30'
 SHOW_POPULAR_7_DAYS = 'show_pop_7'
 SHOW_NOVELTY = 'show_pop_0'
 
+# ============================================================
+# POPULARITY WEIGHTS CONFIGURATION
+# ============================================================
+# Weights for calculating book popularity score
+# Formula: (rate_count * W_RATE) + (recs_count * W_RECS) + (reviews_count * W_REVIEWS)
+# These weights can be adjusted to change the relative importance of each source
+
+POPULARITY_WEIGHT_RATE = 1.0   # Weight for ratings count (cb_librate)
+POPULARITY_WEIGHT_RECS = 1.5   # Weight for recommendations count (cb_librecs)
+POPULARITY_WEIGHT_REVIEWS = 2.0  # Weight for reviews count (cb_libreviews)
+
 HEADING_POP = {
     SHOW_POPULAR_ALL_TIME: 'популярных за всё время',
     SHOW_POPULAR_30_DAYS: 'популярных за 30 дней',
@@ -128,14 +139,3 @@ HEADING_POP = {
 # Путь к файлу с новостями (теперь Python файл)
 BOT_NEWS_FILE_PATH = "./data/bot_news.py"
 
-# Веса для расчета популярности книг
-POPULARITY_WEIGHTS = {
-    'rating_weight': 1.0,      # Вес рейтингов (ra)
-    'recommendation_weight': 1.2,  # Вес рекомендаций (re)
-    'review_weight': 1.5       # Вес отзывов (rv)
-}
-
-# Псевдонимы для удобства доступа
-WEIGHT_RATING = POPULARITY_WEIGHTS['rating_weight']
-WEIGHT_RECOMMENDATION = POPULARITY_WEIGHTS['recommendation_weight']
-WEIGHT_REVIEW = POPULARITY_WEIGHTS['review_weight']
