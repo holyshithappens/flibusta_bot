@@ -8,7 +8,8 @@ from contextlib import contextmanager
 
 from flibusta_client import FlibustaClient, flibusta_client
 from constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
-    SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH
+    SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH, \
+    POPULARITY_WEIGHT_RATE, POPULARITY_WEIGHT_RECS, POPULARITY_WEIGHT_REVIEWS
 # from logger import logger
 
 Book = namedtuple('Book',
@@ -1234,9 +1235,36 @@ class DatabaseBooks():
 
     @staticmethod
     def build_sql_query_pop(self, filter_recent:int, current_date:str, days_back:int):
-        """Поиск популярных книг за период"""
+        """Build SQL query for popular books with weighted scoring.
+
+        Popularity formula:
+        - All-time (filter_recent=0): (rate_count * W_RATE) + (recs_count * W_RECS) + (reviews_count * W_REVIEWS)
+        - Recent (filter_recent=1): (recs_count * W_RECS) + (reviews_count * W_REVIEWS)
+
+        Weights are defined in constants.py for easy customization.
+
+        Args:
+            filter_recent: 0 for all-time popularity, 1 for recent period
+            current_date: Reference date for period calculation (ISO date string)
+            days_back: Number of days to look back for recent mode
+
+        Returns:
+            SQL query string with weighted relevance scoring
+        """
         # assert filter_recent in (0, 1), "filter_recent must be 0 or 1"
         # assert 1 <= days_back <= 999, "days_back out of range"
+
+        # Weighted expressions using configurable constants
+        weighted_all_time = f"""
+            COALESCE(ra.cnt, 0) * {POPULARITY_WEIGHT_RATE} +
+            COALESCE(re.cnt, 0) * {POPULARITY_WEIGHT_RECS} +
+            COALESCE(rv.cnt, 0) * {POPULARITY_WEIGHT_REVIEWS}
+        """
+
+        weighted_recent = f"""
+            COALESCE(re.cnt, 0) * {POPULARITY_WEIGHT_RECS} +
+            COALESCE(rv.cnt, 0) * {POPULARITY_WEIGHT_REVIEWS}
+        """
 
         return f"""
     SELECT 
@@ -1246,12 +1274,12 @@ class DatabaseBooks():
         b.FileSize,
         b.Year,
         CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END AS relevance,
         CASE {1 - filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END AS relevance_oppos
     FROM cb_libbook b
     LEFT JOIN (
@@ -1274,18 +1302,18 @@ class DatabaseBooks():
         GROUP BY bookid
     ) rv ON rv.BookId = b.BookId
     WHERE b.Deleted = '0'
-      and (CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-        END) > 0
+      AND (CASE {filter_recent}
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
+          END) > 0
     ORDER BY 
         CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END DESC,
         CASE {1 - filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END DESC
     LIMIT {MAX_BOOKS_SEARCH}
         """
