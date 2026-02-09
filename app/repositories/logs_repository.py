@@ -5,7 +5,7 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from ..repositories.base_sqlite import BaseSQLiteRepository
-from ..logging_schema import LogEvent
+from ..core.logging_schema import LogEvent
 import json
 
 

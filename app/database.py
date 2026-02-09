@@ -8,7 +8,9 @@ from contextlib import contextmanager
 
 from .flibusta_client import FlibustaClient, flibusta_client
 from .constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
-    SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH
+    SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH, \
+    WEIGHT_RATING, WEIGHT_RECOMMENDATION, WEIGHT_REVIEW
+
 # from logger import logger
 
 Book = namedtuple('Book',
@@ -1246,12 +1248,22 @@ class DatabaseBooks():
         b.FileSize,
         b.Year,
         CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
+            WHEN 0 THEN 
+                COALESCE(ra.cnt, 0) * {WEIGHT_RATING} + 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} +
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
+            WHEN 1 THEN 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} + 
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
         END AS relevance,
         CASE {1 - filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
+            WHEN 0 THEN 
+                COALESCE(ra.cnt, 0) * {WEIGHT_RATING} + 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} +
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
+            WHEN 1 THEN 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} + 
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
         END AS relevance_oppos
     FROM cb_libbook b
     LEFT JOIN (
@@ -1280,12 +1292,22 @@ class DatabaseBooks():
         END) > 0
     ORDER BY 
         CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
+            WHEN 0 THEN 
+                COALESCE(ra.cnt, 0) * {WEIGHT_RATING} + 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} +
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
+            WHEN 1 THEN 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} + 
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
         END DESC,
         CASE {1 - filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
+            WHEN 0 THEN 
+                COALESCE(ra.cnt, 0) * {WEIGHT_RATING} + 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} +
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
+            WHEN 1 THEN 
+                COALESCE(re.cnt, 0) * {WEIGHT_RECOMMENDATION} + 
+                COALESCE(rv.cnt, 0) * {WEIGHT_REVIEW}
         END DESC
     LIMIT {MAX_BOOKS_SEARCH}
         """

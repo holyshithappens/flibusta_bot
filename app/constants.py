@@ -128,3 +128,14 @@ HEADING_POP = {
 # Путь к файлу с новостями (теперь Python файл)
 BOT_NEWS_FILE_PATH = "./data/bot_news.py"
 
+# Веса для расчета популярности книг
+POPULARITY_WEIGHTS = {
+    'rating_weight': 1.0,      # Вес рейтингов (ra)
+    'recommendation_weight': 1.2,  # Вес рекомендаций (re)
+    'review_weight': 1.5       # Вес отзывов (rv)
+}
+
+# Псевдонимы для удобства доступа
+WEIGHT_RATING = POPULARITY_WEIGHTS['rating_weight']
+WEIGHT_RECOMMENDATION = POPULARITY_WEIGHTS['recommendation_weight']
+WEIGHT_REVIEW = POPULARITY_WEIGHTS['review_weight']

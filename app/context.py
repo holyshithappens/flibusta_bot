@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Any, List, Optional
 
-from database import DatabaseSettings, UserSettingsType
 from telegram.ext import Application, CallbackContext
 
+from .database import DatabaseSettings, UserSettingsType
 # from custom_types import UserSettingsType
 
 
