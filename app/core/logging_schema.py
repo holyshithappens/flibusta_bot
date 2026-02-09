@@ -30,6 +30,7 @@ class EventType(Enum):
     GENRES_VIEW = "genres.view"
     BOOK_DETAILS_VIEW = "book.details.view"
     BOOK_REVIEWS_VIEW = "book.reviews.view"
+    CSV_DOWNLOAD = "csv.download"  # CSV export download
     # Новые типы для главных команд
     HELP_VIEW = "help.view"
     ABOUT_VIEW = "about.view"

@@ -1,3 +1,8 @@
+import csv
+from datetime import datetime
+from io import BytesIO, TextIOWrapper
+from typing import Any, List
+
 from telegram import InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.error import TimedOut
@@ -180,6 +185,75 @@ def add_close_button(keyboard):
     return keyboard.append([InlineKeyboardButton("❌ Закрыть", callback_data="close_message")])
 
 
+# ===== CSV EXPORT =====
+def generate_books_csv(pages_of_books: List[List[Any]]) -> tuple[str, BytesIO]:
+    """
+    Generate CSV content from paginated books.
+
+    The csv.writer automatically quotes fields containing:
+    - Commas (,)
+    - Double quotes (")
+    - Newlines (\\n)
+
+    This ensures proper CSV formatting for all field values.
+
+    Args:
+        pages_of_books: List of pages, each containing Book namedtuples
+
+    Returns:
+        Tuple of (filename, BytesIO buffer with CSV content)
+    """
+    # Flatten pages to single list
+    all_books = []
+    for page in pages_of_books:
+        all_books.extend(page)
+
+    # Create CSV in memory
+    buffer = BytesIO()
+    # Add BOM for Excel UTF-8 compatibility
+    buffer.write(b'\xef\xbb\xbf')
+
+    # Wrap with TextIOWrapper for csv module
+    text_buffer = TextIOWrapper(buffer, encoding='utf-8', newline='')
+
+    # Use default quoting behavior: csv.QUOTE_MINIMAL
+    # This quotes fields only when necessary (containing special characters)
+    writer = csv.writer(text_buffer, quoting=csv.QUOTE_MINIMAL)
+
+    # Write header - book_url first as primary identifier
+    writer.writerow([
+        'book_url', 'title', 'author_name', 'genre', 'series',
+        'year_of_publication', 'size', 'rating'
+    ])
+
+    # Write data rows
+    for book in all_books:
+        # Generate book URL using FlibustaClient
+        book_url = FlibustaClient.get_book_url(book.FileName) or ''
+        author_name = f"{book.LastName or ''} {book.FirstName or ''} {book.MiddleName or ''}".strip()
+        size_formatted = format_size(book.BookSize) if book.BookSize else ''
+
+        writer.writerow([
+            book_url,
+            book.Title or '',
+            author_name,
+            book.Genre or '',          # Auto-quoted if contains commas
+            book.SeriesTitle or '',    # Auto-quoted if contains commas
+            book.SearchYear if book.SearchYear else '',
+            size_formatted,
+            book.LibRate if book.LibRate else ''
+        ])
+
+    # Flush text buffer and detach
+    text_buffer.detach()
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"books_{timestamp}.csv"
+
+    return filename, buffer
+
+
 # ===== КЛАВИАТУРЫ И ИНТЕРФЕЙС =====
 def add_navigation_buttons(keyboard, search_type, page, pages):
     navigation_buttons = []
@@ -217,6 +291,9 @@ def create_books_keyboard(page, pages_of_books, search_context=SEARCH_TYPE_BOOKS
 
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books)
+
+            # Добавляем кнопку скачивания CSV
+            keyboard.append([InlineKeyboardButton("📥 Скачать список в CSV формате", callback_data="download_books_csv")])
 
             # Добавляем кнопку "Назад к сериям" только при поиске по сериям
             if search_context == SEARCH_TYPE_SERIES:

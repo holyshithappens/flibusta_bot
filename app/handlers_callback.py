@@ -14,13 +14,13 @@ from .handlers_search import handle_authors_page_change, handle_series_page_chan
 from .handlers_settings import create_rating_filter_keyboard, show_settings_menu, handle_set_actions, \
     handle_set_max_books, handle_set_lang_search, handle_set_size_limit, handle_set_book_format, \
     handle_set_search_type, handle_set_rating_filter, handle_set_search_area
-from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file
+from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file, generate_books_csv
 from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, \
     SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT
 from .context import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
-    get_user_params, update_user_params, get_last_series_page, get_last_authors_page, set_switch_search, \
-    get_switch_search
+    get_pages_of_books, get_user_params, update_user_params, get_last_series_page, get_last_authors_page, \
+    set_switch_search, get_switch_search
 from .flibusta_client import FlibustaClient
 from .tools import form_header_books
 from .health import log_stats
@@ -96,6 +96,7 @@ async def handle_private_callback(update, context, action, params):
         'book_reviews': handle_book_reviews,
         'close_info': handle_close_info,
         'close_message': handle_close_message,
+        'download_books_csv': handle_download_books_csv,  # CSV export handler
     }
 
     # Добавим обработку toggle рейтингов
@@ -324,3 +325,52 @@ async def handle_show_pops(update, context, action, params):
         await update.callback_query.message.reply_text("❌ Ошибка при загрузке популярных книг/новинок")
 
     await log_stats(context)
+
+
+async def handle_download_books_csv(query, context, action, params):
+    """Handle CSV download request for found books."""
+    try:
+        # Get books from context
+        pages_of_books = get_pages_of_books(context)
+
+        if not pages_of_books:
+            await query.answer("❌ Результаты поиска устарели. Выполните новый поиск.")
+            return
+
+        # Generate CSV
+        filename, csv_buffer = generate_books_csv(pages_of_books)
+
+        # Prepare buffer for sending
+        csv_buffer.seek(0)
+
+        # Count total books
+        total_books = sum(len(page) for page in pages_of_books)
+
+        # Send as document
+        await query.message.reply_document(
+            document=csv_buffer,
+            filename=filename,
+            caption=f"📚 Найдено книг: {total_books}",
+            disable_notification=True
+        )
+
+        # Log action
+        structured_logger.log_user_action(
+            event_type=EventType.CSV_DOWNLOAD,
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            data={"book_count": total_books, "filename": filename},
+            chat_type=query.message.chat.type,
+            chat_id=query.message.chat.id
+        )
+
+    except Exception as e:
+        print(f"Error generating CSV: {e}")
+        await query.message.reply_text("❌ Ошибка при создании CSV файла")
+        structured_logger.log_error(
+            error_type="csv_generation_failed",
+            error_message=str(e),
+            context={},
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown"
+        )
