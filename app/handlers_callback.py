@@ -329,6 +329,7 @@ async def handle_show_pops(update, context, action, params):
 
 async def handle_download_books_csv(query, context, action, params):
     """Handle CSV download request for found books."""
+    processing_msg = None
     try:
         # Get books from context
         pages_of_books = get_pages_of_books(context)
@@ -336,6 +337,13 @@ async def handle_download_books_csv(query, context, action, params):
         if not pages_of_books:
             await query.answer("❌ Результаты поиска устарели. Выполните новый поиск.")
             return
+
+        # Send immediate waiting message
+        processing_msg = await query.message.reply_text(
+            "⏳ Формирую CSV-список книг. Пожалуйста, подождите...",
+            parse_mode=ParseMode.HTML,
+            disable_notification=True
+        )
 
         # Generate CSV
         filename, csv_buffer = generate_books_csv(pages_of_books)
@@ -354,6 +362,10 @@ async def handle_download_books_csv(query, context, action, params):
             disable_notification=True
         )
 
+        # Delete the waiting message
+        if processing_msg:
+            await processing_msg.delete()
+
         # Log action
         structured_logger.log_user_action(
             event_type=EventType.CSV_DOWNLOAD,
@@ -366,6 +378,9 @@ async def handle_download_books_csv(query, context, action, params):
 
     except Exception as e:
         print(f"Error generating CSV: {e}")
+        # Delete the waiting message if it exists
+        if processing_msg:
+            await processing_msg.delete()
         await query.message.reply_text("❌ Ошибка при создании CSV файла")
         structured_logger.log_error(
             error_type="csv_generation_failed",
