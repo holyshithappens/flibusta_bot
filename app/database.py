@@ -8,7 +8,8 @@ from contextlib import contextmanager
 
 from flibusta_client import FlibustaClient, flibusta_client
 from constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
-    SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH
+    SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH, \
+    POPULARITY_WEIGHT_RATE, POPULARITY_WEIGHT_RECS, POPULARITY_WEIGHT_REVIEWS
 # from logger import logger
 
 Book = namedtuple('Book',
@@ -807,7 +808,7 @@ class DatabaseBooks():
     def get_library_stats(self):
         """Возвращает статистику библиотеки"""
         try:
-            if not self._class_stats:
+            if not DatabaseBooks._class_stats:
                 with self.connect() as conn:
                     cursor = conn.cursor()
 
@@ -838,7 +839,7 @@ class DatabaseBooks():
                     cursor.execute("SELECT COUNT(DISTINCT Lang) FROM cb_libbook WHERE Deleted = '0'")
                     langs_cnt = cursor.fetchone()[0]
 
-                    self._class_stats = {
+                    DatabaseBooks._class_stats = {
                         'last_update': books_stats[0],
                         'books_count': books_stats[1],
                         'max_filename': books_stats[2],
@@ -848,7 +849,7 @@ class DatabaseBooks():
                         'languages_count': langs_cnt
                     }
 
-            return self._class_stats
+            return DatabaseBooks._class_stats
 
         except Exception as e:
             print(f"Error getting library stats: {e}")
@@ -1234,9 +1235,36 @@ class DatabaseBooks():
 
     @staticmethod
     def build_sql_query_pop(self, filter_recent:int, current_date:str, days_back:int):
-        """Поиск популярных книг за период"""
+        """Build SQL query for popular books with weighted scoring.
+
+        Popularity formula:
+        - All-time (filter_recent=0): (rate_count * W_RATE) + (recs_count * W_RECS) + (reviews_count * W_REVIEWS)
+        - Recent (filter_recent=1): (recs_count * W_RECS) + (reviews_count * W_REVIEWS)
+
+        Weights are defined in constants.py for easy customization.
+
+        Args:
+            filter_recent: 0 for all-time popularity, 1 for recent period
+            current_date: Reference date for period calculation (ISO date string)
+            days_back: Number of days to look back for recent mode
+
+        Returns:
+            SQL query string with weighted relevance scoring
+        """
         # assert filter_recent in (0, 1), "filter_recent must be 0 or 1"
         # assert 1 <= days_back <= 999, "days_back out of range"
+
+        # Weighted expressions using configurable constants
+        weighted_all_time = f"""
+            COALESCE(ra.cnt, 0) * {POPULARITY_WEIGHT_RATE} +
+            COALESCE(re.cnt, 0) * {POPULARITY_WEIGHT_RECS} +
+            COALESCE(rv.cnt, 0) * {POPULARITY_WEIGHT_REVIEWS}
+        """
+
+        weighted_recent = f"""
+            COALESCE(re.cnt, 0) * {POPULARITY_WEIGHT_RECS} +
+            COALESCE(rv.cnt, 0) * {POPULARITY_WEIGHT_REVIEWS}
+        """
 
         return f"""
     SELECT 
@@ -1246,12 +1274,12 @@ class DatabaseBooks():
         b.FileSize,
         b.Year,
         CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END AS relevance,
         CASE {1 - filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0) 
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END AS relevance_oppos
     FROM cb_libbook b
     LEFT JOIN (
@@ -1274,18 +1302,18 @@ class DatabaseBooks():
         GROUP BY bookid
     ) rv ON rv.BookId = b.BookId
     WHERE b.Deleted = '0'
-      and (CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-        END) > 0
+      AND (CASE {filter_recent}
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
+          END) > 0
     ORDER BY 
         CASE {filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END DESC,
         CASE {1 - filter_recent}
-            WHEN 0 THEN COALESCE(ra.cnt, 0) + COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
-            WHEN 1 THEN COALESCE(re.cnt, 0) + COALESCE(rv.cnt, 0)
+            WHEN 0 THEN {weighted_all_time}
+            WHEN 1 THEN {weighted_recent}
         END DESC
     LIMIT {MAX_BOOKS_SEARCH}
         """
@@ -1387,12 +1415,7 @@ class DatabaseBooks():
                 return  # Cannot determine, skip
 
             # Get cached max from _class_stats
-            cached_max = self._class_stats.get('max_filename') if self._class_stats else None
-
-            if cached_max is None:
-                # First run or cache already cleared - establish baseline
-                self.get_library_stats()
-                return
+            cached_max = DatabaseBooks._class_stats.get('max_filename') if DatabaseBooks._class_stats else None
 
             if current_max != cached_max:
                 # Database updated - clear all class-level caches
@@ -1400,9 +1423,6 @@ class DatabaseBooks():
                 DatabaseBooks._class_cached_parent_genres = None
                 DatabaseBooks._class_cached_genres = {}
                 DatabaseBooks._class_stats = {}
-
-                # Repopulate to establish new baseline
-                DatabaseBooks.get_library_stats()
 
                 logger.log_system_action("Cache invalidated due to database update",
                                          f"old_max={cached_max}, new_max={current_max}, difference={current_max - cached_max if isinstance(cached_max, int) else None}")
