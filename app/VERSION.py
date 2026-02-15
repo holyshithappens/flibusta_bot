@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.1.5"
-__version_info__ = (1, 1, 5)
+__version__ = "1.1.6"
+__version_info__ = (1, 1, 6)
 
 # История версий:
+# 1.1.6 (2026-02-15) - Hotfix: remove cache repopulation
 # 1.1.5 (2026-02-07) - Hotfix cleanup interval to 3600 secs
 # 1.1.4 (2026-02-07) - Invalidate cache if DB updated and hotfix cleanup inactive sessions
 # 1.1.0 (2025-12-14) - Migration to cb_ tables for safe updates
