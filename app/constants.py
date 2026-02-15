@@ -47,6 +47,7 @@ SETTING_SEARCH_AREA = 'aux_search'
 SETTING_SEARCH_AREA_B = 'b' # Поиск по основной информации
 SETTING_SEARCH_AREA_BA = 'ba' # Поиск по аннотации книг
 SETTING_SEARCH_AREA_AA = 'aa' # Поиск по аннотации авторов
+SETTING_LOCALE = 'locale'  # User interface language
 
 # SETTING_SORT_ORDER_ASC = 'asc'
 # SETTING_SORT_ORDER_DESC = 'desc'
@@ -60,7 +61,8 @@ SETTING_TITLES = {
     SETTING_RATING_FILTER: 'Фильтр по рейтингу',
     SETTING_BOOK_FORMAT: 'Формат скачивания книг',
     SETTING_SEARCH_TYPE: 'Вывод результатов',
-    SETTING_SEARCH_AREA: 'Область поиска'
+    SETTING_SEARCH_AREA: 'Область поиска',
+    SETTING_LOCALE: 'Язык интерфейса'  # Will be localized at runtime
 }
 
 SEARCH_TYPE_BOOKS = 'books'
@@ -110,6 +112,10 @@ SETTING_OPTIONS = {
         "__NEWLINE__",
         (SETTING_SEARCH_AREA_BA, 'по аннотации книг'),
         (SETTING_SEARCH_AREA_AA, 'по аннотации авторов')
+    ],
+    SETTING_LOCALE: [
+        ('ru', '🇷🇺 Русский'),
+        ('en', '🇬🇧 English')
     ]
 }
 

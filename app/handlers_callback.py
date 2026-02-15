@@ -13,11 +13,12 @@ from .handlers_search import handle_authors_page_change, handle_series_page_chan
     handle_search_series_books, handle_search_author_books, handle_search_books
 from .handlers_settings import create_rating_filter_keyboard, show_settings_menu, handle_set_actions, \
     handle_set_max_books, handle_set_lang_search, handle_set_size_limit, handle_set_book_format, \
-    handle_set_search_type, handle_set_rating_filter, handle_set_search_area
+    handle_set_search_type, handle_set_rating_filter, handle_set_search_area, handle_set_locale
 from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file, generate_books_csv
 from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, \
-    SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT
+    SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT, \
+    SETTING_LOCALE
 from .context import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
     get_pages_of_books, get_user_params, update_user_params, get_last_series_page, get_last_authors_page, \
     set_switch_search, get_switch_search
@@ -26,6 +27,7 @@ from .tools import form_header_books
 from .health import log_stats
 from .core.structured_logger import structured_logger
 from .core.logging_schema import EventType
+from .i18n import t
 
 # ===== CALLBACK ОБРАБОТЧИКИ =====
 async def button_callback(update: Update, context: CallbackContext):
@@ -85,6 +87,7 @@ async def handle_private_callback(update, context, action, params):
         f'set_{SETTING_SEARCH_TYPE}': handle_set_search_type,
         f'set_{SETTING_RATING_FILTER}': handle_set_rating_filter,
         f'set_{SETTING_SEARCH_AREA}': handle_set_search_area,
+        f'set_{SETTING_LOCALE}': handle_set_locale,
         'show_series': handle_search_series_books,
         'back_to_series': handle_back_to_series,
         'show_author': handle_search_author_books,  # Добавляем обработчик для авторов
@@ -138,7 +141,7 @@ async def handle_private_callback(update, context, action, params):
 
     # Если ничего не найдено
     print(f"Unknown action: {action}")
-    await query.edit_message_text("❌ Неизвестное действие")
+    await query.edit_message_text(t('callback.unknown_action', context))
 
 
 async def handle_show_genres(query, context, action, params):
@@ -163,7 +166,7 @@ async def handle_show_genres(query, context, action, params):
             genres_message = await query.message.reply_text(genres_html, parse_mode=ParseMode.HTML)
             await add_close_button_to_message(genres_message, [genres_message.message_id])
         else:
-           await query.message.reply_text("❌ Жанры не найдены для этой категории", parse_mode=ParseMode.HTML)
+           await query.message.reply_text(t('genres.not_found', context), parse_mode=ParseMode.HTML)
 
         structured_logger.log_user_action(
             event_type=EventType.GENRES_VIEW,
@@ -176,7 +179,7 @@ async def handle_show_genres(query, context, action, params):
 
     except Exception as e:
         print(f"Error in handle_show_genres: {e}")
-        await query.message.reply_text("❌ Ошибка при загрузке жанров")
+        await query.message.reply_text(t('genres.error', context))
 
     await log_stats(context)
 
@@ -193,7 +196,7 @@ async def handle_back_to_series(query, context, action, params):
         page_num = get_last_series_page(context)
         pages_of_series = get_pages_of_series(context)
         if not pages_of_series:
-            await query.edit_message_text("❌ Не удалось восстановить результаты поиска")
+            await query.edit_message_text(t('callback.restore_error', context))
             return
 
         keyboard = create_series_keyboard(page_num, pages_of_series)
@@ -212,11 +215,11 @@ async def handle_back_to_series(query, context, action, params):
             )
             await query.edit_message_text(header_found_text, reply_markup=reply_markup)
         else:
-            await query.edit_message_text("❌ Не удалось восстановить результаты поиска")
+            await query.edit_message_text(t('callback.restore_error', context))
 
     except Exception as e:
         print(f"Ошибка при возврате к сериям: {e}")
-        await query.edit_message_text("❌ Ошибка при возврате к результатам поиска")
+        await query.edit_message_text(t('callback.back_error', context))
 
 
 async def handle_back_to_authors(query, context, action, params):

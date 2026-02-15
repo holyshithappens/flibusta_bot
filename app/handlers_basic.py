@@ -11,6 +11,7 @@ from .database import DB_BOOKS
 from .core.structured_logger import structured_logger
 from .health import log_stats
 from .core.logging_schema import EventType
+from .i18n import t, get_or_detect_locale
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
 CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"),
@@ -24,19 +25,11 @@ async def start_cmd(update: Update, context: CallbackContext):
     """Обработка команды /start с deep linking"""
     user = update.effective_user
 
-    #Вывод приглашения и помощи по поиску книг
-    welcome_text = """
-📚 <b>Привет! Я помогу тебе искать и скачивать книги непосредственно из библиотеки Флибуста.</b> 
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
 
-<u>Управление</u>
-/news - новости и обновления бота
-/about - информация о боте и библиотеке 
-/help - помощь в составлении поисковых запросов
-/genres - посмотреть доступные жанры
-/pop - популярные книги и новинки библиотеки
-/set - установка настроек поиска и вывода книг
-/donate - поддержать разработчика
-    """
+    # Get localized welcome message
+    welcome_text = t('welcome.title', context)
     await update.message.reply_text(welcome_text, parse_mode='HTML', disable_web_page_preview=True)
 
     await log_stats(context)
@@ -52,6 +45,9 @@ async def start_cmd(update: Update, context: CallbackContext):
 
 async def genres_cmd(update: Update, context: CallbackContext):
     """Показывает родительские жанры"""
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
+    
     try:
         results = DB_BOOKS.get_parent_genres_with_counts()
 
@@ -70,10 +66,12 @@ async def genres_cmd(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
         # print(f"DEBUG: Reply markup created")
 
-        await update.message.reply_text(f"Посмотреть жанры:", reply_markup=reply_markup)
+        title = t('genres.title', context)
+        await update.message.reply_text(title, reply_markup=reply_markup)
         # print(f"DEBUG: Message sent successfully")
     except Exception as e:
-        await update.message.reply_text(f"❌ Ошибка при загрузке жанров")
+        error_msg = t('genres.error', context)
+        await update.message.reply_text(error_msg)
 
     await log_stats(context)
     user = update.message.from_user
@@ -88,16 +86,19 @@ async def genres_cmd(update: Update, context: CallbackContext):
 
 async def pop_cmd(update: Update, context: CallbackContext):
     """Показывает варианты просмотра популярных книг и новинок публикаций"""
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
+    
     keyboard = []
-    keyboard.append([InlineKeyboardButton("Популярные за всё время", callback_data=f"{SHOW_POPULAR_ALL_TIME}")])
-    keyboard.append([InlineKeyboardButton("Популярные за 30 дней", callback_data=f"{SHOW_POPULAR_30_DAYS}")])
-    keyboard.append([InlineKeyboardButton("Популярные за 7 дней", callback_data=f"{SHOW_POPULAR_7_DAYS}")])
-    keyboard.append([InlineKeyboardButton("Новинки", callback_data=f"{SHOW_NOVELTY}")])
+    keyboard.append([InlineKeyboardButton(t('popular.all_time', context), callback_data=f"{SHOW_POPULAR_ALL_TIME}")])
+    keyboard.append([InlineKeyboardButton(t('popular.days_30', context), callback_data=f"{SHOW_POPULAR_30_DAYS}")])
+    keyboard.append([InlineKeyboardButton(t('popular.days_7', context), callback_data=f"{SHOW_POPULAR_7_DAYS}")])
+    keyboard.append([InlineKeyboardButton(t('popular.novelty', context), callback_data=f"{SHOW_NOVELTY}")])
     # add_close_button(keyboard)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(f"Посмотреть:", reply_markup=reply_markup)
+    await update.message.reply_text(t('popular.title', context), reply_markup=reply_markup)
 
 
 # async def langs_cmd(update: Update, context: CallbackContext):
@@ -122,6 +123,9 @@ async def settings_cmd(update: Update, context: CallbackContext):
 
 async def donate_cmd(update: Update, context: CallbackContext):
     """Команда /donate с HTML сообщением"""
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
+    
     addresses = {
         '₿ Bitcoin (BTC)': os.getenv('DONATE_BTC'),
         'Ξ Ethereum & Poligon (ETH & POL)': os.getenv('DONATE_ETH'),
@@ -131,7 +135,7 @@ async def donate_cmd(update: Update, context: CallbackContext):
         '🔴 Tron (TRX & USDT)': os.getenv('DONATE_TRX')
     }
 
-    donate_html = "💰 <b>Поддержать разработчика крипто-копеечкой</b>"
+    donate_html = t('donate.crypto_title', context)
     for crypto_name, address in addresses.items():
         if address:
             donate_html += f"\n{crypto_name}:\n<code>{address}</code>\n"
@@ -154,75 +158,34 @@ async def donate_cmd(update: Update, context: CallbackContext):
 
     try:
         chat_id = update.message.chat_id
-        title = "Поддержать разработчика"
+        title = t('donate.stars_title', context)
         payload = "donation-payload"
         currency = "XTR"  # Telegram Stars
 
-        descr_5 = "Так, просто так!"
-        prices_5 = [LabeledPrice("5 звёзд", 5),]
+        descr_5 = t('donate.stars_5', context)
+        prices_5 = [LabeledPrice(t('donate.stars_5_label', context), 5),]
         await send_invoice(context, chat_id, title, descr_5, payload, currency, prices_5)
-        descr_50 = "Примерно неделя аренды текущего VPS"
-        prices_50 = [LabeledPrice("50 звезда", 50),]
+        descr_50 = t('donate.stars_50', context)
+        prices_50 = [LabeledPrice(t('donate.stars_50_label', context), 50),]
         await send_invoice(context, chat_id, title, descr_50, payload, currency, prices_50)
-        descr_200 = "Примерно месяц аренды текущего VPS"
-        prices_200 = [LabeledPrice("200 звёзд", 200),]
+        descr_200 = t('donate.stars_200', context)
+        prices_200 = [LabeledPrice(t('donate.stars_200_label', context), 200),]
         await send_invoice(context, chat_id, title, descr_200, payload, currency, prices_200)
-        descr_1200 = "Примерно полгода аренды текущего VPS"
-        prices_1200 = [LabeledPrice("1200 звёзд", 1200),]
+        descr_1200 = t('donate.stars_1200', context)
+        prices_1200 = [LabeledPrice(t('donate.stars_1200_label', context), 1200),]
         await send_invoice(context, chat_id, title, descr_1200, payload, currency, prices_1200)
 
     except Exception as e:
         print(f"Ошибка при создании инвойса: {e}")
-        await update.message.reply_text("Произошла ошибка при создании платежа")
+        await update.message.reply_text(t('donate.error', context))
 
 
 async def help_cmd(update: Update, context: CallbackContext):
     """Команда помощи со списком всех команд"""
-    help_text = """
-    <b>Помощь в поиске книг.</b>
-
-    <u>Простой поиск по любым словам:</u>
-    ✏️ <code>Лев Толстой война мир</code>
-    ✏️ <code>фантастика космос звёзды 2025</code>
-    ✏️ <code>Harry Potter</code>
-    ✏️ <code>Перельман математика физика</code>
-
-    <u>Советы для эффективного поиска:</u>
-    🔍 <b>Несколько слов</b> - бот ищет книги, содержащие какие-либо из перечисленных слов
-    ➕ <b>Обязательное слово</b> - используйте + перед словом: <code>+жизнь +замечательных людей</code>
-    ➖ <b>Исключение слов</b> - используйте - перед словом: <code>+Распутин -Валентин</code>
-    ⭐️ <b>Части слов</b> - можно использовать *: <code>математи* задач*</code>
-    🔄 <b>Группировка слов</b> - используйте (): <code>+(эльф гоблин орк гном) +(одинокий злой грустный огромный)</code>
-    📏 <b>Расстояние между словами</b> - используйте @N после фразы в двойных кавычках: <code>"настоящее время проживает Москве" @5</code>
-    🔎 <b>Поиск по аннотациям</b> - в настройках включите "Область поиска" → "по аннотации книг" или "по аннотации авторов"
-
-    <u>Область поиска:</u>
-    📖 Основной поиск осуществляется по: <b>названию книги, авторам, жанрам, серии и году издания</b>
-    📚 Поиск по аннотациям - по <b>полным текстам описаний книг или биографиям авторов</b>. Выполнена индексация слов от трёх букв
-
-    <u>Примеры запросов для поиска по аннотациям книг:</u>
-    📘 <code>+(эльфы гномы орки) +(злые одинокие большие грустные)</code> - фэнтези миры с магией
-    📘 <code>+(путешествия вторжения пришельцев) +(космические времени другие миры)</code> - космическая фантастика
-    📘 <code>+автор +создал удивительный волшебный +мир</code> - книги с богатым миром
-    📘 <code>+русский +полководец Отечественной войны</code> - историческая литература
-    📘 <code>+сборник +фантастических +(рассказов повестей) +советских -(зарубежных иностранных)</code> - советская фантастика
-
-    <u>Примеры запросов для поиска по аннотациям авторов:</u>
-    👤 <code>+награждён +(медалями орденами)</code> - авторы, награжденные медалями или орденами
-    👤 <code>"умер 1980 году" @5</code> - авторы, умершие в 1980 году (слова в пределах 5 слов друг от друга)
-    👤 <code>+(родился проживал умер) +Пензенской +губернии</code> - авторы, связанные с Пензенской губернией
-    👤 <code>+филолог +переводчик +журналист</code> - авторы-филологи, переводчики и журналисты
-    👤 <code>"настоящее время проживает Москве" @5</code> - ныне живущие в Москве авторы
-    👤 <code>"воевал получил ранение" @10</code> - авторы, получившие ранения в боях
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
     
-    <u>Ограничение выдачи:</u>
-    ⚡️ Результаты поиска временно ограничены <b>2000 книгами, 200 авторами и 200 сериями</b> для скорости работы
-
-    <u>Доступные форматы выдачи (в настройках):</u>
-    📚 <b>По книгам</b> - список книг
-    👥 <b>По авторам</b> - группировка по авторам
-    📖 <b>По сериям</b> - группировка по сериям
-    """
+    help_text = t('help.title', context)
 
     await update.message.reply_text(help_text, parse_mode='HTML', disable_web_page_preview=True)
 
@@ -239,6 +202,9 @@ async def help_cmd(update: Update, context: CallbackContext):
 
 async def about_cmd(update: Update, context: CallbackContext):
     """Команда /about - информация о боте и библиотеке"""
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
+    
     try:
         stats = DB_BOOKS.get_library_stats()
         last_update = stats['last_update']
@@ -248,39 +214,26 @@ async def about_cmd(update: Update, context: CallbackContext):
 
         reader_recommendations = get_platform_recommendations()
 
-        about_text = f"""
-<b>Flibusta Bot</b> - телеграм бот для поиска и скачивания книг непосредственно с сайта библиотеки Флибуста.
+        # Format numbers with spaces
+        books_count = f"{stats['books_count']:,}".replace(",", " ")
+        authors_count = f"{stats['authors_count']:,}".replace(",", " ")
+        series_count = f"{stats['series_count']:,}".replace(",", " ")
 
-📊 <b>Статистика БД библиотеки бота:</b>
-• 📚 Книг: <code>{f"{stats['books_count']:,}".replace(",", " ")}</code>
-• 👥 Авторов: <code>{f"{stats['authors_count']:,}".replace(",", " ")}</code>
-• 📖 Серий: <code>{f"{stats['series_count']:,}".replace(",", " ")}</code>
-• 🏷️ Жанров: <code>{stats['genres_count']}</code>
-• 🌐 Языков: <code>{stats['languages_count']}</code>
-• 📅 Обновлено: <code>{last_update_str}</code>
-• 🔢 Максимальный ID файла книги: <code>{stats['max_filename']}</code>
-
-⚡ <b>Возможности бота:</b>
-• 🔍 Основной поиск книг по названию, автору, жанру, серии и году
-• 📝 Поиск по аннотациям книг и авторов
-• 📈 Просмотр новинок и популярных книг
-• 📚 Вывод результатов с группировкой по сериям и авторам
-• 👤 Детальная информация об авторах с фото и биографией
-• 📖 Аннотации к книгам, авторам и отзывы читателей
-• 🖼️ Обложки книг и фото авторов с сайта Флибуста
-• 📥 Скачивание в форматах fb2, epub, mobi
-• ⭐ Фильтрация по рейтингу книг, размеру и языку
-• ⚙️ Гибкие настройки поиска
-{reader_recommendations}
-📞 <b>Обратная связь:</b>
-• 📧 Email: <code>{CONTACT_INFO['email']}</code>
-• 🎮 Блог: <a href="{CONTACT_INFO['blog']}">{CONTACT_INFO['blog_name']}</a>
-• 📢 ТГ-канал: <a href="{CONTACT_INFO['tg_channel']}">{CONTACT_INFO['tg_channel_name']}</a>
-
-🛠 <b>Технологии:</b>
-• Python 3.11 + python-telegram-bot
-• MariaDB + родная БД Флибусты
-        """
+        about_text = t('about.title', context,
+            books_count=books_count,
+            authors_count=authors_count,
+            series_count=series_count,
+            genres_count=stats['genres_count'],
+            languages_count=stats['languages_count'],
+            last_update=last_update_str,
+            max_filename=stats['max_filename'],
+            reader_recommendations=reader_recommendations,
+            email=CONTACT_INFO['email'],
+            blog=CONTACT_INFO['blog'],
+            blog_name=CONTACT_INFO['blog_name'],
+            tg_channel=CONTACT_INFO['tg_channel'],
+            tg_channel_name=CONTACT_INFO['tg_channel_name']
+        )
 
         await update.message.reply_text(
             about_text,
@@ -291,7 +244,7 @@ async def about_cmd(update: Update, context: CallbackContext):
     except Exception as e:
         print(f"Error in about command: {e}")
         await update.message.reply_text(
-            "❌ Не удалось получить информацию о библиотеке",
+            t('about.error', context),
             parse_mode=ParseMode.HTML
         )
 
@@ -310,18 +263,21 @@ async def about_cmd(update: Update, context: CallbackContext):
 
 async def news_cmd(update: Update, context: CallbackContext):
     """Команда /news - показывает последние новости бота"""
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
+    
     try:
         # Загружаем новости из файла
         latest_news = await get_latest_news(BOT_NEWS_FILE_PATH, count=3)
 
         if not latest_news:
             await update.message.reply_text(
-                "📢 Пока нет новостей. Следите за обновлениями!",
+                t('news.empty', context),
                 parse_mode=ParseMode.HTML
             )
             return
 
-        news_text = "📢 <b>Последние новости бота:</b>\n\n"
+        news_text = t('news.title', context)
 
         for i, news_item in enumerate(latest_news, 1):
             news_text += f"📅 <b>{news_item['date']}</b>\n"
@@ -352,7 +308,7 @@ async def news_cmd(update: Update, context: CallbackContext):
     except Exception as e:
         print(f"Error in news command: {e}")
         await update.message.reply_text(
-            "❌ Не удалось загрузить новости",
+            t('news.error', context),
             parse_mode=ParseMode.HTML
         )
 

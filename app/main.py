@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from telegram import BotCommand, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, \
@@ -19,6 +20,7 @@ from .handlers_payments import pre_checkout, successful_payment
 from .core.structured_logger import structured_logger
 from .repositories.logs_repository import LogsRepository
 from .core.logging_schema import EventType
+from .i18n import init_i18n
 
 async def post_stop(app: Application) -> None:
     """Вызывается после остановки бота"""
@@ -74,6 +76,10 @@ def main():
     TOKEN = os.getenv("BOT_TOKEN")
     if not TOKEN:
         raise ValueError("Токен бота не найден в переменной окружения BOT_TOKEN.")
+
+    # Initialize i18n system
+    translations_dir = Path(__file__).parent / "i18n" / "translations"
+    init_i18n(translations_dir)
 
     request = HTTPXRequest(connect_timeout=60, read_timeout=60)
     #application = Application.builder().token(TOKEN).read_timeout(60).build()

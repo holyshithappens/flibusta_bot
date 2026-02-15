@@ -6,9 +6,10 @@ from .handlers_utils import add_close_button, edit_or_reply_message, create_back
 from .database import DB_BOOKS
 from .constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
-    SETTING_SEARCH_AREA
+    SETTING_SEARCH_AREA, SETTING_LOCALE
 from .context import get_user_params, update_user_params
 from .core.structured_logger import structured_logger
+from .i18n import t, set_user_locale
 
 # ===== НАСТРОЙКИ =====
 async def show_settings_menu(update_or_query, context, from_callback=False):
@@ -221,6 +222,22 @@ async def handle_set_actions(query, context, action, params):
             chat_type="private",
             chat_id=user.id
         )
+    
+    elif action.startswith(f'set_{SETTING_LOCALE}_to_'):
+        setting_type = SETTING_LOCALE
+        old_value = getattr(user_params, 'Locale', '') or 'ru'
+        new_value = action.removeprefix(f'set_{SETTING_LOCALE}_to_')
+        # Update locale using the i18n function (handles DB and context cache)
+        set_user_locale(context, user.id, new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="Locale",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
     else:
         return
 
@@ -236,8 +253,13 @@ async def handle_set_actions(query, context, action, params):
     # print(f"DEBUG: {setting_type} {new_value}")
 
     # Обновляем сообщение
+    # For locale setting, use localized title
+    title = SETTING_TITLES[setting_type]
+    if setting_type == SETTING_LOCALE:
+        title = t('settings.menu.locale', context)
+    
     try:
-        await query.edit_message_text(SETTING_TITLES[setting_type], reply_markup=reply_markup)
+        await query.edit_message_text(title, reply_markup=reply_markup)
     except BadRequest as e:
         if "Message is not modified" not in str(e):
             raise e
@@ -256,6 +278,18 @@ async def handle_set_search_area(query, context, action, params):
 
     await edit_or_reply_message(query, SETTING_TITLES[SETTING_SEARCH_AREA], reply_markup)
     # logger.log_user_action(query.from_user, "showed search area setting")
+
+
+async def handle_set_locale(query, context, action, params):
+    """Shows language selection menu"""
+    user_params = get_user_params(context)
+    current_value = getattr(user_params, 'Locale', '') or 'ru'
+    
+    options = SETTING_OPTIONS[SETTING_LOCALE]
+    reply_markup = create_settings_keyboard(SETTING_LOCALE, current_value, options)
+    
+    title = t('settings.menu.locale', context)
+    await edit_or_reply_message(query, title, reply_markup)
 
 
 def create_settings_menu(context:CallbackContext):
@@ -325,6 +359,15 @@ def create_settings_menu(context:CallbackContext):
                 for option in SETTING_OPTIONS[SETTING_SEARCH_AREA]:
                     if option == "__NEWLINE__":
                         continue
+                    value, display = option
+                    if value == current_value:
+                        current_display = f"({display})"
+                        break
+            
+            elif setting_type == SETTING_LOCALE:
+                # Display current locale with flag
+                current_value = getattr(user_params, 'Locale', '') or 'ru'
+                for option in SETTING_OPTIONS[SETTING_LOCALE]:
                     value, display = option
                     if value == current_value:
                         current_display = f"({display})"

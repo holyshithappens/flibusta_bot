@@ -13,12 +13,13 @@ from .constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOO
 # from logger import logger
 
 Book = namedtuple('Book',
-                  ['FileName', 'Title', 'LastName', 'FirstName', 'MiddleName', 'Genre', 'BookSize',
-                   'SearchYear', 'LibRate', 'SeriesTitle', 'Relevance'])
+                   ['FileName', 'Title', 'LastName', 'FirstName', 'MiddleName', 'Genre', 'BookSize',
+                    'SearchYear', 'LibRate', 'SeriesTitle', 'Relevance'])
 UserSettingsType = namedtuple('UserSettingsType',
                               ['User_ID', 'MaxBooks', 'Lang',
                                # 'DateSortOrder',
-                               'BookFormat', 'LastNewsDate', 'IsBlocked', 'BookSize', 'SearchType', 'Rating', 'SearchArea'])
+                               'BookFormat', 'LastNewsDate', 'IsBlocked', 'BookSize', 'SearchType', 'Rating', 'SearchArea',
+                               'Locale'])  # User's preferred UI language (empty = auto-detect)
 
 # SQL-запросы
 # Базовые поля для SELECT
@@ -672,6 +673,24 @@ class DatabaseSettings(Database):
 
     def __init__(self, db_path = FLIBUSTA_DB_SETTINGS_PATH):
         super().__init__(db_path)
+        self._ensure_locale_column()
+
+    def _ensure_locale_column(self):
+        """Ensures the Locale column exists in UserSettings table (migration for existing DBs)."""
+        try:
+            with self.connect() as conn:
+                cursor = conn.cursor()
+                # Check if Locale column exists
+                cursor.execute("PRAGMA table_info(UserSettings)")
+                columns = [col[1] for col in cursor.fetchall()]
+                
+                if 'Locale' not in columns:
+                    # Add Locale column with empty string default
+                    cursor.execute("ALTER TABLE UserSettings ADD COLUMN Locale VARCHAR(5) DEFAULT ''")
+                    conn.commit()
+        except Exception as e:
+            # Log but don't fail - column might already exist or table might be empty
+            print(f"Note: Could not add Locale column (may already exist): {e}")
 
     # def _initialize_database(self):
     #     """Инициализирует БД настроек при первом подключении"""

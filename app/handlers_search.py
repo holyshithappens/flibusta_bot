@@ -21,6 +21,7 @@ from .context import get_user_params, get_last_bot_message_id, set_books, set_la
     get_found_series_count, get_pages_of_authors, get_found_authors_count, get_switch_search, set_switch_search
 from .health import log_stats
 from .core.structured_logger import structured_logger
+from .i18n import t
 
 # ===== ПОИСК И НАВИГАЦИЯ =====
 async def handle_message(update: Update, context: CallbackContext):
@@ -51,7 +52,7 @@ async def handle_message(update: Update, context: CallbackContext):
         raise e
     except Exception as e:
         print(f"Error in handle_message: {e}")
-        await update.message.reply_text("❌ Произошла ошибка при обработке запроса")
+        await update.message.reply_text(t('search.error', context))
 
     await log_stats(context)
 
@@ -84,7 +85,7 @@ async def handle_search_books(update: Update, context: CallbackContext):
                 print(f"Не удалось удалить старое сообщение: {e}")
 
     processing_msg = await message.reply_text(
-        "⏰ <i>Ищу книги, ожидайте...</i>",
+        t('search.loading', context),
         parse_mode=ParseMode.HTML,
         disable_notification=True
     )
@@ -219,7 +220,7 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
             set_last_search_query(context, query_text)
     else:
         await processing_msg.edit_text(
-            "😞 Не нашёл подходящих книг. Попробуйте другие критерии поиска.",
+            t('search.no_results', context),
             parse_mode=ParseMode.HTML
         )
 
@@ -260,7 +261,7 @@ async def handle_search_series(update: Update, context: CallbackContext):
                 print(f"Не удалось удалить старое сообщение: {e}")
 
     processing_msg = await message.reply_text(
-        "⏰ <i>Ищу книжные серии, ожидайте...</i>",
+        t('search.loading_series', context),
         parse_mode=ParseMode.HTML,
         disable_notification=True
     )
@@ -343,7 +344,7 @@ async def process_search_series(context: CallbackContext, series, found_series_c
             set_last_search_query(context, query_text)
     else:
         await processing_msg.edit_text(
-            "😞 Не нашёл подходящих книжных серий. Попробуйте другие критерии поиска.",
+            t('search.no_results_series', context),
             parse_mode=ParseMode.HTML
         )
 
@@ -406,7 +407,7 @@ async def handle_search_series_books(query, context, action, params):
 
     except (ValueError, IndexError) as e:
         print(f"Ошибка при обработке серии: {e}")
-        await query.edit_message_text("❌ Ошибка при загрузке серии")
+        await query.edit_message_text(t('search.series_error', context))
 
 
 async def handle_search_authors(update: Update, context: CallbackContext):
@@ -429,7 +430,7 @@ async def handle_search_authors(update: Update, context: CallbackContext):
                 print(f"Не удалось удалить старое сообщение: {e}")
 
     processing_msg = await message.reply_text(
-        "⏰ <i>Ищу авторов, ожидайте...</i>",
+        t('search.loading_authors', context),
         parse_mode=ParseMode.HTML,
         disable_notification=True
     )
@@ -510,7 +511,7 @@ async def process_search_authors(context: CallbackContext, authors, found_author
             set_last_search_query(context, query_text)
     else:
         await processing_msg.edit_text(
-            "😞 Не нашёл подходящих авторов. Попробуйте другие критерии поиска.",
+            t('search.no_results_authors', context),
             parse_mode=ParseMode.HTML
         )
 
@@ -576,7 +577,7 @@ async def handle_search_author_books(query, context, action, params):
 
     except (ValueError, IndexError) as e:
         print(f"Ошибка при обработке автора: {e}")
-        await query.edit_message_text("❌ Ошибка при загрузке автора")
+        await query.edit_message_text(t('search.author_error', context))
 
 
 async def handle_books_page_change(query, context, action, params):
@@ -585,7 +586,7 @@ async def handle_books_page_change(query, context, action, params):
         # Проверяем, что данные поиска еще существуют
         pages_of_books = get_pages_of_books(context)
         if not pages_of_books:
-            await query.edit_message_text("❌ Сессия поиска истекла. Начните поиск заново.")
+            await query.edit_message_text(t('search.session_expired', context))
             return
 
         page = int(action.removeprefix(f"{SEARCH_TYPE_BOOKS}_page_"))
@@ -598,7 +599,7 @@ async def handle_books_page_change(query, context, action, params):
         keyboard = create_books_keyboard(page, pages_of_books, search_context)
         if search_context == SEARCH_TYPE_AUTHORS:
             author_id = get_current_author_id(context)
-            keyboard.append([InlineKeyboardButton("👤 Об авторе", callback_data=f"author_info:{author_id}")])
+            keyboard.append([InlineKeyboardButton(t('search.author_about', context), callback_data=f"author_info:{author_id}")])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -622,10 +623,10 @@ async def handle_books_page_change(query, context, action, params):
             await query.edit_message_text(header_text, reply_markup=reply_markup)
 
     except ValueError:
-        await query.answer("❌ Ошибка в номере страницы")
+        await query.answer(t('search.page_error', context))
     except Exception as e:
         print(f"Error in page change: {e}")
-        await query.answer("❌ Произошла ошибка при смене страницы")
+        await query.answer(t('search.page_change_error', context))
 
     # logger.log_user_action(query.from_user, "changed page of books", page)
 
@@ -635,10 +636,9 @@ async def handle_series_page_change(query, context, action, params):
         # Проверяем, что данные серий еще существуют
         pages_of_series = get_pages_of_series(context)
         if not pages_of_series:
-            await query.answer("❌ Результаты поиска устарели. Выполните новый поиск.")
+            await query.answer(t('search.results_expired', context))
             await query.edit_message_text(
-                "🕒 <b>Результаты поиска устарели</b>\n\n"
-                "Пожалуйста, выполните новый поиск.",
+                t('search.results_expired_title', context),
                 parse_mode=ParseMode.HTML
             )
             return
@@ -660,10 +660,10 @@ async def handle_series_page_change(query, context, action, params):
         set_last_series_page(context, page)  # Сохраняем текущую страницу
 
     except ValueError:
-        await query.answer("❌ Ошибка в номере страницы")
+        await query.answer(t('search.page_error', context))
     except Exception as e:
         print(f"Error in series page change: {e}")
-        await query.answer("❌ Произошла ошибка при смене страницы")
+        await query.answer(t('search.page_change_error', context))
 
     # logger.log_user_action(query.from_user, "changed page of series", page)
 
@@ -674,10 +674,9 @@ async def handle_authors_page_change(query, context, action, params):
         # Проверяем, что данные авторов еще существуют
         pages_of_authors = get_pages_of_authors(context)
         if not pages_of_authors:
-            await query.answer("❌ Результаты поиска устарели. Выполните новый поиск.")
+            await query.answer(t('search.results_expired', context))
             await query.edit_message_text(
-                "🕒 <b>Результаты поиска устарели</b>\n\n"
-                "Пожалуйста, выполните новый поиск.",
+                t('search.results_expired_title', context),
                 parse_mode=ParseMode.HTML
             )
             return
@@ -699,9 +698,9 @@ async def handle_authors_page_change(query, context, action, params):
         set_last_authors_page(context, page)
 
     except ValueError:
-        await query.answer("❌ Ошибка в номере страницы")
+        await query.answer(t('search.page_error', context))
     except Exception as e:
         print(f"Error in authors page change: {e}")
-        await query.answer("❌ Произошла ошибка при смене страницы")
+        await query.answer(t('search.page_change_error', context))
 
     # logger.log_user_action(query.from_user, "changed page of authors", page)
