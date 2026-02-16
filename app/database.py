@@ -824,7 +824,8 @@ class DatabaseBooks():
                     books_stats = cursor.fetchone()
 
                     # Количество авторов
-                    cursor.execute("SELECT COUNT(*) FROM cb_libavtorname")
+                    # cursor.execute("SELECT COUNT(*) FROM cb_libavtorname")
+                    cursor.execute("SELECT COUNT(DISTINCT AvtorID) FROM cb_libavtor")
                     authors_cnt = cursor.fetchone()[0]
 
                     # Количество жанров
