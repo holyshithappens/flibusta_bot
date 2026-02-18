@@ -14,11 +14,14 @@ from .context import set_last_activity, get_pages_of_books, get_found_books_coun
 from .tools import is_message_for_bot, extract_clean_query, form_header_books
 from .health import log_stats
 from .core.structured_logger import structured_logger
+from .i18n import t, get_or_detect_locale
 
 # ===== РАБОТА В ГРУППЕ =====
 async def handle_group_message(update: Update, context: CallbackContext):
     """Обрабатывает сообщения из группы"""
     try:
+        # Initialize locale on first access
+        get_or_detect_locale(update, context)
         # Проверяем, обращается ли пользователь к боту
         if not is_message_for_bot(update.effective_message.text, context.bot.username):
             # Сообщение НЕ для бота - пропускаем обработку
@@ -32,7 +35,7 @@ async def handle_group_message(update: Update, context: CallbackContext):
         # Отправляем сообщение об ошибке через context.bot
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="❌ Произошла ошибка при обработке запроса",
+            text=t('errors.general', context),
             reply_to_message_id=update.effective_message.message_id
         )
 
@@ -53,7 +56,7 @@ async def handle_group_search(update: Update, context: CallbackContext):
 
         if not clean_query_text:
             await message.reply_text(
-                "❌ Пожалуйста, укажите поисковый запрос после упоминания бота",
+                t('errors.general', context),
                 reply_to_message_id=message.message_id
             )
             return
@@ -73,7 +76,7 @@ async def handle_group_search(update: Update, context: CallbackContext):
 
         # Отправляем сообщение о начале поиска
         processing_msg = await message.reply_text(
-            f"⏰ <i>Ищу книги по запросу от {user.first_name}...</i>",
+            t('search.loading', context),
             parse_mode=ParseMode.HTML,
             reply_to_message_id=message.message_id
         )
@@ -129,7 +132,7 @@ async def handle_group_search(update: Update, context: CallbackContext):
             # Отправляем сообщение о том, что книги не найдены
             result_message = await context.bot.send_message(
                 chat_id=chat.id,
-                text=f"😞 Не нашёл подходящих книг для запроса '{clean_query_text}'",
+                text=t('search.no_results', context),
                 reply_to_message_id=message.message_id
             )
             # Сохраняем контекст поиска в bot_data (доступно всем пользователям группы)
@@ -152,18 +155,20 @@ async def handle_group_search(update: Update, context: CallbackContext):
         # Используем context.bot вместо update.message
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="❌ Произошла ошибка при поиске книг",
+            text=t('errors.general', context),
             reply_to_message_id=update.effective_message.message_id
         )
 
 
 async def handle_group_callback(query, context, action, params, user):
     """Обрабатывает callback-запросы из групп"""
+    # Initialize locale on first access
+    get_or_detect_locale(query.update, context)
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
 
     if not search_context_user_params:
-        await query.edit_message_text("❌ Сессия поиска истекла. Начните поиск заново.")
+        await query.edit_message_text(t('search.session_expired', context))
         return
 
     action_handlers = {
@@ -184,25 +189,27 @@ async def handle_group_callback(query, context, action, params, user):
         handler = action_handlers[action]
         await handler(query, context, action, params)
     else:
-        await query.edit_message_text("❌ Это действие недоступно в группе")
+        await query.edit_message_text(t('callback.unknown_action', context))
 
     await log_stats(context)
 
 
 async def handle_group_page_change(query, context, action, params, user):
     """Обрабатывает смену страницы в группе"""
+    # Initialize locale on first access
+    get_or_detect_locale(query.update, context)
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
 
     if not search_context_user_params:
-        await query.edit_message_text("❌ Сессия поиска истекла. Начните поиск заново.")
+        await query.edit_message_text(t('search.session_expired', context))
         return
 
     pages_of_books = get_pages_of_books(context)
     page = int(action.removeprefix(f"{SEARCH_TYPE_BOOKS}_page_"))
 
     if not pages_of_books or page >= len(pages_of_books):
-        await query.edit_message_text("❌ Ошибка при загрузке страницы")
+        await query.edit_message_text(t('search.page_error', context))
         return
 
     keyboard = create_books_keyboard(page, pages_of_books)

@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from .core.structured_logger import structured_logger
+from .i18n import t, get_or_detect_locale
 
 
 # ==== ОБРАБОТКА ПОЛУЧЕНИЯ ДОНАТОВ ====
@@ -14,10 +15,12 @@ async def pre_checkout(update: Update, context: CallbackContext):
 async def successful_payment(update: Update, context: CallbackContext):
     payment = update.message.successful_payment
     user = update.message.from_user
+    # Initialize locale on first access
+    get_or_detect_locale(update, context)
     # Отправляем благодарность
     await update.message.reply_photo(
         photo='https://gifdb.com/images/high/robocop-thank-you-for-your-cooperation-gqen0zm4lhjdh14d.webp',
-        caption=f"🎉 Спасибо за донат! Вы отправили {payment.total_amount} звёзд!\n"
+        caption=f"🎉 {t('donate.stars_title', context)}! Вы отправили {payment.total_amount} звёзд!\n"
                 f"Все средства пойдут на аренду VPS! ❤️"
     )
     # logger.log_payment(payment, user)

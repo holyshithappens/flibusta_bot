@@ -8,6 +8,7 @@ from .database import DB_BOOKS
 from .tools import format_book_reviews, format_author_info, format_book_details, format_book_info
 from .core.logging_schema import EventType
 from .core.structured_logger import structured_logger
+from .i18n import t, get_or_detect_locale
 
 # ===== ИНФОРМАЦИЯ О КНИГАХ И АВТОРАХ =====
 async def handle_book_info(query, context, action, params):
@@ -16,9 +17,12 @@ async def handle_book_info(query, context, action, params):
         user = query.from_user
         file_name = params[0]
         book_id = int(file_name)
+        
+        # Initialize locale on first access
+        get_or_detect_locale(query.update, context)
 
         processing_msg = await query.message.reply_text(
-            "⏰ <i>Ожидайте, загружаю информацию о книге...</i>",
+            t('search.loading', context),
             parse_mode=ParseMode.HTML,
             disable_notification=True
         )
@@ -27,7 +31,7 @@ async def handle_book_info(query, context, action, params):
         book_info = await DB_BOOKS.get_book_info(book_id)
 
         if not book_info:
-            await query.answer("❌ Информация о книге не найдена")
+            await query.answer(t('errors.not_found', context))
             return
 
         # Формируем сообщение с информацией о книге
@@ -56,11 +60,11 @@ async def handle_book_info(query, context, action, params):
 
         # Создаем клавиатуру с дополнительными кнопками
         keyboard = [
-            [InlineKeyboardButton("📥 Скачать", callback_data=f"send_file:{file_name}")],
-            [InlineKeyboardButton("📖 О книге", callback_data=f"book_details:{book_id}"),
-            InlineKeyboardButton("👤 Об авторе", callback_data=f"author_info:{author_ids[0]}")],
-            [InlineKeyboardButton("💬 Отзывы", callback_data=f"book_reviews:{book_id}"),
-            InlineKeyboardButton("❌ Закрыть", callback_data=f"close_info:{info_message.message_id}")],
+            [InlineKeyboardButton(t('book.download', context), callback_data=f"send_file:{file_name}")],
+            [InlineKeyboardButton(t('book.info', context), callback_data=f"book_details:{book_id}"),
+            InlineKeyboardButton(t('book.author', context), callback_data=f"author_info:{author_ids[0]}")],
+            [InlineKeyboardButton(t('book.rating', context), callback_data=f"book_reviews:{book_id}"),
+            InlineKeyboardButton(t('common.close', context), callback_data=f"close_info:{info_message.message_id}")],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -80,18 +84,20 @@ async def handle_book_info(query, context, action, params):
 
     except Exception as e:
         print(f"Error in handle_book_info: {e}")
-        await query.answer("❌ Ошибка при загрузке информации о книге")
+        await query.answer(t('errors.general', context))
 
 async def handle_book_details(query, context, action, params):
     """Показывает детальную информацию о книге с обложкой и аннотацией"""
     try:
         book_id = int(params[0])
+        # Initialize locale on first access
+        get_or_detect_locale(query.update, context)
         book_details = await DB_BOOKS.get_book_details(book_id)
 
         # print(f"DEBUG: book_details = {book_details}")
 
         if not book_details:
-            await query.message.reply_text("❌ Аннотация о книге не найдена")
+            await query.message.reply_text(t('errors.not_found', context))
             return
 
         message_text = format_book_details(book_details)
@@ -103,11 +109,11 @@ async def handle_book_details(query, context, action, params):
         )
 
         # Добавляем кнопку закрытия с ID сообщения
-        await add_close_button_to_message(info_message,[info_message.message_id])
+        await add_close_button_to_message(info_message,[info_message.message_id], context)
 
     except Exception as e:
         print(f"Error in handle_book_details: {e}")
-        await query.answer("❌ Ошибка при загрузке детальной информации")
+        await query.answer(t('errors.general', context))
     else:
         # Логируем успешный просмотр детальной информации о книге
         structured_logger.log_book_details_view(
@@ -125,11 +131,13 @@ async def handle_author_info(query: CallbackQuery, context: CallbackContext, act
     try:
         author_id = int(params[0])
         # print(f"DEBUG: params = {params}")
+        # Initialize locale on first access
+        get_or_detect_locale(query.update, context)
         author_info = await DB_BOOKS.get_author_info(author_id)
         # print(f"DEBUG: author_info = {author_info}")
 
         if not author_info:
-            await query.message.reply_text("❌ Информация об авторе не найдена")
+            await query.message.reply_text(t('errors.not_found', context))
             return
 
         message_ids = []  # Храним ID всех сообщений
@@ -145,11 +153,11 @@ async def handle_author_info(query: CallbackQuery, context: CallbackContext, act
         message_ids.append(bio_message.message_id)
 
         # Кнопка закрытия с передачей всех message_id
-        await add_close_button_to_message(bio_message,message_ids)
+        await add_close_button_to_message(bio_message,message_ids, context)
 
     except Exception as e:
         print(f"Error in handle_author_info: {e}")
-        await query.answer("❌ Ошибка при загрузке информации об авторе")
+        await query.answer(t('errors.general', context))
     else:
         # Логируем успешный просмотр информации об авторе
         structured_logger.log_author_info_view(
@@ -166,6 +174,8 @@ async def handle_book_reviews(query, context, action, params):
     """Показывает отзывы о книге"""
     try:
         book_id = params[0]
+        # Initialize locale on first access
+        get_or_detect_locale(query.update, context)
         reviews = await DB_BOOKS.get_book_reviews(book_id)
 
         # if not reviews:
@@ -180,16 +190,16 @@ async def handle_book_reviews(query, context, action, params):
             )
         else:
             info_message = await query.message.reply_text(
-                "📝 Отзывов пока нет",
+                t('book.rating', context),
                 parse_mode=ParseMode.HTML
             )
 
         # Добавляем кнопку закрытия с ID сообщения
-        await add_close_button_to_message(info_message,[info_message.message_id])
+        await add_close_button_to_message(info_message,[info_message.message_id], context)
 
     except Exception as e:
         print(f"Error in handle_book_reviews: {e}")
-        await query.answer("❌ Ошибка при загрузке отзывов")
+        await query.answer(t('errors.general', context))
     else:
         # Логируем успешный просмотр отзывов о книге
         structured_logger.log_book_reviews_view(
@@ -201,11 +211,12 @@ async def handle_book_reviews(query, context, action, params):
         )
 
 
-async def add_close_button_to_message(to_message, close_message_ids: List[Any]):
+async def add_close_button_to_message(to_message, close_message_ids: List[Any], context=None):
     # Добавляем кнопку закрытия с ID сообщения
     close_data = ':'.join(map(str, close_message_ids))
     # print(f"DEBUG: {close_data}")
-    keyboard = [[InlineKeyboardButton("❌ Закрыть", callback_data=f"close_info:{close_data}")]]
+    close_text = t('common.close', context) if context else "❌ Закрыть"
+    keyboard = [[InlineKeyboardButton(close_text, callback_data=f"close_info:{close_data}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await to_message.edit_reply_markup(reply_markup)
 
@@ -219,4 +230,4 @@ async def handle_close_info(query, context, action, params):
             await context.bot.delete_message(query.message.chat_id, int(msg_id))
     except Exception as e:
         print(f"Error in handle_close_info: {e}")
-        await query.answer("❌ Ошибка при закрытии информации")
+        await query.answer(t('errors.general', context))

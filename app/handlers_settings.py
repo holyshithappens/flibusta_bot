@@ -22,10 +22,10 @@ async def show_settings_menu(update_or_query, context, from_callback=False):
     reply_markup = InlineKeyboardMarkup(settings_keyboard)
 
     if from_callback:
-        await update_or_query.edit_message_text("Настроить:", reply_markup=reply_markup)
+        await update_or_query.edit_message_text(t('settings.menu.title', context), reply_markup=reply_markup)
         user = update_or_query.from_user
     else:
-        await update_or_query.message.reply_text("Настроить:", reply_markup=reply_markup)
+        await update_or_query.message.reply_text(t('settings.menu.title', context), reply_markup=reply_markup)
         user = update_or_query.message.from_user
 
     # logger.log_user_action(user, "showed settings menu")
@@ -39,7 +39,7 @@ async def handle_set_max_books(query, context, action, params):
     options = SETTING_OPTIONS[SETTING_MAX_BOOKS]
     reply_markup = create_settings_keyboard(SETTING_MAX_BOOKS, current_value, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_MAX_BOOKS], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_MAX_BOOKS, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed max books setting for user")
 
 
@@ -54,7 +54,7 @@ async def handle_set_lang_search(query, context, action, params):
 
     reply_markup = create_settings_keyboard(SETTING_LANG_SEARCH, current_value, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_LANG_SEARCH], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_LANG_SEARCH, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed langs of books setting for user")
 
 
@@ -78,7 +78,7 @@ async def handle_set_size_limit(query, context, action, params):
     options = SETTING_OPTIONS[SETTING_SIZE_LIMIT]
     reply_markup = create_settings_keyboard(SETTING_SIZE_LIMIT, current_value, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_SIZE_LIMIT], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_SIZE_LIMIT, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed size limit setting for user")
 
 
@@ -90,7 +90,7 @@ async def handle_set_book_format(query, context, action, params):
     options = SETTING_OPTIONS[SETTING_BOOK_FORMAT]
     reply_markup = create_settings_keyboard(SETTING_BOOK_FORMAT, current_value, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_BOOK_FORMAT], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_BOOK_FORMAT, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed book format setting for user")
 
 
@@ -102,7 +102,7 @@ async def handle_set_search_type(query, context, action, params):
     options = SETTING_OPTIONS[SETTING_SEARCH_TYPE]
     reply_markup = create_settings_keyboard(SETTING_SEARCH_TYPE, current_value, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_SEARCH_TYPE], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_TYPE, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed search type setting")
 
 
@@ -117,7 +117,7 @@ async def handle_set_rating_filter(query, context, action, params):
     options = SETTING_OPTIONS[SETTING_RATING_FILTER]
     reply_markup = create_rating_filter_keyboard(current_ratings, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_RATING_FILTER], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_RATING_FILTER, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed rating filter setting")
 
 
@@ -254,9 +254,7 @@ async def handle_set_actions(query, context, action, params):
 
     # Обновляем сообщение
     # For locale setting, use localized title
-    title = SETTING_TITLES[setting_type]
-    if setting_type == SETTING_LOCALE:
-        title = t('settings.menu.locale', context)
+    title = get_setting_title(setting_type, context)
     
     try:
         await query.edit_message_text(title, reply_markup=reply_markup)
@@ -276,7 +274,7 @@ async def handle_set_search_area(query, context, action, params):
     options = SETTING_OPTIONS[SETTING_SEARCH_AREA]
     reply_markup = create_settings_keyboard(SETTING_SEARCH_AREA, current_value, options)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_SEARCH_AREA], reply_markup)
+    await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_AREA, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed search area setting")
 
 
