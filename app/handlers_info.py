@@ -11,15 +11,16 @@ from .core.structured_logger import structured_logger
 from .i18n import t, get_or_detect_locale
 
 # ===== ИНФОРМАЦИЯ О КНИГАХ И АВТОРАХ =====
-async def handle_book_info(query, context, action, params):
+async def handle_book_info(update, context, action, params):
     """Показывает информацию о книге с дополнительными кнопками"""
+    query = update.callback_query
     try:
         user = query.from_user
         file_name = params[0]
         book_id = int(file_name)
         
         # Initialize locale on first access
-        get_or_detect_locale(query.update, context)
+        get_or_detect_locale(update, context)
 
         processing_msg = await query.message.reply_text(
             t('search.loading', context),
@@ -86,12 +87,13 @@ async def handle_book_info(query, context, action, params):
         print(f"Error in handle_book_info: {e}")
         await query.answer(t('errors.general', context))
 
-async def handle_book_details(query, context, action, params):
+async def handle_book_details(update, context, action, params):
     """Показывает детальную информацию о книге с обложкой и аннотацией"""
+    query = update.callback_query
     try:
         book_id = int(params[0])
         # Initialize locale on first access
-        get_or_detect_locale(query.update, context)
+        get_or_detect_locale(update, context)
         book_details = await DB_BOOKS.get_book_details(book_id)
 
         # print(f"DEBUG: book_details = {book_details}")
@@ -126,13 +128,14 @@ async def handle_book_details(query, context, action, params):
         )
 
 
-async def handle_author_info(query: CallbackQuery, context: CallbackContext, action, params):
+async def handle_author_info(update, context: CallbackContext, action, params):
     """Показывает информацию об авторе"""
+    query = update.callback_query
     try:
         author_id = int(params[0])
         # print(f"DEBUG: params = {params}")
         # Initialize locale on first access
-        get_or_detect_locale(query.update, context)
+        get_or_detect_locale(update, context)
         author_info = await DB_BOOKS.get_author_info(author_id)
         # print(f"DEBUG: author_info = {author_info}")
 
@@ -170,12 +173,13 @@ async def handle_author_info(query: CallbackQuery, context: CallbackContext, act
         )
 
 
-async def handle_book_reviews(query, context, action, params):
+async def handle_book_reviews(update, context, action, params):
     """Показывает отзывы о книге"""
+    query = update.callback_query
     try:
         book_id = params[0]
         # Initialize locale on first access
-        get_or_detect_locale(query.update, context)
+        get_or_detect_locale(update, context)
         reviews = await DB_BOOKS.get_book_reviews(book_id)
 
         # if not reviews:
@@ -211,18 +215,26 @@ async def handle_book_reviews(query, context, action, params):
         )
 
 
-async def add_close_button_to_message(to_message, close_message_ids: List[Any], context=None):
+async def add_close_button_to_message(to_message, close_message_ids: List[Any], context: CallbackContext):
+    """Add a close button to a message.
+    
+    Args:
+        to_message: The message to add the button to
+        close_message_ids: List of message IDs to close
+        context: The Telegram callback context (required for i18n)
+    """
     # Добавляем кнопку закрытия с ID сообщения
     close_data = ':'.join(map(str, close_message_ids))
     # print(f"DEBUG: {close_data}")
-    close_text = t('common.close', context) if context else "❌ Закрыть"
+    close_text = t('common.close', context)
     keyboard = [[InlineKeyboardButton(close_text, callback_data=f"close_info:{close_data}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await to_message.edit_reply_markup(reply_markup)
 
 
-async def handle_close_info(query, context, action, params):
+async def handle_close_info(update, context, action, params):
     """Универсальный обработчик закрытия информационных сообщений по ID"""
+    query = update.callback_query
     try:
         # Удаляем все переданные message_id
         for msg_id in params:

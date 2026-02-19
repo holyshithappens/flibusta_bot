@@ -48,46 +48,6 @@ settings:
   
   options:
     reset: "Reset"
-    back: "🔙 Back"
-    close: "❌ Close"
-    
-  # Rating descriptions
-  ratings:
-    0: "No rating (0)"
-    1: "Unreadable (1)"
-    2: "Bad (2)"
-    3: "Decent (3)"
-    4: "Good (4)"
-    5: "Excellent (5)"
-  
-  # Search type options
-  search_types:
-    books: "by books"
-    series: "by series"
-    authors: "by authors"
-  
-  # Search area options
-  search_areas:
-    main: "by main book data"
-    book_annotations: "by book annotations"
-    author_annotations: "by author annotations"
-  
-  # Size limit options
-  size_limits:
-    less800: "<800K"
-    more800: ">800K"
-  
-  # Format options
-  formats:
-    fb2: "FB2"
-    mobi: "MOBI"
-    epub: "EPUB"
-  
-  # Language selection
-  locale_select:
-    title: "Interface language:"
-    ru: "🇷🇺 Русский"
-    en: "🇬🇧 English"
 
 # Search
 search:
@@ -301,6 +261,44 @@ common:
   
   # Language reset option
   reset_lang: "✔ {lang} - reset"
+
+  # Rating descriptions
+  ratings:
+    0: "No rating (0)"
+    1: "Unreadable (1)"
+    2: "Bad (2)"
+    3: "Decent (3)"
+    4: "Good (4)"
+    5: "Excellent (5)"
+
+  # Search type options
+  search_types:
+    books: "by books"
+    series: "by series"
+    authors: "by authors"
+
+  # Search area options
+  search_areas:
+    main: "by main book data"
+    book_annotations: "by book annotations"
+    author_annotations: "by author annotations"
+
+  # Size limit options
+  size_limits:
+    less800: "<800K"
+    more800: ">800K"
+
+  # Format options
+  formats:
+    fb2: "FB2"
+    mobi: "MOBI"
+    epub: "EPUB"
+
+  # Language selection
+  locale_select:
+    title: "Interface language:"
+    ru: "🇷🇺 Русский"
+    en: "🇬🇧 English"
 
 # Errors
 errors:

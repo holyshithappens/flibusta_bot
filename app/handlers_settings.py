@@ -9,30 +9,31 @@ from .constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIM
     SETTING_SEARCH_AREA, SETTING_LOCALE
 from .context import get_user_params, update_user_params
 from .core.structured_logger import structured_logger
-from .i18n import t, set_user_locale
+from .i18n import t, set_user_locale, get_setting_title
+
 
 # ===== НАСТРОЙКИ =====
-async def show_settings_menu(update_or_query, context, from_callback=False):
+async def show_settings_menu(update, context, from_callback=False):
     """Показывает главное меню настроек"""
-    settings_keyboard = create_settings_menu(context)
-
-    # Добавляем кнопку закрытия без message_id
-    add_close_button(settings_keyboard)
-
-    reply_markup = InlineKeyboardMarkup(settings_keyboard)
-
     if from_callback:
-        await update_or_query.edit_message_text(t('settings.menu.title', context), reply_markup=reply_markup)
-        user = update_or_query.from_user
+        settings_keyboard = create_settings_menu(context)
+        add_close_button(settings_keyboard, context)
+        reply_markup = InlineKeyboardMarkup(settings_keyboard)
+        await update.edit_message_text(t('settings.menu.title', context), reply_markup=reply_markup)
     else:
-        await update_or_query.message.reply_text(t('settings.menu.title', context), reply_markup=reply_markup)
-        user = update_or_query.message.from_user
+        # query = update.callback_query
+        settings_keyboard = create_settings_menu(context)
+        add_close_button(settings_keyboard, context)
+        reply_markup = InlineKeyboardMarkup(settings_keyboard)
+        await update.message.reply_text(t('settings.menu.title', context), reply_markup=reply_markup)
+        # user = update.message.from_user
 
     # logger.log_user_action(user, "showed settings menu")
 
 
-async def handle_set_max_books(query, context, action, params):
+async def handle_set_max_books(update, context, action, params):
     """Показывает настройки максимального вывода"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.MaxBooks
 
@@ -43,8 +44,9 @@ async def handle_set_max_books(query, context, action, params):
     # logger.log_user_action(query.from_user, "showed max books setting for user")
 
 
-async def handle_set_lang_search(query, context, action, params):
+async def handle_set_lang_search(update, context, action, params):
     """Показывает настройки языка поиска"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.Lang
 
@@ -70,8 +72,9 @@ async def handle_set_lang_search(query, context, action, params):
 #     logger.log_user_action(query.from_user, "showed sort order setting for user")
 
 
-async def handle_set_size_limit(query, context, action, params):
+async def handle_set_size_limit(update, context, action, params):
     """Показывает настройки ограничения размера"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.BookSize
 
@@ -82,8 +85,9 @@ async def handle_set_size_limit(query, context, action, params):
     # logger.log_user_action(query.from_user, "showed size limit setting for user")
 
 
-async def handle_set_book_format(query, context, action, params):
+async def handle_set_book_format(update, context, action, params):
     """Показывает настройки формата книг"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.BookFormat
 
@@ -94,8 +98,9 @@ async def handle_set_book_format(query, context, action, params):
     # logger.log_user_action(query.from_user, "showed book format setting for user")
 
 
-async def handle_set_search_type(query, context, action, params):
+async def handle_set_search_type(update, context, action, params):
     """Показывает настройки типа поиска"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.SearchType
 
@@ -106,8 +111,9 @@ async def handle_set_search_type(query, context, action, params):
     # logger.log_user_action(query.from_user, "showed search type setting")
 
 
-async def handle_set_rating_filter(query, context, action, params):
+async def handle_set_rating_filter(update, context, action, params):
     """Показывает настройки фильтра по рейтингу"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.Rating
 
@@ -121,8 +127,9 @@ async def handle_set_rating_filter(query, context, action, params):
     # logger.log_user_action(query.from_user, "showed rating filter setting")
 
 
-async def handle_set_actions(query, context, action, params):
+async def handle_set_actions(update, context, action, params):
     """Обрабатывает все set_ действия"""
+    query = update.callback_query
     user = query.from_user
     action = query.data
     user_params = get_user_params(context)
@@ -266,8 +273,9 @@ async def handle_set_actions(query, context, action, params):
     # logger.log_user_action(user, f"set {setting_type} to {new_value}")
 
 
-async def handle_set_search_area(query, context, action, params):
+async def handle_set_search_area(update, context, action, params):
     """Показывает настройки дополнительного поиска"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.SearchArea
 
@@ -278,8 +286,9 @@ async def handle_set_search_area(query, context, action, params):
     # logger.log_user_action(query.from_user, "showed search area setting")
 
 
-async def handle_set_locale(query, context, action, params):
+async def handle_set_locale(update, context, action, params):
     """Shows language selection menu"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = getattr(user_params, 'Locale', '') or 'ru'
     

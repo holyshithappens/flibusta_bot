@@ -200,6 +200,18 @@ def set_user_locale(
     locale_manager = get_locale_manager()
     locale_manager.set_locale(context, user_id, locale)
 
+def get_setting_title(setting_type: str, context: CallbackContext) -> str:
+    """
+    Возвращает локализованный заголовок настройки.
+
+    Args:
+        setting_type: Тип настройки (например, SETTING_MAX_BOOKS)
+        context: Контекст бота для определения языка пользователя
+
+    Returns:
+        Локализованная строка заголовка настройки
+    """
+    return t(f'settings.menu.{setting_type}', context)
 
 # Export public API
 __all__ = [
@@ -215,4 +227,5 @@ __all__ = [
     'get_locale_manager',
     'get_plural_form',
     'PluralForm',
+    'get_setting_title'
 ]

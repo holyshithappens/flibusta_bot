@@ -61,12 +61,15 @@ async def handle_search_books(update: Update, context: CallbackContext):
     """Обрабатывает текстовые сообщения (поиск книг)"""
     # ОПРЕДЕЛЯЕМ ТИП СООБЩЕНИЯ
     is_edited = update.edited_message is not None
-    message = update.edited_message if is_edited else update.message if update.message else update.callback_query.message
+    message = update.edited_message if is_edited else update.message
     # print(f"DEBUG: {update}")
+    if not message:
+        # Если нет сообщения, выходим
+        return
     if message.from_user.is_bot:
         # Последнее сообщение от бота, не поисковый запрос
         query_text = ''
-        user = update.callback_query.from_user
+        user = message.from_user
     else:
         query_text = message.text
         user = message.from_user
@@ -357,8 +360,9 @@ async def process_search_series(context: CallbackContext, series, found_series_c
     # logger.log_user_action(user, "searched for series" + by, f"{query_text}; count:{found_series_count}")
 
 
-async def handle_search_series_books(query, context, action, params):
+async def handle_search_series_books(update, context, action, params):
     """Показывает книги выбранной серии"""
+    query = update.callback_query
     try:
         series_id = int(params[0])
         user = query.from_user
@@ -525,8 +529,9 @@ async def process_search_authors(context: CallbackContext, authors, found_author
     # logger.log_user_action(user, "searched for authors" + by, f"{query_text}; count:{found_authors_count}")
 
 
-async def handle_search_author_books(query, context, action, params):
+async def handle_search_author_books(update, context, action, params):
     """Показывает книги выбранного автора"""
+    query = update.callback_query
     try:
         author_id = int(params[0])
         user = query.from_user
@@ -580,8 +585,9 @@ async def handle_search_author_books(query, context, action, params):
         await query.edit_message_text(t('search.author_error', context))
 
 
-async def handle_books_page_change(query, context, action, params):
+async def handle_books_page_change(update, context, action, params):
     """Обрабатывает смену страницы с проверкой данных"""
+    query = update.callback_query
     try:
         # Проверяем, что данные поиска еще существуют
         pages_of_books = get_pages_of_books(context)
@@ -631,7 +637,8 @@ async def handle_books_page_change(query, context, action, params):
     # logger.log_user_action(query.from_user, "changed page of books", page)
 
 
-async def handle_series_page_change(query, context, action, params):
+async def handle_series_page_change(update, context, action, params):
+    query = update.callback_query
     try:
         # Проверяем, что данные серий еще существуют
         pages_of_series = get_pages_of_series(context)
@@ -668,8 +675,9 @@ async def handle_series_page_change(query, context, action, params):
     # logger.log_user_action(query.from_user, "changed page of series", page)
 
 
-async def handle_authors_page_change(query, context, action, params):
+async def handle_authors_page_change(update, context, action, params):
     """ Обновляем обработчик смены страниц для авторов """
+    query = update.callback_query
     try:
         # Проверяем, что данные авторов еще существуют
         pages_of_authors = get_pages_of_authors(context)

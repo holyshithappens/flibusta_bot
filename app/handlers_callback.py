@@ -104,34 +104,34 @@ async def handle_private_callback(update, context, action, params):
 
     # Добавим обработку toggle рейтингов
     if action.startswith('toggle_rating_'):
-        await handle_toggle_rating(query, context, action, params)
+        await handle_toggle_rating(update, context, action, params)
         return
 
     # Прямой поиск обработчика в словаре
     if action in action_handlers:
         handler = action_handlers[action]
-        # Запускаем асинхронный обработчик
+        # Запускаем асинхронный обработчик с update параметром
         asyncio.create_task(
-            handler(query, context, action, params)
+            handler(update, context, action, params)
         )
         return
 
     # Затем проверяем префиксы
     if action.startswith(f"{SEARCH_TYPE_BOOKS}_page_"):
-        await handle_books_page_change(query, context, action, params)
+        await handle_books_page_change(update, context, action, params)
         return
 
     if action.startswith(f"{SEARCH_TYPE_SERIES}_page_"):
-        await handle_series_page_change(query, context, action, params)
+        await handle_series_page_change(update, context, action, params)
         return
 
     if action.startswith(f"{SEARCH_TYPE_AUTHORS}_page_"):
-        await handle_authors_page_change(query, context, action, params)
+        await handle_authors_page_change(update, context, action, params)
         return
 
     # Обработка set_ действий
     if action.startswith('set_'):
-        await handle_set_actions(query, context, action, params)
+        await handle_set_actions(update, context, action, params)
         return
 
     # Обработка просмотра популярных книг и новинок
@@ -141,11 +141,12 @@ async def handle_private_callback(update, context, action, params):
 
     # Если ничего не найдено
     print(f"Unknown action: {action}")
-    await query.edit_message_text(t('callback.unknown_action', context))
+    await update.callback_query.edit_message_text(t('callback.unknown_action', context))
 
 
-async def handle_show_genres(query, context, action, params):
+async def handle_show_genres(update, context, action, params):
     """Показывает жанры выбранной категории"""
+    query = update.callback_query
     try:
         genre_index = int(params[0])  # Получаем genre index
 
@@ -164,7 +165,7 @@ async def handle_show_genres(query, context, action, params):
                genre_link = FlibustaClient.get_genre_url(genre_id)
                genres_html += f"<a href='{genre_link}'>{genre_name}</a>{count_text}\n"
             genres_message = await query.message.reply_text(genres_html, parse_mode=ParseMode.HTML)
-            await add_close_button_to_message(genres_message, [genres_message.message_id])
+            await add_close_button_to_message(genres_message, [genres_message.message_id], context)
         else:
            await query.message.reply_text(t('genres.not_found', context), parse_mode=ParseMode.HTML)
 
@@ -184,13 +185,15 @@ async def handle_show_genres(query, context, action, params):
     await log_stats(context)
 
 
-async def handle_back_to_settings(query, context, action, params):
+async def handle_back_to_settings(update, context, action, params):
     """Возвращает в главное меню настроек"""
+    query = update.callback_query
     await show_settings_menu(query, context, from_callback=True)
 
 
-async def handle_back_to_series(query, context, action, params):
+async def handle_back_to_series(update, context, action, params):
     """Возвращает к результатам поиска серий"""
+    query = update.callback_query
     try:
         # Восстанавливаем последнюю позицию
         page_num = get_last_series_page(context)
@@ -222,8 +225,9 @@ async def handle_back_to_series(query, context, action, params):
         await query.edit_message_text(t('callback.back_error', context))
 
 
-async def handle_back_to_authors(query, context, action, params):
+async def handle_back_to_authors(update, context, action, params):
     """Возвращает к результатам поиска авторов"""
+    query = update.callback_query
     try:
         # Восстанавливаем последнюю позицию
         page_num = get_last_authors_page(context)
@@ -253,13 +257,15 @@ async def handle_back_to_authors(query, context, action, params):
         await query.edit_message_text("❌ Ошибка при возврате к результатам поиска")
 
 
-async def handle_close_message(query, context, action, params):
+async def handle_close_message(update, context, action, params):
     """Закрывает меню настроек"""
+    query = update.callback_query
     await query.delete_message()
 
 
-async def handle_toggle_rating(query, context, action, params):
+async def handle_toggle_rating(update, context, action, params):
     """Обрабатывает переключение рейтинга в фильтре"""
+    query = update.callback_query
     rating_value = action.removeprefix('toggle_rating_')
     current_filter = get_user_params(context).Rating
     current_ratings = current_filter.split(',') if current_filter else []
@@ -296,8 +302,9 @@ async def handle_toggle_rating(query, context, action, params):
     )
 
 
-async def handle_reset_ratings(query, context, action, params):
+async def handle_reset_ratings(update, context, action, params):
     """Сбрасывает все выбранные рейтинги"""
+    query = update.callback_query
     update_user_params(context, Rating='')
 
     # Обновляем клавиатуру
@@ -330,8 +337,9 @@ async def handle_show_pops(update, context, action, params):
     await log_stats(context)
 
 
-async def handle_download_books_csv(query, context, action, params):
+async def handle_download_books_csv(update, context, action, params):
     """Handle CSV download request for found books."""
+    query = update.callback_query
     processing_msg = None
     try:
         # Get books from context

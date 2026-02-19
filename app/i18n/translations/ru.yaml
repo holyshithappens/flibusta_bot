@@ -48,46 +48,6 @@ settings:
   
   options:
     reset: "Сбросить"
-    back: "🔙 Назад"
-    close: "❌ Закрыть"
-    
-  # Rating descriptions
-  ratings:
-    0: "Без рейтинга (0)"
-    1: "Нечитаемо (1)"
-    2: "Плохо (2)"
-    3: "Неплохо (3)"
-    4: "Хорошо (4)"
-    5: "Отлично (5)"
-  
-  # Search type options
-  search_types:
-    books: "по книгам"
-    series: "по сериям"
-    authors: "по авторам"
-  
-  # Search area options
-  search_areas:
-    main: "по основным данным книг"
-    book_annotations: "по аннотации книг"
-    author_annotations: "по аннотации авторов"
-  
-  # Size limit options
-  size_limits:
-    less800: "<800K"
-    more800: ">800K"
-  
-  # Format options
-  formats:
-    fb2: "FB2"
-    mobi: "MOBI"
-    epub: "EPUB"
-  
-  # Language selection
-  locale_select:
-    title: "Язык интерфейса:"
-    ru: "🇷🇺 Русский"
-    en: "🇬🇧 English"
 
 # Search
 search:
@@ -307,6 +267,44 @@ common:
   
   # Language reset option
   reset_lang: "✔ {lang} - сбросить"
+
+  # Rating descriptions
+  ratings:
+    0: "Без рейтинга (0)"
+    1: "Нечитаемо (1)"
+    2: "Плохо (2)"
+    3: "Неплохо (3)"
+    4: "Хорошо (4)"
+    5: "Отлично (5)"
+
+  # Search type options
+  search_types:
+    books: "по книгам"
+    series: "по сериям"
+    authors: "по авторам"
+
+  # Search area options
+  search_areas:
+    main: "по основным данным книг"
+    book_annotations: "по аннотации книг"
+    author_annotations: "по аннотации авторов"
+
+  # Size limit options
+  size_limits:
+    less800: "<800K"
+    more800: ">800K"
+
+  # Format options
+  formats:
+    fb2: "FB2"
+    mobi: "MOBI"
+    epub: "EPUB"
+
+  # Language selection
+  locale_select:
+    title: "Язык интерфейса:"
+    ru: "🇷🇺 Русский"
+    en: "🇬🇧 English"
 
 # Errors
 errors:

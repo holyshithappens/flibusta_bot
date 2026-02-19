@@ -11,13 +11,15 @@ from telegram.ext import CallbackContext
 from .context import get_user_params
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
+from .i18n import t
 from .tools import format_size, upload_to_tmpfiles,  get_short_donation_notice
 from .core.structured_logger import structured_logger
 from .flibusta_client import flibusta_client, FlibustaClient
 
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
-async def handle_send_file(query, context, action, params, for_user = None):
+async def handle_send_file(update, context, action, params, for_user = None):
     """Обрабатывает отправку файла"""
+    query = update.callback_query
     book_id = int(params[0])
     user_params = get_user_params(context)
     book_format = user_params.BookFormat if user_params else DEFAULT_BOOK_FORMAT
@@ -29,10 +31,13 @@ async def handle_send_file(query, context, action, params, for_user = None):
     # logger.log_user_action(query.from_user, "send file", log_detail)
 
 
-async def process_book_download(query, context, book_id: int, book_format, for_user=None):
+async def process_book_download(update, context, book_id: int, book_format, for_user=None):
     """Обрабатывает скачивание и отправку книги сначала без авторизации на сайте, потом с авторизацией"""
+    query = update.callback_query
     book_url = FlibustaClient.get_book_url(book_id)
     # book_title = get_book_title_safe(context, book_id)
+    processing_msg = None
+    book_data = None
 
     try:
         processing_msg = await query.message.reply_text(
@@ -86,20 +91,21 @@ async def process_book_download(query, context, book_id: int, book_format, for_u
         return public_filename
 
     except TimedOut:
-        await handle_timeout_error(processing_msg, book_data, book_id, book_format, query)
+        if processing_msg and book_data:
+            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query)
 
-        structured_logger.log_download(
-            user_id=query.from_user.id,
-            username=query.from_user.username or query.from_user.first_name or "Unknown",
-            book_id=book_id,
-            book_title="",  # TODO: substitute with book title
-            format=book_format,
-            file_size=len(book_data),
-            success=True,
-            via_tmpfiles=True,
-            chat_type="private",
-            chat_id=query.from_user.id
-        )
+            structured_logger.log_download(
+                user_id=query.from_user.id,
+                username=query.from_user.username or query.from_user.first_name or "Unknown",
+                book_id=book_id,
+                book_title="",  # TODO: substitute with book title
+                format=book_format,
+                file_size=len(book_data),
+                success=True,
+                via_tmpfiles=True,
+                chat_type="private",
+                chat_id=query.from_user.id
+            )
 
     except Exception as e:
         """Обрабатывает ошибку загрузки"""
@@ -177,12 +183,13 @@ def get_rating_emoji(rating):
 
 def create_back_button() -> list:
     """Создает кнопку возврата в настройки"""
-    return [[InlineKeyboardButton("⬅ Назад в настройки", callback_data="back_to_settings")]]
+    #TODO: add context parameter to call t('common.back',context)
+    return [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_settings")]]
 
 
-def add_close_button(keyboard):
+def add_close_button(keyboard, context):
     """Добавляем к клавиатуре кнопку закрытия"""
-    return keyboard.append([InlineKeyboardButton("❌ Закрыть", callback_data="close_message")])
+    return keyboard.append([InlineKeyboardButton(t('common.close', context), callback_data="close_message")])
 
 
 # ===== CSV EXPORT =====

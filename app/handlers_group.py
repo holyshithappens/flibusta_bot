@@ -160,10 +160,11 @@ async def handle_group_search(update: Update, context: CallbackContext):
         )
 
 
-async def handle_group_callback(query, context, action, params, user):
+async def handle_group_callback(update, context, action, params, user):
     """Обрабатывает callback-запросы из групп"""
+    query = update.callback_query
     # Initialize locale on first access
-    get_or_detect_locale(query.update, context)
+    get_or_detect_locale(update, context)
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
 
@@ -181,23 +182,24 @@ async def handle_group_callback(query, context, action, params, user):
 
     # Обрабатываем действия
     if action.startswith(f"{SEARCH_TYPE_BOOKS}_page_"):
-        await handle_group_page_change(query, context, action, params, user)
+        await handle_group_page_change(update, context, action, params, user)
     elif action == 'send_file':
         await handle_send_file(query, context, action, params, user)
     # Прямой поиск обработчика в словаре
     elif action in action_handlers:
         handler = action_handlers[action]
-        await handler(query, context, action, params)
+        await handler(update, context, action, params)
     else:
         await query.edit_message_text(t('callback.unknown_action', context))
 
     await log_stats(context)
 
 
-async def handle_group_page_change(query, context, action, params, user):
+async def handle_group_page_change(update, context, action, params, user):
     """Обрабатывает смену страницы в группе"""
+    query = update.callback_query
     # Initialize locale on first access
-    get_or_detect_locale(query.update, context)
+    get_or_detect_locale(update, context)
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
 

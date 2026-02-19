@@ -3,7 +3,6 @@
 .env.vps
 logs/
 data/
-*local*
 db_init/sql/
 db_backups/
 bak/
