@@ -20,7 +20,7 @@ ALTER TABLE libbpics CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci
 --ALTER TABLE libfilename CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
 --ALTER TABLE libjoinedbooks CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
 --ALTER TABLE libgenretranslate CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
---ALTER TABLE libtranslator CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
+ALTER TABLE libtranslator CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
 
 -- SET FOREIGN_KEY_CHECKS=1;
 
