@@ -20,7 +20,7 @@ SELECT
         GROUP_CONCAT(DISTINCT CONCAT_WS(' ', an.LastName, an.FirstName, an.MiddleName)),
         GROUP_CONCAT(DISTINCT sn.SeqName),
         GROUP_CONCAT(DISTINCT gl.GenreDesc),
-        REPLACE(b.Keyword, ',', ' ')
+        REPLACE(b.Keywords, ',', ' ')
     ) as FT
 FROM libbook b
 LEFT JOIN libavtor a ON a.BookID = b.BookID
