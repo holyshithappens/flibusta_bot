@@ -20,7 +20,8 @@ from .handlers_payments import pre_checkout, successful_payment
 from .core.structured_logger import structured_logger
 from .repositories.logs_repository import LogsRepository
 from .core.logging_schema import EventType
-from .i18n import init_i18n
+from .i18n import init_i18n, t
+
 
 async def post_stop(app: Application) -> None:
     """Вызывается после остановки бота"""
@@ -54,20 +55,23 @@ async def error_handler(update: Update, context: CallbackContext):
 
 async def set_commands(application: Application):
     """Устанавливает меню команд"""
-    commands = [
-        BotCommand("start", "Запустить бота"),
-        BotCommand("news", "Новости и обновления"),
-        BotCommand("about", "Инфа о боте и библиотеке"),
-        BotCommand("help", "Помощь по запросам"),
-        BotCommand("genres", "Список жанров"),
-        BotCommand("pop", "Популярные и новинки"),
-        # BotCommand("langs", "Доступные языки"),
-        BotCommand("set", "Настройки поиска"),
-        BotCommand("donate", "Поддержать разработчика")
-    ]
-    await application.bot.set_my_commands(commands)
-
-
+    for locale in ['ru','en']:
+        # commands = [
+        #     BotCommand("start", "Запустить бота"),
+        #     BotCommand("news", "Новости и обновления"),
+        #     BotCommand("about", "Инфа о боте и библиотеке"),
+        #     BotCommand("help", "Помощь по запросам"),
+        #     BotCommand("genres", "Список жанров"),
+        #     BotCommand("pop", "Популярные и новинки"),
+        #     # BotCommand("langs", "Доступные языки"),
+        #     BotCommand("set", "Настройки поиска"),
+        #     BotCommand("donate", "Поддержать разработчика")
+        # ]
+        commands = [
+            BotCommand(cmd, t(f"commands.{cmd}", locale=locale))
+            for cmd in ['start','news','about','help','genres','pop','set','donate']
+        ]
+        await application.bot.set_my_commands(commands,language_code=locale)
 
 
 def main():

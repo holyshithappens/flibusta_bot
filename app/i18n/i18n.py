@@ -122,13 +122,13 @@ class I18n:
         for k in keys:
             if isinstance(current, dict) and k in current:
                 current = current[k]
-                print(f"DEBUG: true k={k}")
-                if k == 'ratings':
-                    print(f"DEBUG: true current={current}")
+                # print(f"DEBUG: true k={k}")
+                # if k == 'ratings':
+                #     print(f"DEBUG: true current={current}")
             else:
-                print(f"DEBUG: false k={k}")
-                if k == 'ratings':
-                    print(f"DEBUG: false current={current}")
+                # print(f"DEBUG: false k={k}")
+                # if k == 'ratings':
+                #     print(f"DEBUG: false current={current}")
                 return None
 
         return current

@@ -317,7 +317,7 @@ async def handle_reset_ratings(update, context, action, params):
     ]
     reply_markup = create_rating_filter_keyboard([], options, context)
 
-    await query.edit_message_text(SETTING_TITLES[SETTING_RATING_FILTER], reply_markup=reply_markup)
+    await query.edit_message_text(t(SETTING_TITLES[SETTING_RATING_FILTER],context), reply_markup=reply_markup)
     structured_logger.log_settings_change(
         user_id=query.from_user.id,
         username=query.from_user.username or query.from_user.first_name or "Unknown",

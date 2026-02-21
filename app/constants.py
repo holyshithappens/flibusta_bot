@@ -43,7 +43,7 @@ SETTING_BOOK_FORMAT = 'book_format'
 SETTING_SEARCH_TYPE = 'search_type'
 # Константа для типа настройки рейтинга
 SETTING_RATING_FILTER = 'rating_filter'
-SETTING_SEARCH_AREA = 'aux_search'
+SETTING_SEARCH_AREA = 'search_area' #'aux_search'
 SETTING_SEARCH_AREA_B = 'b' # Поиск по основной информации
 SETTING_SEARCH_AREA_BA = 'ba' # Поиск по аннотации книг
 SETTING_SEARCH_AREA_AA = 'aa' # Поиск по аннотации авторов
@@ -70,12 +70,12 @@ SEARCH_TYPE_AUTHORS = 'authors'
 
 # Рейтинги книг с эмодзи
 BOOK_RATINGS = {
-    0: ("⚪️", "common.ratings.0"),
-    1: ("🔴", "common.ratings.1"),
-    2: ("🟠", "common.ratings.2"),
-    3: ("🟡", "common.ratings.3"),
-    4: ("🟢", "common.ratings.4"),
-    5: ("🔵", "common.ratings.5")
+    "0": ("⚪️", "common.ratings.0"),
+    "1": ("🔴", "common.ratings.1"),
+    "2": ("🟠", "common.ratings.2"),
+    "3": ("🟡", "common.ratings.3"),
+    "4": ("🟢", "common.ratings.4"),
+    "5": ("🔵", "common.ratings.5")
 }
 
 UI_SEPARATOR = "__NEWLINE__"
@@ -139,6 +139,6 @@ HEADING_POP = {
     SHOW_NOVELTY: 'popular.headings.novelty'
 }
 
-# Путь к файлу с новостями (теперь Python файл)
-BOT_NEWS_FILE_PATH = "./data/bot_news.py"
+# # Путь к файлу с новостями (теперь Python файл)
+# BOT_NEWS_FILE_PATH = "./data/bot_news.py"
 

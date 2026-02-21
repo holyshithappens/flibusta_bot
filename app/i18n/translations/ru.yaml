@@ -11,13 +11,13 @@ _meta:
 # Commands descriptions (for bot menu)
 commands:
   start: "Запустить бота"
-  help: "Помощь в поиске"
-  about: "О боте"
-  news: "Новости бота"
-  genres: "Жанры книг"
+  help: "Помощь по запросам"
+  about: "Инфа о боте и библиотеке"
+  news: "Новости и обновления"
+  genres: "Список жанров"
   pop: "Популярные и новинки"
-  set: "Настройки"
-  donate: "Поддержать"
+  set: "Настройки поиска"
+  donate: "Поддержать разработчика"
 
 # Welcome message
 welcome:
@@ -217,6 +217,7 @@ about:
     • 📥 Скачивание в форматах fb2, epub, mobi
     • ⭐ Фильтрация по рейтингу книг, размеру и языку
     • ⚙️ Гибкие настройки поиска
+    
     {reader_recommendations}
     📞 <b>Обратная связь:</b>
     • 📧 Email: <code>{email}</code>
@@ -226,7 +227,24 @@ about:
     🛠 <b>Технологии:</b>
     • Python 3.11 + python-telegram-bot
     • MariaDB + родная БД Флибусты
-  
+
+  recommendations: |
+    📱 <b>Рекомендуемые читалки для всех платформ:</b>
+    <u>Для Android:</u>
+    • 📖 <a href="https://play.google.com/store/apps/details?id=org.readera">ReadEra</a> - лучшая бесплатная
+    • 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader">Moon+ Reader</a>
+    • 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle">Kindle</a>
+    
+    <u>Для iOS:</u>
+    • 📖 <a href="https://apps.apple.com/ru/app/readera-читалка-книг-pdf/id1441824222">ReadEra</a>
+    • 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028">KyBook 3</a>
+    • 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613">Kindle</a>
+    
+    <u>Для компьютера:</u>
+    • 📚 <a href="https://www.calibre-ebook.com/">Calibre</a> (Windows/Mac/Linux)
+    • 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193">Apple Books</a> (Mac)
+    • 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
+
   error: "❌ Не удалось получить информацию о библиотеке"
 
 # News
@@ -253,7 +271,8 @@ donate:
 common:
   close: "❌ Закрыть"
   back: "🔙 Назад"
-  reset: "🔄 Сбросить"
+  reset: "Сбросить"
+  reset_all: "🔄 Сбросить все"
   loading: "⏳ Загрузка..."
   error: "❌ Произошла ошибка"
   yes: "✅ Да"
@@ -270,12 +289,12 @@ common:
 
   # Rating descriptions
   ratings:
-    0: "⚪ Без рейтинга (0)"
-    1: "🔴 Нечитаемо (1)"
-    2: "🟠 Плохо (2)"
-    3: "🟡 Неплохо (3)"
-    4: "🟢 Хорошо (4)"
-    5: "🔵 Отлично (5)"
+    "0": "⚪ Без рейтинга (0)"
+    "1": "🔴 Нечитаемо (1)"
+    "2": "🟠 Плохо (2)"
+    "3": "🟡 Неплохо (3)"
+    "4": "🟢 Хорошо (4)"
+    "5": "🔵 Отлично (5)"
 
   # Search type options
   search_types:

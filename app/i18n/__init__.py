@@ -31,7 +31,7 @@ Usage:
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -62,7 +62,7 @@ def init_i18n(translations_dir: Path) -> None:
     get_locale_manager()
 
 
-def t(key: str, context: CallbackContext, **kwargs: Any) -> str:
+def t(key: str, context: Optional[CallbackContext] = None, **kwargs: Any) -> str:
     """
     Get a translated string for the given key.
     
@@ -82,8 +82,11 @@ def t(key: str, context: CallbackContext, **kwargs: Any) -> str:
         # Returns: "Привет, Иван!"
     """
     i18n = get_i18n()
-    locale_manager = get_locale_manager()
-    locale = locale_manager.get_locale(context)
+    if context:
+        locale_manager = get_locale_manager()
+        locale = locale_manager.get_locale(context)
+    else:
+        locale = kwargs.pop('locale','ru')
     return i18n.get(key, locale, **kwargs)
 
 

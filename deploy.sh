@@ -88,7 +88,7 @@ copy_news_file() {
     echo "📰 Copying news file to VPS..."
 
     # Копируем файл на VPS
-    scp ./data/bot_news.py $VPS_USER@$VPS_IP:$VPS_PATH/data/bot_news.py
+    scp ./data/bot_news*.py $VPS_USER@$VPS_IP:$VPS_PATH/data/
 
     echo "✅ News file copied successfully"
 }

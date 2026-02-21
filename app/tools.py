@@ -78,28 +78,28 @@ def form_header_books(
     return header
 
 
-def get_platform_recommendations() -> str:
-    """
-    Возвращает рекомендации для всех платформ
-    (универсальный подход, так как определить платформу сложно)
-    """
-    return """
-📱 <b>Рекомендуемые читалки для всех платформ:</b>
-<u>Для Android:</u>
-• 📖 <a href="https://play.google.com/store/apps/details?id=org.readera">ReadEra</a> - лучшая бесплатная
-• 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader">Moon+ Reader</a>
-• 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle">Kindle</a>
-
-<u>Для iOS:</u>
-• 📖 <a href="https://apps.apple.com/ru/app/readera-читалка-книг-pdf/id1441824222">ReadEra</a>
-• 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028">KyBook 3</a>
-• 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613">Kindle</a>
-
-<u>Для компьютера:</u>
-• 📚 <a href="https://www.calibre-ebook.com/">Calibre</a> (Windows/Mac/Linux)
-• 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193">Apple Books</a> (Mac)
-• 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
-"""
+# def get_platform_recommendations() -> str:
+#     """
+#     Возвращает рекомендации для всех платформ
+#     (универсальный подход, так как определить платформу сложно)
+#     """
+#     return """
+# 📱 <b>Рекомендуемые читалки для всех платформ:</b>
+# <u>Для Android:</u>
+# • 📖 <a href="https://play.google.com/store/apps/details?id=org.readera">ReadEra</a> - лучшая бесплатная
+# • 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader">Moon+ Reader</a>
+# • 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle">Kindle</a>
+#
+# <u>Для iOS:</u>
+# • 📖 <a href="https://apps.apple.com/ru/app/readera-читалка-книг-pdf/id1441824222">ReadEra</a>
+# • 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028">KyBook 3</a>
+# • 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613">Kindle</a>
+#
+# <u>Для компьютера:</u>
+# • 📚 <a href="https://www.calibre-ebook.com/">Calibre</a> (Windows/Mac/Linux)
+# • 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193">Apple Books</a> (Mac)
+# • 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
+# """
 
 
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====

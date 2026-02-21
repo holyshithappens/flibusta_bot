@@ -105,12 +105,12 @@ book:
   
   # Rating display
   ratings:
-    0: "⚪️ No rating"
-    1: "🔴 Unreadable"
-    2: "🟠 Bad"
-    3: "🟡 Decent"
-    4: "🟢 Good"
-    5: "🔵 Excellent"
+    "0": "⚪️ No rating"
+    "1": "🔴 Unreadable"
+    "2": "🟠 Bad"
+    "3": "🟡 Decent"
+    "4": "🟢 Good"
+    "5": "🔵 Excellent"
 
 # Genres
 genres:
@@ -211,6 +211,7 @@ about:
     • 📥 Download in fb2, epub, mobi formats
     • ⭐ Filter by rating, size, and language
     • ⚙️ Flexible search settings
+    
     {reader_recommendations}
     📞 <b>Feedback:</b>
     • 📧 Email: <code>{email}</code>
@@ -220,7 +221,24 @@ about:
     🛠 <b>Technology:</b>
     • Python 3.11 + python-telegram-bot
     • MariaDB + native Flibusta DB
-  
+
+  recommendations: |
+    📱 <b>Recommended e-book readers for all platforms:</b>
+    <u>For Android:</u>
+    • 📖 <a href="https://play.google.com/store/apps/details?id=org.readera  ">ReadEra</a> - best free option
+    • 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader  ">Moon+ Reader</a>
+    • 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle  ">Kindle</a>
+
+    <u>For iOS:</u>
+    • 📖 <a href="https://apps.apple.com/ru/app/readera  -читалка-книг-pdf/id1441824222">ReadEra</a>
+    • 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028  ">KyBook 3</a>
+    • 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613  ">Kindle</a>
+
+    <u>For Computer:</u>
+    • 📚 <a href="https://www.calibre-ebook.com/  ">Calibre</a> (Windows/Mac/Linux)
+    • 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193  ">Apple Books</a> (Mac)
+    • 📖 <a href="https://www.amazon.com/b?node=16571048011  ">Kindle</a> (all platforms)
+
   error: "❌ Could not retrieve library information"
 
 # News
@@ -247,7 +265,8 @@ donate:
 common:
   close: "❌ Close"
   back: "🔙 Back"
-  reset: "🔄 Reset"
+  reset: "Reset"
+  reset_all: "🔄 Reset all"
   loading: "⏳ Loading..."
   error: "❌ An error occurred"
   yes: "✅ Yes"
@@ -264,12 +283,12 @@ common:
 
   # Rating descriptions
   ratings:
-    0: "⚪️ No rating (0)"
-    1: "🔴 Unreadable (1)"
-    2: "🟠 Bad (2)"
-    3: "🟡 Decent (3)"
-    4: "🟢 Good (4)"
-    5: "🔵 Excellent (5)"
+    "0": "⚪️ No rating (0)"
+    "1": "🔴 Unreadable (1)"
+    "2": "🟠 Bad (2)"
+    "3": "🟡 Decent (3)"
+    "4": "🟢 Good (4)"
+    "5": "🔵 Excellent (5)"
 
   # Search type options
   search_types:
@@ -279,9 +298,9 @@ common:
 
   # Search area options
   search_areas:
-    main: "by main book data"
-    book_annotations: "by book annotations"
-    author_annotations: "by author annotations"
+    main: "on book's main data"
+    book_annotations: "on book annotations"
+    author_annotations: "on author annotations"
 
   # Size limit options
   size_limits:

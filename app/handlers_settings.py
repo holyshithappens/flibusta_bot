@@ -133,7 +133,7 @@ async def handle_set_rating_filter(update, context, action, params):
         (key, t(label, context))
         for key, label in SETTING_OPTIONS[SETTING_RATING_FILTER]
     ]
-    print(f"DEBUG: options={options}")
+    # print(f"DEBUG: options={options}")
     reply_markup = create_rating_filter_keyboard(current_ratings, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_RATING_FILTER, context), reply_markup)
@@ -380,7 +380,7 @@ def create_settings_menu(context:CallbackContext):
                 if current_value:
                     # Для рейтинга показываем только эмодзи
                     ratings = current_value.split(',')
-                    emojis = "".join([BOOK_RATINGS.get(int(r), ("⚪️", ""))[0] for r in ratings if r])
+                    emojis = "".join([BOOK_RATINGS.get(r, ("⚪️", ""))[0] for r in ratings if r])
                     current_display = f"({emojis})" if emojis else ""
 
             elif setting_type == SETTING_SEARCH_AREA:
@@ -426,7 +426,8 @@ def create_settings_keyboard(setting_type, current_value, options, context):
         if current_value:
             keyboard.append([
                 InlineKeyboardButton(
-                    f"✔ {current_value} - сбросить",
+                    # f"✔ {current_value} - сбросить",
+                    t("common.reset_lang",context,lang=current_value),
                     callback_data=f"set_{setting_type}_to_"
                 )
             ])
@@ -446,7 +447,7 @@ def create_settings_keyboard(setting_type, current_value, options, context):
         # Для остальных настроек - кнопки в строку
         row = []
         for option in options:
-            if option == "__NEWLINE__":
+            if option == UI_SEPARATOR:
                 if row:  # не добавляем пустую строку
                     keyboard.append(row)
                     row = []
@@ -481,7 +482,7 @@ def create_rating_filter_keyboard(current_ratings, options, context):
         )])
 
     # Кнопка сброса
-    keyboard.append([InlineKeyboardButton("🔄 Сбросить все", callback_data="reset_ratings")])
+    keyboard.append([InlineKeyboardButton(t("common.reset_all", context), callback_data="reset_ratings")])
 
     # Кнопка назад
     keyboard += create_back_button(context)

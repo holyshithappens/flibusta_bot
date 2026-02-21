@@ -5,8 +5,8 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
 from .handlers_settings import show_settings_menu
-from .tools import get_latest_news, get_platform_recommendations
-from .constants import BOT_NEWS_FILE_PATH, SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30_DAYS, SHOW_POPULAR_7_DAYS, SHOW_NOVELTY
+from .tools import get_latest_news #, get_platform_recommendations
+from .constants import SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30_DAYS, SHOW_POPULAR_7_DAYS, SHOW_NOVELTY
 from .database import DB_BOOKS
 from .core.structured_logger import structured_logger
 from .health import log_stats
@@ -215,7 +215,8 @@ async def about_cmd(update: Update, context: CallbackContext):
 
         # print(f"DEBUG: {last_update}, {last_update_str}")
 
-        reader_recommendations = get_platform_recommendations()
+        # reader_recommendations = get_platform_recommendations()
+        reader_recommendations = t("about.recommendations", context)
 
         # Format numbers with spaces
         books_count = f"{stats['books_count']:,}".replace(",", " ")
@@ -267,11 +268,13 @@ async def about_cmd(update: Update, context: CallbackContext):
 async def news_cmd(update: Update, context: CallbackContext):
     """Команда /news - показывает последние новости бота"""
     # Initialize locale (auto-detect if needed)
-    get_or_detect_locale(update, context)
+    locale = get_or_detect_locale(update, context)
     
     try:
         # Загружаем новости из файла
-        latest_news = await get_latest_news(BOT_NEWS_FILE_PATH, count=3)
+        # latest_news = await get_latest_news(BOT_NEWS_FILE_PATH, count=3)
+        news_file_path = f"./data/bot_news_{locale}.py"
+        latest_news = await get_latest_news(news_file_path, count=3)
 
         if not latest_news:
             await update.message.reply_text(
