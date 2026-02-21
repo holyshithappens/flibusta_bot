@@ -247,7 +247,7 @@ donate:
 common:
   close: "❌ Close"
   back: "🔙 Back"
-  reset: "🔄 Reset all"
+  reset: "🔄 Reset"
   loading: "⏳ Loading..."
   error: "❌ An error occurred"
   yes: "✅ Yes"
@@ -264,12 +264,12 @@ common:
 
   # Rating descriptions
   ratings:
-    0: "No rating (0)"
-    1: "Unreadable (1)"
-    2: "Bad (2)"
-    3: "Decent (3)"
-    4: "Good (4)"
-    5: "Excellent (5)"
+    0: "⚪️ No rating (0)"
+    1: "🔴 Unreadable (1)"
+    2: "🟠 Bad (2)"
+    3: "🟡 Decent (3)"
+    4: "🟢 Good (4)"
+    5: "🔵 Excellent (5)"
 
   # Search type options
   search_types:

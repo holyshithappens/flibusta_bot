@@ -181,10 +181,10 @@ def get_rating_emoji(rating):
     return BOOK_RATINGS.get(rating, ("⚪️", ""))[0]
 
 
-def create_back_button() -> list:
+def create_back_button(context) -> list:
     """Создает кнопку возврата в настройки"""
-    #TODO: add context parameter to call t('common.back',context)
-    return [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_settings")]]
+    #TODO: add context parameter to call t('common.back',context) instead of "🔙 Назад"
+    return [[InlineKeyboardButton(t('common.back',context), callback_data="back_to_settings")]]
 
 
 def add_close_button(keyboard, context):

@@ -4,9 +4,9 @@ from telegram.ext import CallbackContext
 
 from .handlers_utils import add_close_button, edit_or_reply_message, create_back_button
 from .database import DB_BOOKS
-from .constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
+from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
-    SETTING_SEARCH_AREA, SETTING_LOCALE
+    SETTING_SEARCH_AREA, SETTING_LOCALE, UI_SEPARATOR
 from .context import get_user_params, update_user_params
 from .core.structured_logger import structured_logger
 from .i18n import t, set_user_locale, get_setting_title
@@ -37,8 +37,8 @@ async def handle_set_max_books(update, context, action, params):
     user_params = get_user_params(context)
     current_value = user_params.MaxBooks
 
-    options = SETTING_OPTIONS[SETTING_MAX_BOOKS]
-    reply_markup = create_settings_keyboard(SETTING_MAX_BOOKS, current_value, options)
+    options =  SETTING_OPTIONS[SETTING_MAX_BOOKS]
+    reply_markup = create_settings_keyboard(SETTING_MAX_BOOKS, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_MAX_BOOKS, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed max books setting for user")
@@ -54,7 +54,7 @@ async def handle_set_lang_search(update, context, action, params):
     langs = DB_BOOKS.get_langs()
     options = [(lang[0], lang[0]) for lang in langs if lang[0]]
 
-    reply_markup = create_settings_keyboard(SETTING_LANG_SEARCH, current_value, options)
+    reply_markup = create_settings_keyboard(SETTING_LANG_SEARCH, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_LANG_SEARCH, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed langs of books setting for user")
@@ -78,8 +78,11 @@ async def handle_set_size_limit(update, context, action, params):
     user_params = get_user_params(context)
     current_value = user_params.BookSize
 
-    options = SETTING_OPTIONS[SETTING_SIZE_LIMIT]
-    reply_markup = create_settings_keyboard(SETTING_SIZE_LIMIT, current_value, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_SIZE_LIMIT]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_SIZE_LIMIT, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_SIZE_LIMIT, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed size limit setting for user")
@@ -91,8 +94,11 @@ async def handle_set_book_format(update, context, action, params):
     user_params = get_user_params(context)
     current_value = user_params.BookFormat
 
-    options = SETTING_OPTIONS[SETTING_BOOK_FORMAT]
-    reply_markup = create_settings_keyboard(SETTING_BOOK_FORMAT, current_value, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_BOOK_FORMAT]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_BOOK_FORMAT, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_BOOK_FORMAT, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed book format setting for user")
@@ -104,8 +110,11 @@ async def handle_set_search_type(update, context, action, params):
     user_params = get_user_params(context)
     current_value = user_params.SearchType
 
-    options = SETTING_OPTIONS[SETTING_SEARCH_TYPE]
-    reply_markup = create_settings_keyboard(SETTING_SEARCH_TYPE, current_value, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_SEARCH_TYPE]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_SEARCH_TYPE, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_TYPE, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed search type setting")
@@ -120,8 +129,12 @@ async def handle_set_rating_filter(update, context, action, params):
     # Преобразуем текущее значение в список для отображения
     current_ratings = current_value.split(',') if current_value else []
 
-    options = SETTING_OPTIONS[SETTING_RATING_FILTER]
-    reply_markup = create_rating_filter_keyboard(current_ratings, options)
+    options = [
+        (key, t(label, context))
+        for key, label in SETTING_OPTIONS[SETTING_RATING_FILTER]
+    ]
+    print(f"DEBUG: options={options}")
+    reply_markup = create_rating_filter_keyboard(current_ratings, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_RATING_FILTER, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed rating filter setting")
@@ -253,9 +266,12 @@ async def handle_set_actions(update, context, action, params):
         langs = DB_BOOKS.get_langs()
         options = [(lang[0], lang[0]) for lang in langs if lang[0]]
     else:
-        options = SETTING_OPTIONS[setting_type]
+        options = [
+            x if x == UI_SEPARATOR else (x[0], t(x[1],context))
+            for x in SETTING_OPTIONS[setting_type]
+        ]
 
-    reply_markup = create_settings_keyboard(setting_type, new_value, options)
+    reply_markup = create_settings_keyboard(setting_type, new_value, options, context)
 
     # print(f"DEBUG: {setting_type} {new_value}")
 
@@ -279,8 +295,12 @@ async def handle_set_search_area(update, context, action, params):
     user_params = get_user_params(context)
     current_value = user_params.SearchArea
 
-    options = SETTING_OPTIONS[SETTING_SEARCH_AREA]
-    reply_markup = create_settings_keyboard(SETTING_SEARCH_AREA, current_value, options)
+    options = [
+        x if x == UI_SEPARATOR else (x[0], t(x[1], context))
+        for x in SETTING_OPTIONS[SETTING_SEARCH_AREA]
+    ]
+
+    reply_markup = create_settings_keyboard(SETTING_SEARCH_AREA, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_AREA, context), reply_markup)
     # logger.log_user_action(query.from_user, "showed search area setting")
@@ -292,8 +312,11 @@ async def handle_set_locale(update, context, action, params):
     user_params = get_user_params(context)
     current_value = getattr(user_params, 'Locale', '') or 'ru'
     
-    options = SETTING_OPTIONS[SETTING_LOCALE]
-    reply_markup = create_settings_keyboard(SETTING_LOCALE, current_value, options)
+    options = [
+        (value, t(label,context)) for value, label in
+        SETTING_OPTIONS[SETTING_LOCALE]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_LOCALE, current_value, options, context)
     
     title = t('settings.menu.locale', context)
     await edit_or_reply_message(query, title, reply_markup)
@@ -329,27 +352,27 @@ def create_settings_menu(context:CallbackContext):
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.BookSize
                 for option in SETTING_OPTIONS[SETTING_SIZE_LIMIT]:
-                    if option == "__NEWLINE__":
+                    if option == UI_SEPARATOR:
                         continue
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})" if value else ""
+                        current_display = f"({t(display,context)})" if value else ""
                         break
 
             elif setting_type == SETTING_BOOK_FORMAT:
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.BookFormat
-                current_display = f"({current_value})"
+                current_display = f"({t(current_value,context)})"
 
             elif setting_type == SETTING_SEARCH_TYPE:
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.SearchType
                 for option in SETTING_OPTIONS[SETTING_SEARCH_TYPE]:
-                    if option == "__NEWLINE__":
+                    if option == UI_SEPARATOR:
                         continue
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})"
+                        current_display = f"({t(display,context)})"
                         break
 
             elif setting_type == SETTING_RATING_FILTER:
@@ -364,11 +387,11 @@ def create_settings_menu(context:CallbackContext):
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.SearchArea
                 for option in SETTING_OPTIONS[SETTING_SEARCH_AREA]:
-                    if option == "__NEWLINE__":
+                    if option == UI_SEPARATOR:
                         continue
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})"
+                        current_display = f"({t(display,context)})"
                         break
             
             elif setting_type == SETTING_LOCALE:
@@ -377,19 +400,19 @@ def create_settings_menu(context:CallbackContext):
                 for option in SETTING_OPTIONS[SETTING_LOCALE]:
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})"
+                        current_display = f"({t(display,context)})"
                         break
 
         except Exception as e:
             print(f"Error getting setting {setting_type}: {e}")
 
-        button_text = f"{text} {current_display}".strip()
+        button_text = f"{t(text,context)} {current_display}".strip()
         keyboard.append([InlineKeyboardButton(button_text, callback_data=f"set_{setting_type}")])
 
     return keyboard
 
 
-def create_settings_keyboard(setting_type, current_value, options):
+def create_settings_keyboard(setting_type, current_value, options, context):
     """
     Создает клавиатуру для настроек с галочками и кнопкой назад
     :param setting_type: тип настройки (для callback_data)
@@ -438,12 +461,12 @@ def create_settings_keyboard(setting_type, current_value, options):
             keyboard.append(row)
 
     # Добавляем кнопку "Назад"
-    keyboard += create_back_button()
+    keyboard += create_back_button(context)
 
     return InlineKeyboardMarkup(keyboard)
 
 
-def create_rating_filter_keyboard(current_ratings, options):
+def create_rating_filter_keyboard(current_ratings, options, context):
     """Создает клавиатуру для множественного выбора рейтингов"""
     keyboard = []
 
@@ -461,6 +484,6 @@ def create_rating_filter_keyboard(current_ratings, options):
     keyboard.append([InlineKeyboardButton("🔄 Сбросить все", callback_data="reset_ratings")])
 
     # Кнопка назад
-    keyboard += create_back_button()
+    keyboard += create_back_button(context)
 
     return InlineKeyboardMarkup(keyboard)

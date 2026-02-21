@@ -118,6 +118,9 @@ async def pop_cmd(update: Update, context: CallbackContext):
 
 async def settings_cmd(update: Update, context: CallbackContext):
     """Показывает главное меню настроек"""
+    # Initialize locale (auto-detect if needed)
+    get_or_detect_locale(update, context)
+
     await show_settings_menu(update, context, from_callback=False)
 
 

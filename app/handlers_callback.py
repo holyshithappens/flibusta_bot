@@ -282,11 +282,14 @@ async def handle_toggle_rating(update, context, action, params):
     update_user_params(context, Rating=new_filter)
 
     # Обновляем клавиатуру
-    options = SETTING_OPTIONS[SETTING_RATING_FILTER]
-    reply_markup = create_rating_filter_keyboard(current_ratings, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_RATING_FILTER]
+    ]
+    reply_markup = create_rating_filter_keyboard(current_ratings, options, context)
 
     try:
-        await query.edit_message_text(SETTING_TITLES[SETTING_RATING_FILTER], reply_markup=reply_markup)
+        await query.edit_message_text(t(SETTING_TITLES[SETTING_RATING_FILTER],context), reply_markup=reply_markup)
     except BadRequest as e:
         if "Message is not modified" not in str(e):
             raise e
@@ -308,8 +311,11 @@ async def handle_reset_ratings(update, context, action, params):
     update_user_params(context, Rating='')
 
     # Обновляем клавиатуру
-    options = SETTING_OPTIONS[SETTING_RATING_FILTER]
-    reply_markup = create_rating_filter_keyboard([], options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_RATING_FILTER]
+    ]
+    reply_markup = create_rating_filter_keyboard([], options, context)
 
     await query.edit_message_text(SETTING_TITLES[SETTING_RATING_FILTER], reply_markup=reply_markup)
     structured_logger.log_settings_change(
