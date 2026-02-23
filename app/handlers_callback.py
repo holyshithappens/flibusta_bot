@@ -202,7 +202,7 @@ async def handle_back_to_series(update, context, action, params):
             await query.edit_message_text(t('callback.restore_error', context))
             return
 
-        keyboard = create_series_keyboard(page_num, pages_of_series)
+        keyboard = create_series_keyboard(page_num, pages_of_series, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if reply_markup:
@@ -212,6 +212,7 @@ async def handle_back_to_series(update, context, action, params):
             show_pop = get_switch_search(context)
 
             header_found_text = form_header_books(
+                context,
                 page_num, user_params.MaxBooks, found_series_count, SEARCH_TYPE_SERIES,
                 search_area=search_area,
                 show_pop=show_pop
@@ -236,7 +237,7 @@ async def handle_back_to_authors(update, context, action, params):
             await query.edit_message_text("❌ Не удалось восстановить результаты поиска")
             return
 
-        keyboard = create_authors_keyboard(page_num, pages_of_authors)
+        keyboard = create_authors_keyboard(page_num, pages_of_authors, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if reply_markup:
@@ -246,6 +247,7 @@ async def handle_back_to_authors(update, context, action, params):
             show_pop = get_switch_search(context)
 
             header_found_text = form_header_books(
+                context,
                 page_num, user_params.MaxBooks, found_authors_count, SEARCH_TYPE_AUTHORS,
                 search_area=search_area,
                 show_pop=show_pop

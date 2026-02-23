@@ -19,12 +19,12 @@ from .flibusta_client import flibusta_client, FlibustaClient
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
 async def handle_send_file(update, context, action, params, for_user = None):
     """Обрабатывает отправку файла"""
-    query = update.callback_query
+    # query = update.callback_query
     book_id = int(params[0])
     user_params = get_user_params(context)
     book_format = user_params.BookFormat if user_params else DEFAULT_BOOK_FORMAT
 
-    public_filename = await process_book_download(query, context, book_id, book_format, for_user)
+    public_filename = await process_book_download(update, context, book_id, book_format, for_user)
 
     # log_detail = f"{book_id}.{book_format}"
     # log_detail += ":" + public_filename if public_filename else ""
@@ -262,22 +262,22 @@ def generate_books_csv(pages_of_books: List[List[Any]]) -> tuple[str, BytesIO]:
 
 
 # ===== КЛАВИАТУРЫ И ИНТЕРФЕЙС =====
-def add_navigation_buttons(keyboard, search_type, page, pages):
+def add_navigation_buttons(keyboard, search_type, page, pages, context):
     navigation_buttons = []
     if page > 0:
-        navigation_buttons.append(InlineKeyboardButton("⬆ В начало", callback_data=f"{search_type}_page_0"))
+        navigation_buttons.append(InlineKeyboardButton(t("search.pagination.home",context), callback_data=f"{search_type}_page_0"))
         navigation_buttons.append(
-            InlineKeyboardButton("⬅️ Назад", callback_data=f"{search_type}_page_{page - 1}"))
+            InlineKeyboardButton(t("search.pagination.prev",context), callback_data=f"{search_type}_page_{page - 1}"))
     if page < len(pages) - 1:
         navigation_buttons.append(
-            InlineKeyboardButton("Вперёд ➡️", callback_data=f"{search_type}_page_{page + 1}"))
+            InlineKeyboardButton(t("search.pagination.next",context), callback_data=f"{search_type}_page_{page + 1}"))
         navigation_buttons.append(
-            InlineKeyboardButton("В конец ⬇️️️", callback_data=f"{search_type}_page_{len(pages) - 1}"))
+            InlineKeyboardButton(t("search.pagination.end",context), callback_data=f"{search_type}_page_{len(pages) - 1}"))
     if navigation_buttons:
         keyboard.append(navigation_buttons)
 
 
-def create_books_keyboard(page, pages_of_books, search_context=SEARCH_TYPE_BOOKS):
+def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_TYPE_BOOKS):
     """Создание клавиатуры с кнопками книг и кнопками навигации"""
     keyboard = []
 
@@ -297,23 +297,23 @@ def create_books_keyboard(page, pages_of_books, search_context=SEARCH_TYPE_BOOKS
                 )])
 
             # Добавляем кнопки для навигации
-            add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books)
+            add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books, context)
 
             # Добавляем кнопку скачивания CSV
-            keyboard.append([InlineKeyboardButton("📥 Скачать список в CSV формате", callback_data="download_books_csv")])
+            keyboard.append([InlineKeyboardButton(t("search.download",context), callback_data="download_books_csv")])
 
             # Добавляем кнопку "Назад к сериям" только при поиске по сериям
             if search_context == SEARCH_TYPE_SERIES:
-                keyboard.append([InlineKeyboardButton("⤴️ Назад к сериям", callback_data="back_to_series")])
+                keyboard.append([InlineKeyboardButton(t("search.pagination.series",context), callback_data="back_to_series")])
 
             # Добавляем кнопку "Назад к авторам" при поиске по авторам
             elif search_context == SEARCH_TYPE_AUTHORS:
-                keyboard.append([InlineKeyboardButton("⤴️ Назад к авторам", callback_data="back_to_authors")])
+                keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
 
     return keyboard
 
 
-def create_series_keyboard(page, pages_of_series):
+def create_series_keyboard(page, pages_of_series, context):
     """ Создание клавиатуры с кнопками из найденных серий книг """
     keyboard = []
 
@@ -329,12 +329,12 @@ def create_series_keyboard(page, pages_of_series):
                 )])
 
             # Добавляем кнопки для навигации
-            add_navigation_buttons(keyboard, SEARCH_TYPE_SERIES, page, pages_of_series)
+            add_navigation_buttons(keyboard, SEARCH_TYPE_SERIES, page, pages_of_series, context)
 
     return keyboard
 
 
-def create_authors_keyboard(page, pages_of_authors):
+def create_authors_keyboard(page, pages_of_authors, context):
     """ создание клавиатуры для авторов """
     keyboard = []
 
@@ -350,7 +350,7 @@ def create_authors_keyboard(page, pages_of_authors):
                 )])
 
             # Добавляем кнопки для навигации
-            add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors)
+            add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors, context)
 
     return keyboard
 

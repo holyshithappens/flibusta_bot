@@ -61,15 +61,12 @@ async def handle_search_books(update: Update, context: CallbackContext):
     """Обрабатывает текстовые сообщения (поиск книг)"""
     # ОПРЕДЕЛЯЕМ ТИП СООБЩЕНИЯ
     is_edited = update.edited_message is not None
-    message = update.edited_message if is_edited else update.message
+    message = update.edited_message if is_edited else update.message if update.message else update.callback_query.message
     # print(f"DEBUG: {update}")
-    if not message:
-        # Если нет сообщения, выходим
-        return
     if message.from_user.is_bot:
         # Последнее сообщение от бота, не поисковый запрос
         query_text = ''
-        user = message.from_user
+        user = update.callback_query.from_user
     else:
         query_text = message.text
         user = message.from_user
@@ -185,7 +182,7 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
         page = 0
 
         # Собираем кнопки с книгами для настроенного вывода
-        keyboard = create_books_keyboard(page, pages_of_result, search_type)
+        keyboard = create_books_keyboard(page, pages_of_result, context, search_type)
 
         if search_type == SEARCH_TYPE_SERIES:
             # Извлекаем имя серии из данных первой книги
@@ -198,7 +195,7 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
             # Сохраняем id автора для перелистывания страниц книг автора
             set_current_author_id(context, author_id)
             # Добавляем кнопку "Об авторе"
-            keyboard.append([InlineKeyboardButton("👤 Об авторе", callback_data=f"author_info:{author_id}")])
+            keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
 
         # формируем клавиатуру
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -206,6 +203,7 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
         if reply_markup:
 
             header_found_text = form_header_books(
+                context,
                 page, user_params.MaxBooks, found_books_count,
                 search_type=SEARCH_TYPE_BOOKS,  # Здесь всегда найденных книг
                 series_name=series_name,
@@ -329,11 +327,12 @@ async def process_search_series(context: CallbackContext, series, found_series_c
 
         pages_of_series = [series[i:i + user_params.MaxBooks] for i in range(0, len(series), user_params.MaxBooks)]
         page = 0
-        keyboard = create_series_keyboard(page, pages_of_series)
+        keyboard = create_series_keyboard(page, pages_of_series, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if reply_markup:
             header_found_text = form_header_books(
+                context,
                 page, user_params.MaxBooks, found_series_count, SEARCH_TYPE_SERIES,
                 search_area=search_area
             )
@@ -497,11 +496,12 @@ async def process_search_authors(context: CallbackContext, authors, found_author
         # Извлекаем из контекста или БД настройки пользователя
         pages_of_authors = [authors[i:i + user_params.MaxBooks] for i in range(0, len(authors), user_params.MaxBooks)]
         page = 0
-        keyboard = create_authors_keyboard(page, pages_of_authors)
+        keyboard = create_authors_keyboard(page, pages_of_authors, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if reply_markup:
             header_found_text = form_header_books(
+                context,
                 page, user_params.MaxBooks, found_authors_count, SEARCH_TYPE_AUTHORS,
                 search_area=search_area
             )
@@ -602,7 +602,7 @@ async def handle_books_page_change(update, context, action, params):
         show_pop = get_switch_search(context)
         search_context = user_params.SearchType if not show_pop else SEARCH_TYPE_BOOKS
         # print(f"DEBUG: {show_pop}, {search_context}")
-        keyboard = create_books_keyboard(page, pages_of_books, search_context)
+        keyboard = create_books_keyboard(page, pages_of_books, context, search_context)
         if search_context == SEARCH_TYPE_AUTHORS:
             author_id = get_current_author_id(context)
             keyboard.append([InlineKeyboardButton(t('search.author_about', context), callback_data=f"author_info:{author_id}")])
@@ -620,6 +620,7 @@ async def handle_books_page_change(update, context, action, params):
                 author_name = get_current_author_name(context)
             show_pop = get_switch_search(context)
             header_text = form_header_books(
+                context,
                 page, user_params.MaxBooks, found_books_count, SEARCH_TYPE_BOOKS,
                 series_name=series_name,
                 author_name=author_name,
@@ -651,7 +652,7 @@ async def handle_series_page_change(update, context, action, params):
             return
 
         page = int(action.removeprefix(f"{SEARCH_TYPE_SERIES}_page_"))
-        keyboard = create_series_keyboard(page, pages_of_series)
+        keyboard = create_series_keyboard(page, pages_of_series, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if reply_markup:
@@ -659,6 +660,7 @@ async def handle_series_page_change(update, context, action, params):
             user_params = get_user_params(context)
             search_area = user_params.SearchArea
             header_found_text = form_header_books(
+                context,
                 page, user_params.MaxBooks, found_series_count, SEARCH_TYPE_SERIES,
                 search_area=search_area
             )
@@ -690,7 +692,7 @@ async def handle_authors_page_change(update, context, action, params):
             return
 
         page = int(action.removeprefix(f"{SEARCH_TYPE_AUTHORS}_page_"))
-        keyboard = create_authors_keyboard(page, pages_of_authors)
+        keyboard = create_authors_keyboard(page, pages_of_authors, context)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if reply_markup:
@@ -698,6 +700,7 @@ async def handle_authors_page_change(update, context, action, params):
             user_params = get_user_params(context)
             search_area = user_params.SearchArea
             header_found_text = form_header_books(
+                context,
                 page, user_params.MaxBooks, found_authors_count, SEARCH_TYPE_AUTHORS,
                 search_area=search_area
             )

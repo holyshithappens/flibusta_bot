@@ -105,10 +105,10 @@ SETTING_OPTIONS = {
         (key, f"{value[1]}") for key, value in BOOK_RATINGS.items()
     ],
     SETTING_SEARCH_AREA: [
-        (SETTING_SEARCH_AREA_B, 'common.search_areas.main'),
+        (SETTING_SEARCH_AREA_B, 'common.search_areas.b'),
         UI_SEPARATOR,
-        (SETTING_SEARCH_AREA_BA, 'common.search_areas.book_annotations'),
-        (SETTING_SEARCH_AREA_AA, 'common.search_areas.author_annotations')
+        (SETTING_SEARCH_AREA_BA, 'common.search_areas.ba'),
+        (SETTING_SEARCH_AREA_AA, 'common.search_areas.aa')
     ],
     SETTING_LOCALE: [
         ('ru', 'common.locale_select.ru'),

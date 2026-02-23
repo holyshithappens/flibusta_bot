@@ -19,20 +19,6 @@ commands:
   set: "Settings"
   donate: "Donate"
 
-# Welcome message
-welcome:
-  title: |
-    📚 <b>Hi! I'll help you search and download books directly from the Flibusta library.</b> 
-
-    <u>Controls</u>
-    /news - bot news and updates
-    /about - information about the bot and library 
-    /help - help with search queries
-    /genres - browse available genres
-    /pop - popular books and new releases
-    /set - search and display settings
-    /donate - support the developer
-
 # Settings menu
 settings:
   menu:
@@ -45,28 +31,31 @@ settings:
     search_type: "Results display"
     search_area: "Search area"
     locale: "Interface language"
-  
-  options:
-    reset: "Reset"
 
 # Search
 search:
   loading: "⏰ <i>Searching for books, please wait...</i>"
   loading_series: "⏰ <i>Searching for series, please wait...</i>"
   loading_authors: "⏰ <i>Searching for authors, please wait...</i>"
-  
+  results_title: "📚 Search results"
+  for_user: " for {user_name}"
+  error_detail: "❌ Search error: {error}"
+
+
   results:
     books:
-      one: "Found {count} book"
-      other: "Found {count} books"
+      one: "book"
+      other: "books"
     series:
-      one: "Found {count} series"
-      other: "Found {count} series"
+      one: "series"
+      other: "series"
     authors:
-      one: "Found {count} author"
-      other: "Found {count} authors"
-    limited: "(showing first {shown})"
-  
+      one: "author"
+      other: "authors"
+    header: "Showing {start} to {end} of {total} found {pop}{object}{filter}{in_str}"
+    filter_series: " in series '{series}'"
+    filter_author: " by author '{author}'"
+
   error: "❌ An error occurred while processing your request"
   no_results: "😞 No suitable books found. Try different search criteria."
   no_results_series: "😞 No suitable series found. Try different search criteria."
@@ -80,10 +69,15 @@ search:
   author_error: "❌ Error loading author"
   
   pagination:
-    next: "➡️ Next"
-    prev: "⬅️ Previous"
-    page: "Page {current} of {total}"
-  
+    home: "⬆ Home"
+    prev: "⬅️ Prev"
+    next: "Next ➡"
+    end: "End ⬇️️️"
+    series: "⤴️ Back to series"
+    authors: "⤴️ Back to authors"
+
+  download: "📥 Download list in CSV"
+
   author_about: "👤 About author"
 
 # Book display
@@ -91,39 +85,41 @@ book:
   download: "📥 Download"
   info: "ℹ️ Info"
   author: "👤 Author"
-  series: "📖 Series"
-  genre: "🏷️ Genre"
-  year: "📅 Year"
-  size: "📦 Size"
-  rating: "⭐ Rating"
-  language: "🌐 Language"
-  format: "📄 Format"
-  
-  # File size formatting
-  size_kb: "{size} KB"
-  size_mb: "{size} MB"
-  
-  # Rating display
-  ratings:
-    "0": "⚪️ No rating"
-    "1": "🔴 Unreadable"
-    "2": "🟠 Bad"
-    "3": "🟡 Decent"
-    "4": "🟢 Good"
-    "5": "🔵 Excellent"
+#  series: "📖 Series"
+#  genre: "🏷️ Genre"
+#  year: "📅 Year"
+#  size: "📦 Size"
+#  rating: "⭐ Rating"
+#  language: "🌐 Language"
+#  format: "📄 Format"
+  authors: "👤 <b>Author(s):</b>"
+  genres: "📑 <b>Genre(s):</b>"
+  series: "📖 <b>Series:</b>"
+  year: "📅 <b>Year:</b>"
+  language: "🗣️ <b>Language:</b>"
+  pages: "📃 <b>Pages:</b>"
+  size: "📦 <b>Size:</b>"
+  rating: "⭐ <b>Rating:</b>"
+  annotation_title: "📖 <b>Book annotation:</b>"
+  reviews_title: "💬 <b>Book reviews:</b>"
+  not_specified: "Not specified"
+  unknown: "Unknown"
+
 
 # Genres
 genres:
   title: "Browse genres:"
   error: "❌ Error loading genres"
   not_found: "❌ No genres found for this category"
-  back: "🔙 To genres"
 
 # Callback
 callback:
   unknown_action: "❌ Unknown action"
   restore_error: "❌ Could not restore search results"
   back_error: "❌ Error returning to search results"
+  popular_error: "❌ Error loading popular books/new releases"
+  results_expired: "❌ Search results expired. Please perform a new search."
+
 
 # Popular and New
 popular:
@@ -134,10 +130,138 @@ popular:
   novelty: "New releases"
   
   headings:
-    all_time: "all-time popular"
-    days_30: "popular in 30 days"
-    days_7: "popular in 7 days"
-    novelty: "new releases"
+    all_time: "all-time popular "
+    days_30: "popular in 30 days "
+    days_7: "popular in 7 days "
+    novelty: "new releases "
+
+# News
+news:
+  title: "📢 <b>Latest bot news:</b>\n\n"
+  empty: "📢 No news yet. Stay tuned for updates!"
+  error: "❌ Could not load news"
+
+# Donate
+donate:
+  crypto_title: "💰 <b>Support the developer with crypto</b>"
+  stars_title: "Support the developer"
+  stars_5: "Just because!"
+  stars_5_label: "5 stars"
+  stars_50: "About a week of current VPS rental"
+  stars_50_label: "50 stars"
+  stars_200: "About a month of current VPS rental"
+  stars_200_label: "200 stars"
+  stars_1200: "About six months of current VPS rental"
+  stars_1200_label: "1200 stars"
+  error: "An error occurred while creating the payment"
+  stars_sent: "You sent {count} stars!"
+  vps_notice: "All funds will go towards VPS rental! ❤️"
+  vps_expiry: "💡 VPS rental ends in: {days} days ({date}). Support the bot! /donate."
+  vps_appeal: " All funds will go towards VPS rental costs. Even a small contribution will help keep the bot running."
+
+
+# Common UI elements
+common:
+  close: "❌ Close"
+  back: "🔙 Back"
+  reset: "Reset"
+  reset_all: "🔄 Reset all"
+
+  # Language reset option
+  reset_lang: "✔ {lang} - reset"
+
+  # Rating descriptions
+  ratings:
+    "0": "⚪️ No rating (0)"
+    "1": "🔴 Unreadable (1)"
+    "2": "🟠 Bad (2)"
+    "3": "🟡 Decent (3)"
+    "4": "🟢 Good (4)"
+    "5": "🔵 Excellent (5)"
+
+  # Search type options
+  search_types:
+    books: "by books"
+    series: "by series"
+    authors: "by authors"
+
+  # Search area options
+  search_areas:
+    b: "on book's main data"
+    ba: "on book annotations"
+    aa: "on author annotations"
+
+  # Size limit options
+  size_limits:
+    less800: "<800K"
+    more800: ">800K"
+
+  # Format options
+  formats:
+    fb2: "FB2"
+    mobi: "MOBI"
+    epub: "EPUB"
+
+  # Language selection
+  locale_select:
+    title: "Interface language:"
+    ru: "🇷🇺 Русский"
+    en: "🇬🇧 English"
+
+# Errors
+errors:
+  general: "❌ An error occurred. Please try again later."
+  not_found: "❌ Not found."
+
+## Author info
+#author:
+#  title: "👤 Author"
+#  books: "📚 Books"
+#  series: "📖 Series"
+#  biography: "📋 Biography"
+#  photo: "🖼️ Photo"
+#  no_books: "No books"
+
+## Series info
+#series:
+#  title: "📖 Series"
+#  books: "📚 Books in series"
+#  author: "👤 Author"
+#  no_books: "No books in series"
+
+download:
+  waiting: "⏰ <i>Waiting, sending the book</i>"
+  waiting_for_user: "⏰ <i>Waiting, sending the book for {user_name}...</i>"
+  for_user: " for {user_name}"
+  format_failed: "😞 Could not download the book in this format"
+  format_failed_for_user: "😞 Could not download the book in this format for {user_name}"
+  preparation_error: "❌ An error occurred while preparing the book {book_url}. It may be available only in the local database"
+  using_external_service: "⏳ The book is large, using an external service..."
+  download_link: "📥 Download book"
+  link_expires: "⏳ Link valid for 15 minutes"
+  send_failed: "❌ Could not send the book. Please try again later."
+
+csv:
+  generating: "⏳ Generating CSV book list. Please wait..."
+  books_found: "📚 Books found: {count}"
+  error: "❌ Error creating CSV file"
+
+author:
+  about_title: "👤 <b>About author:</b>"
+
+# Welcome message
+welcome:
+  title: |
+    📚 <b>Hi! I'll help you search and download books directly from the Flibusta library.</b> 
+
+    <u>Controls</u>
+    /news - bot news and updates
+    /about - information about the bot and library 
+    /help - help with search queries
+    /genres - browse available genres
+    /pop - popular books and new releases
+    /set - search and display settings
+    /donate - support the developer
 
 # Help
 help:
@@ -240,120 +364,3 @@ about:
     • 📖 <a href="https://www.amazon.com/b?node=16571048011  ">Kindle</a> (all platforms)
 
   error: "❌ Could not retrieve library information"
-
-# News
-news:
-  title: "📢 <b>Latest bot news:</b>\n\n"
-  empty: "📢 No news yet. Stay tuned for updates!"
-  error: "❌ Could not load news"
-
-# Donate
-donate:
-  crypto_title: "💰 <b>Support the developer with crypto</b>"
-  stars_title: "Support the developer"
-  stars_5: "Just because!"
-  stars_5_label: "5 stars"
-  stars_50: "About a week of current VPS rental"
-  stars_50_label: "50 stars"
-  stars_200: "About a month of current VPS rental"
-  stars_200_label: "200 stars"
-  stars_1200: "About six months of current VPS rental"
-  stars_1200_label: "1200 stars"
-  error: "An error occurred while creating the payment"
-
-# Common UI elements
-common:
-  close: "❌ Close"
-  back: "🔙 Back"
-  reset: "Reset"
-  reset_all: "🔄 Reset all"
-  loading: "⏳ Loading..."
-  error: "❌ An error occurred"
-  yes: "✅ Yes"
-  no: "❌ No"
-  cancel: "❌ Cancel"
-  confirm: "✅ Confirm"
-  save: "💾 Save"
-  
-  # Checkmark for selected items
-  selected: "✔️"
-  
-  # Language reset option
-  reset_lang: "✔ {lang} - reset"
-
-  # Rating descriptions
-  ratings:
-    "0": "⚪️ No rating (0)"
-    "1": "🔴 Unreadable (1)"
-    "2": "🟠 Bad (2)"
-    "3": "🟡 Decent (3)"
-    "4": "🟢 Good (4)"
-    "5": "🔵 Excellent (5)"
-
-  # Search type options
-  search_types:
-    books: "by books"
-    series: "by series"
-    authors: "by authors"
-
-  # Search area options
-  search_areas:
-    main: "on book's main data"
-    book_annotations: "on book annotations"
-    author_annotations: "on author annotations"
-
-  # Size limit options
-  size_limits:
-    less800: "<800K"
-    more800: ">800K"
-
-  # Format options
-  formats:
-    fb2: "FB2"
-    mobi: "MOBI"
-    epub: "EPUB"
-
-  # Language selection
-  locale_select:
-    title: "Interface language:"
-    ru: "🇷🇺 Русский"
-    en: "🇬🇧 English"
-
-# Errors
-errors:
-  general: "❌ An error occurred. Please try again later."
-  not_found: "❌ Not found."
-  blocked: "❌ You are blocked."
-  rate_limit: "❌ Too many requests. Please wait a moment."
-  download_failed: "❌ Could not download file."
-  file_too_big: "❌ File is too large to send."
-  unsupported_format: "❌ Unsupported file format."
-
-# Author info
-author:
-  title: "👤 Author"
-  books: "📚 Books"
-  series: "📖 Series"
-  biography: "📋 Biography"
-  photo: "🖼️ Photo"
-  no_books: "No books"
-
-# Series info
-series:
-  title: "📖 Series"
-  books: "📚 Books in series"
-  author: "👤 Author"
-  no_books: "No books in series"
-
-# Callback handlers
-callbacks:
-  show_genres: "show_genres"
-  show_books: "show_books"
-  show_series: "show_series"
-  show_authors: "show_authors"
-  download_book: "download_book"
-  book_info: "book_info"
-  author_info: "author_info"
-  series_info: "series_info"
-  toggle_rating: "toggle_rating"
-  reset_ratings: "reset_ratings"

@@ -100,13 +100,14 @@ async def handle_group_search(update: Update, context: CallbackContext):
             pages_of_books = [books[i:i + user_params.MaxBooks] for i in range(0, len(books), user_params.MaxBooks)]
             page = 0
 
-            keyboard = create_books_keyboard(page, pages_of_books)
+            keyboard = create_books_keyboard(page, pages_of_books, context)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             if reply_markup:
                 user_name = (user.first_name if user.first_name else "") #+ (f" @{user.username}" if user.username else "")
                 header_found_text = f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
                 header_found_text += form_header_books(
+                    context,
                     page, user_params.MaxBooks, found_books_count,
                     search_area=user_params.SearchArea
                 )
@@ -214,7 +215,7 @@ async def handle_group_page_change(update, context, action, params, user):
         await query.edit_message_text(t('search.page_error', context))
         return
 
-    keyboard = create_books_keyboard(page, pages_of_books)
+    keyboard = create_books_keyboard(page, pages_of_books, context)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if reply_markup:
@@ -225,6 +226,7 @@ async def handle_group_page_change(update, context, action, params, user):
         user_name = (user.first_name if user.first_name else "")
         header_text = f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
         header_text += form_header_books(
+            context,
             page, user_params.MaxBooks, found_books_count,
             search_area=search_area
         )

@@ -21,6 +21,7 @@ from .constants import (
 )
 from .flibusta_client import FlibustaClient
 from .core.structured_logger import structured_logger
+from .i18n import t, tp
 
 # Пространство имен FB2
 FB2_NAMESPACE = "http://www.gribuser.ru/xml/fictionbook/2.0"
@@ -46,6 +47,7 @@ def format_size(size_in_bytes: int) -> str:
 
 
 def form_header_books(
+    context,
     page,
     max_books,
     found_count,
@@ -59,23 +61,31 @@ def form_header_books(
     start = max_books * page + 1
     end = min(max_books * (page + 1), found_count)
 
-    text = f"{HEADING_POP.get(show_pop)} " if show_pop else ""
+    pop = t(HEADING_POP.get(show_pop), context) if show_pop else ""
+    object = tp(f"search.results.{search_type}",context,found_count)
+    filter = t("search.results.filter_series",context,series=series_name) if series_name else ""
+    filter += t("search.results.filter_author",context,author=author_name) if author_name else ""
+    in_str = f" {t(f"common.search_areas.{search_area}",context)}" if search_area != SETTING_SEARCH_AREA_B and not show_pop else ""
 
-    if search_type == SEARCH_TYPE_BOOKS or show_pop:
-        text += "книг"
-    elif search_type == SEARCH_TYPE_SERIES:
-        text += "серий"
-    elif search_type == SEARCH_TYPE_AUTHORS:
-        text += "авторов"
+    return t("search.results.header",context,start=start,end=end,total=found_count,pop=pop,object=object,filter=filter,in_str=in_str)
 
-    header = f"Показываю с {start} по {end} из {found_count} найденных {text}"
-
-    header += f" в серии '{series_name}'" if series_name else ""
-    header += f" автора '{author_name}'" if author_name else ""
-    header += " по аннотации книги" if search_area == SETTING_SEARCH_AREA_BA and not show_pop else ""
-    header += " по аннотации автора" if search_area == SETTING_SEARCH_AREA_AA and not show_pop else ""
-
-    return header
+    # text = f"{HEADING_POP.get(show_pop)} " if show_pop else ""
+    #
+    # if search_type == SEARCH_TYPE_BOOKS or show_pop:
+    #     text += "книг"
+    # elif search_type == SEARCH_TYPE_SERIES:
+    #     text += "серий"
+    # elif search_type == SEARCH_TYPE_AUTHORS:
+    #     text += "авторов"
+    #
+    # header = f"Показываю с {start} по {end} из {found_count} найденных {text}"
+    #
+    # header += f" в серии '{series_name}'" if series_name else ""
+    # header += f" автора '{author_name}'" if author_name else ""
+    # header += " по аннотации книги" if search_area == SETTING_SEARCH_AREA_BA and not show_pop else ""
+    # header += " по аннотации автора" if search_area == SETTING_SEARCH_AREA_AA and not show_pop else ""
+    #
+    # return header
 
 
 # def get_platform_recommendations() -> str:

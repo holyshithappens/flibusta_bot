@@ -19,20 +19,6 @@ commands:
   set: "Настройки поиска"
   donate: "Поддержать разработчика"
 
-# Welcome message
-welcome:
-  title: |
-    📚 <b>Привет! Я помогу тебе искать и скачивать книги непосредственно из библиотеки Флибуста.</b> 
-
-    <u>Управление</u>
-    /news - новости и обновления бота
-    /about - информация о боте и библиотеке 
-    /help - помощь в составлении поисковых запросов
-    /genres - посмотреть доступные жанры
-    /pop - популярные книги и новинки библиотеки
-    /set - установка настроек поиска и вывода книг
-    /donate - поддержать разработчика
-
 # Settings menu
 settings:
   menu:
@@ -45,9 +31,6 @@ settings:
     search_type: "Вывод результатов"
     search_area: "Область поиска"
     locale: "Язык интерфейса"
-  
-  options:
-    reset: "Сбросить"
 
 # Search
 search:
@@ -57,22 +40,24 @@ search:
   
   results:
     books:
-      one: "Найдена {count} книга"
-      few: "Найдено {count} книги"
-      many: "Найдено {count} книг"
-      other: "Найдено {count} книг"
+      one: "книг"
+      few: "книг"
+      many: "книг"
+      other: "книг"
     series:
-      one: "Найдена {count} серия"
-      few: "Найдено {count} серии"
-      many: "Найдено {count} серий"
-      other: "Найдено {count} серий"
+      one: "серий"
+      few: "серий"
+      many: "серий"
+      other: "серий"
     authors:
-      one: "Найден {count} автор"
-      few: "Найдено {count} автора"
-      many: "Найдено {count} авторов"
-      other: "Найдено {count} авторов"
-    limited: "(показано первых {shown})"
-  
+      one: "авторов"
+      few: "авторов"
+      many: "авторов"
+      other: "авторов"
+    header: "Показываю с {start} по {end} из {total} найденных {pop}{object}{filter}{in_str}"
+    filter_series: " в серии '{series}'"
+    filter_author: " автора '{author}'"
+
   error: "❌ Произошла ошибка при обработке запроса"
   no_results: "😞 Не нашёл подходящих книг. Попробуйте другие критерии поиска."
   no_results_series: "😞 Не нашёл подходящих книжных серий. Попробуйте другие критерии поиска."
@@ -86,50 +71,59 @@ search:
   author_error: "❌ Ошибка при загрузке автора"
   
   pagination:
-    next: "➡️ Далее"
+    home: "⬆ В начало"
     prev: "⬅️ Назад"
-    page: "Стр. {current} из {total}"
-  
+    next: "Вперёд ➡"
+    end: "В конец ⬇️️️"
+    series: "⤴️ Назад к сериям"
+    authors: "⤴️ Назад к авторам"
+
+  download: "📥 Скачать список в CSV формате"
+
   author_about: "👤 Об авторе"
+
+  results_title: "📚 Результаты поиска"
+  for_user: " для {user_name}"
+  error_detail: "❌ Ошибка при поиске: {error}"
 
 # Book display
 book:
   download: "📥 Скачать"
   info: "ℹ️ Информация"
   author: "👤 Автор"
-  series: "📖 Серия"
-  genre: "🏷️ Жанр"
-  year: "📅 Год"
-  size: "📦 Размер"
-  rating: "⭐ Рейтинг"
-  language: "🌐 Язык"
-  format: "📄 Формат"
-  
-  # File size formatting
-  size_kb: "{size} KB"
-  size_mb: "{size} MB"
-  
-  # Rating display
-  ratings:
-    0: "⚪️ Без рейтинга"
-    1: "🔴 Нечитаемо"
-    2: "🟠 Плохо"
-    3: "🟡 Неплохо"
-    4: "🟢 Хорошо"
-    5: "🔵 Отлично"
+#  series: "📖 Серия"
+#  genre: "🏷️ Жанр"
+#  year: "📅 Год"
+#  size: "📦 Размер"
+#  rating: "⭐ Рейтинг"
+#  language: "🌐 Язык"
+#  format: "📄 Формат"
+  authors: "👤 <b>Автор(ы):</b>"
+  genres: "📑 <b>Жанр(ы):</b>"
+  series: "📖 <b>Серия:</b>"
+  year: "📅 <b>Год:</b>"
+  language: "🗣️ <b>Язык:</b>"
+  pages: "📃 <b>Страниц:</b>"
+  size: "📦 <b>Размер:</b>"
+  rating: "⭐ <b>Рейтинг:</b>"
+  annotation_title: "📖 <b>Аннотация о книге:</b>"
+  reviews_title: "💬 <b>Отзывы о книге:</b>"
+  not_specified: "Не указаны"
+  unknown: "Неизвестно"
 
 # Genres
 genres:
   title: "Посмотреть жанры:"
   error: "❌ Ошибка при загрузке жанров"
   not_found: "❌ Жанры не найдены для этой категории"
-  back: "🔙 К жанрам"
 
 # Callback
 callback:
   unknown_action: "❌ Неизвестное действие"
   restore_error: "❌ Не удалось восстановить результаты поиска"
   back_error: "❌ Ошибка при возврате к результатам поиска"
+  popular_error: "❌ Ошибка при загрузке популярных книг/новинок"
+  results_expired: "❌ Результаты поиска устарели. Выполните новый поиск."
 
 # Popular and New
 popular:
@@ -140,10 +134,138 @@ popular:
   novelty: "Новинки"
   
   headings:
-    all_time: "популярных за всё время"
-    days_30: "популярных за 30 дней"
-    days_7: "популярных за 7 дней"
-    novelty: "новинок"
+    all_time: "популярных за всё время "
+    days_30: "популярных за 30 дней "
+    days_7: "популярных за 7 дней "
+    novelty: "новинок "
+
+# News
+news:
+  title: "📢 <b>Последние новости бота:</b>\n\n"
+  empty: "📢 Пока нет новостей. Следите за обновлениями!"
+  error: "❌ Не удалось загрузить новости"
+
+# Donate
+donate:
+  crypto_title: "💰 <b>Поддержать разработчика крипто-копеечкой</b>"
+  stars_title: "Поддержать разработчика"
+  stars_5: "Так, просто так!"
+  stars_5_label: "5 звёзд"
+  stars_50: "Примерно неделя аренды текущего VPS"
+  stars_50_label: "50 звёзд"
+  stars_200: "Примерно месяц аренды текущего VPS"
+  stars_200_label: "200 звёзд"
+  stars_1200: "Примерно полгода аренды текущего VPS"
+  stars_1200_label: "1200 звёзд"
+  error: "Произошла ошибка при создании платежа"
+  stars_sent: "Вы отправили {count} звёзд!"
+  vps_notice: "Все средства пойдут на аренду VPS! ❤️"
+  vps_expiry: "💡 До конца аренды VPS: {days} дней ({date}). Поддержи бота! /donate."
+  vps_appeal: " Все средства пойдут на оплату аренды VPS. Даже небольшой вклад поможет сохранить бота."
+
+
+# Common UI elements
+common:
+  close: "❌ Закрыть"
+  back: "🔙 Назад"
+  reset: "Сбросить"
+  reset_all: "🔄 Сбросить все"
+
+  # Language reset option
+  reset_lang: "✔ {lang} - сбросить"
+
+  # Rating descriptions
+  ratings:
+    "0": "⚪ Без рейтинга (0)"
+    "1": "🔴 Нечитаемо (1)"
+    "2": "🟠 Плохо (2)"
+    "3": "🟡 Неплохо (3)"
+    "4": "🟢 Хорошо (4)"
+    "5": "🔵 Отлично (5)"
+
+  # Search type options
+  search_types:
+    books: "по книгам"
+    series: "по сериям"
+    authors: "по авторам"
+
+  # Search area options
+  search_areas:
+    b: "по основным данным книг"
+    ba: "по аннотации книг"
+    aa: "по аннотации авторов"
+
+  # Size limit options
+  size_limits:
+    less800: "<800K"
+    more800: ">800K"
+
+  # Format options
+  formats:
+    fb2: "FB2"
+    mobi: "MOBI"
+    epub: "EPUB"
+
+  # Language selection
+  locale_select:
+    title: "Язык интерфейса:"
+    ru: "🇷🇺 Русский"
+    en: "🇬🇧 English"
+
+# Errors
+errors:
+  general: "❌ Произошла ошибка. Попробуйте позже."
+  not_found: "❌ Не найдено."
+
+## Author info
+#author:
+##  title: "👤 Автор"
+##  books: "📚 Книги"
+##  series: "📖 Серии"
+##  biography: "📋 Биография"
+##  photo: "🖼️ Фото"
+##  no_books: "Нет книг"
+
+## Series info
+#series:
+#  title: "📖 Серия"
+#  books: "📚 Книги в серии"
+#  author: "👤 Автор"
+#  no_books: "В серии нет книг"
+
+download:
+  waiting: "⏰ <i>Ожидайте, отправляю книгу...</i>"
+  waiting_for_user: "⏰ <i>Ожидайте, отправляю книгу для {user_name}...</i>"
+  for_user: " для {user_name}"
+  format_failed: "😞 Не удалось скачать книгу в этом формате"
+  format_failed_for_user: "😞 Не удалось скачать книгу в этом формате для {user_name}"
+  preparation_error: "❌ Произошла ошибка при подготовке книги {book_url}. Возможно она доступна только в локальной базе"
+  using_external_service: "⏳ Книга большая, использую внешний сервис..."
+  download_link: "📥 Скачать книгу"
+  link_expires: "⏳ Ссылка действительна 15 минут"
+  send_failed: "❌ Не удалось отправить книгу. Попробуйте позже."
+
+csv:
+  generating: "⏳ Формирую CSV-список книг. Пожалуйста, подождите..."
+  books_found: "📚 Найдено книг: {count}"
+  error: "❌ Ошибка при создании CSV файла"
+
+author:
+  about_title: "👤 <b>Об авторе:</b>"
+
+# Welcome message
+welcome:
+  title: |
+    📚 <b>Привет! Я помогу тебе искать и скачивать книги непосредственно из библиотеки Флибуста.</b> 
+
+    <u>Управление</u>
+    /news - новости и обновления бота
+    /about - информация о боте и библиотеке 
+    /help - помощь в составлении поисковых запросов
+    /genres - посмотреть доступные жанры
+    /pop - популярные книги и новинки библиотеки
+    /set - установка настроек поиска и вывода книг
+    /donate - поддержать разработчика
 
 # Help
 help:
@@ -246,120 +368,3 @@ about:
     • 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
 
   error: "❌ Не удалось получить информацию о библиотеке"
-
-# News
-news:
-  title: "📢 <b>Последние новости бота:</b>\n\n"
-  empty: "📢 Пока нет новостей. Следите за обновлениями!"
-  error: "❌ Не удалось загрузить новости"
-
-# Donate
-donate:
-  crypto_title: "💰 <b>Поддержать разработчика крипто-копеечкой</b>"
-  stars_title: "Поддержать разработчика"
-  stars_5: "Так, просто так!"
-  stars_5_label: "5 звёзд"
-  stars_50: "Примерно неделя аренды текущего VPS"
-  stars_50_label: "50 звёзд"
-  stars_200: "Примерно месяц аренды текущего VPS"
-  stars_200_label: "200 звёзд"
-  stars_1200: "Примерно полгода аренды текущего VPS"
-  stars_1200_label: "1200 звёзд"
-  error: "Произошла ошибка при создании платежа"
-
-# Common UI elements
-common:
-  close: "❌ Закрыть"
-  back: "🔙 Назад"
-  reset: "Сбросить"
-  reset_all: "🔄 Сбросить все"
-  loading: "⏳ Загрузка..."
-  error: "❌ Произошла ошибка"
-  yes: "✅ Да"
-  no: "❌ Нет"
-  cancel: "❌ Отмена"
-  confirm: "✅ Подтвердить"
-  save: "💾 Сохранить"
-  
-  # Checkmark for selected items
-  selected: "✔️"
-  
-  # Language reset option
-  reset_lang: "✔ {lang} - сбросить"
-
-  # Rating descriptions
-  ratings:
-    "0": "⚪ Без рейтинга (0)"
-    "1": "🔴 Нечитаемо (1)"
-    "2": "🟠 Плохо (2)"
-    "3": "🟡 Неплохо (3)"
-    "4": "🟢 Хорошо (4)"
-    "5": "🔵 Отлично (5)"
-
-  # Search type options
-  search_types:
-    books: "по книгам"
-    series: "по сериям"
-    authors: "по авторам"
-
-  # Search area options
-  search_areas:
-    main: "по основным данным книг"
-    book_annotations: "по аннотации книг"
-    author_annotations: "по аннотации авторов"
-
-  # Size limit options
-  size_limits:
-    less800: "<800K"
-    more800: ">800K"
-
-  # Format options
-  formats:
-    fb2: "FB2"
-    mobi: "MOBI"
-    epub: "EPUB"
-
-  # Language selection
-  locale_select:
-    title: "Язык интерфейса:"
-    ru: "🇷🇺 Русский"
-    en: "🇬🇧 English"
-
-# Errors
-errors:
-  general: "❌ Произошла ошибка. Попробуйте позже."
-  not_found: "❌ Не найдено."
-  blocked: "❌ Вы заблокированы."
-  rate_limit: "❌ Слишком много запросов. Подождите немного."
-  download_failed: "❌ Не удалось скачать файл."
-  file_too_big: "❌ Файл слишком большой для отправки."
-  unsupported_format: "❌ Неподдерживаемый формат файла."
-
-# Author info
-author:
-  title: "👤 Автор"
-  books: "📚 Книги"
-  series: "📖 Серии"
-  biography: "📋 Биография"
-  photo: "🖼️ Фото"
-  no_books: "Нет книг"
-
-# Series info
-series:
-  title: "📖 Серия"
-  books: "📚 Книги в серии"
-  author: "👤 Автор"
-  no_books: "В серии нет книг"
-
-# Callback handlers
-callbacks:
-  show_genres: "show_genres"
-  show_books: "show_books"
-  show_series: "show_series"
-  show_authors: "show_authors"
-  download_book: "download_book"
-  book_info: "book_info"
-  author_info: "author_info"
-  series_info: "series_info"
-  toggle_rating: "toggle_rating"
-  reset_ratings: "reset_ratings"
