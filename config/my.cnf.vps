@@ -4,17 +4,19 @@ character-set-server=utf8mb3
 collation-server=utf8mb3_unicode_ci
 skip-character-set-client-handshake
 
-# InnoDB — основной движок
-innodb-buffer-pool-size=1400M
-innodb-log-file-size=128M
+# --- OPTIMIZED FOR 2GB RAM SERVER ---
+# Буфер не должен занимать > 50-60% от общей RAM сервера с учетом других процессов.
+# Ставим 512M для стабильности. 1400M убивает вашу систему.
+innodb-buffer-pool-size=512M
+innodb-log-file-size=64M
 innodb-flush-log-at-trx-commit=2
-innodb-file-per-table=ON          # можно оставить для совместимости, но не обязательно
-innodb-flush-method=O_DIRECT      # можно оставить, несмотря на warning
+innodb-file-per-table=ON
+innodb-flush-method=O_DIRECT
 
-# Memory
+# Memory tuning (conservative)
 key-buffer-size=16M
 max-heap-table-size=32M
-tmp-table-size=64M
+tmp-table-size=32M
 join-buffer-size=256K
 sort-buffer-size=256K
 read-buffer-size=128K
@@ -26,11 +28,11 @@ thread-cache-size=10
 table-open-cache=1000
 table-definition-cache=500
 
-# Query cache — ОТКЛЮЧЕН (deprecated в новых версиях)
+# Query cache (OFF is correct for modern versions)
 query_cache_type=OFF
 query_cache_size=0
 
-# Performance schema — можно оставить OFF для экономии RAM
+# Performance schema (OFF saves ~100MB RAM)
 performance-schema=OFF
 
 # Network
@@ -42,11 +44,11 @@ interactive_timeout=300
 ft-min-word-len=3
 innodb-ft-min-token-size=3
 
-# Логирование (минимум)
+# Logging
 slow_query_log=OFF
 general_log=OFF
 
-# SSD tweaks (опционально, но безопасно)
+# SSD tweaks (keep as is, safe)
 innodb-io-capacity=2000
 innodb-io-capacity-max=4000
 innodb-read-io-threads=4
