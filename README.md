@@ -11,7 +11,7 @@ A comprehensive Telegram bot for searching and downloading books from the Flibus
 - **Primary Database**: MariaDB 12.0 (Flibusta native database)
 - **Secondary Database**: SQLite (user logs and settings)
 - **Deployment**: Docker + docker-compose
-- **Latest Version**: 1.1.0
+- **Latest Version**: 1.1.5
 
 ## 🛠️ Tech Stack
 

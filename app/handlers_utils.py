@@ -41,7 +41,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
     try:
         processing_msg = await query.message.reply_text(
-            "⏰ <i>Ожидайте, отправляю книгу" + (f" для {for_user.first_name}" if for_user else "") + "...</i>",
+            t("download.waiting_for_user",context,user_name=for_user.first_name) if for_user else t("download.waiting"),
             parse_mode=ParseMode.HTML,
             disable_notification=True
         )
@@ -83,7 +83,8 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
         else:
             await query.message.reply_text(
-                "😞 Не удалось скачать книгу в этом формате" + (f" для {for_user.first_name}" if for_user else ""),
+                t("download.format_failed_for_user", context, user_name=for_user.first_name)
+                    if for_user else t("download.format_failed"),
                 disable_notification=True
             )
 
@@ -92,7 +93,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
     except TimedOut:
         if processing_msg and book_data:
-            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query)
+            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context)
 
             structured_logger.log_download(
                 user_id=query.from_user.id,
@@ -111,7 +112,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
         """Обрабатывает ошибку загрузки"""
         print(f"Общая ошибка при отправке книги: {e}")
         await processing_msg.edit_text(
-            f"❌ Произошла ошибка при подготовке книги {book_url}. Возможно она доступна только в локальной базе"
+            t("download.preparation_error",context,book_url=book_url)
         )
         # logger.log_user_action(query.from_user.id, "error sending book direct", book_url)
         structured_logger.log_error(
@@ -128,10 +129,10 @@ async def process_book_download(update, context, book_id: int, book_format, for_
     return None
 
 
-async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query):
+async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query, context):
     """Обрабатывает ошибку таймаута"""
     await processing_msg.edit_text(
-        "⏳ Книга большая, использую внешний сервис...",
+        t("download.using_external_service", context),
         parse_mode=ParseMode.HTML
     )
 
@@ -144,8 +145,8 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
                 1
             )
             message = (
-                f"<a href='{direct_download_url}'>📥 Скачать книгу</a>\n"
-                "⏳ Ссылка действительна 15 минут"
+                f"<a href='{direct_download_url}'>{t("download.download_link",context)}</a>\n" +
+                t("download.link_expires",context)
             )
             await query.message.reply_text(
                 text=message,
@@ -155,7 +156,7 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
             )
     except Exception as upload_error:
         print(f"Ошибка загрузки на tmpfiles: {upload_error}")
-        await processing_msg.edit_text("❌ Не удалось отправить книгу. Попробуйте позже.")
+        await processing_msg.edit_text(t("download.send_failed", context))
         structured_logger.log_error(
             error_type="upload_failed",
             error_message="Failed to upload book to cloud storage",

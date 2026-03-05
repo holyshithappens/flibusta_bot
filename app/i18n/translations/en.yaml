@@ -37,10 +37,6 @@ search:
   loading: "⏰ <i>Searching for books, please wait...</i>"
   loading_series: "⏰ <i>Searching for series, please wait...</i>"
   loading_authors: "⏰ <i>Searching for authors, please wait...</i>"
-  results_title: "📚 Search results"
-  for_user: " for {user_name}"
-  error_detail: "❌ Search error: {error}"
-
 
   results:
     books:
@@ -65,9 +61,10 @@ search:
   results_expired_title: "🕒 <b>Search results expired</b>\n\nPlease perform a new search."
   page_error: "❌ Page number error"
   page_change_error: "❌ An error occurred while changing page"
-  series_error: "❌ Error loading series"
-  author_error: "❌ Error loading author"
-  
+  series_error: "❌ Error processing series: {error}"
+  author_error: "❌ Error processing author: {error}"
+  error_detail: "❌ Search error: {error}"
+
   pagination:
     home: "⬆ Home"
     prev: "⬅️ Prev"
@@ -79,6 +76,9 @@ search:
   download: "📥 Download list in CSV"
 
   author_about: "👤 About author"
+
+  results_title: "📚 Search results:\n\n"
+  results_title_for_user: "📚 Search results for {user_name}:\n\n"
 
 # Book display
 book:
@@ -154,8 +154,7 @@ donate:
   stars_1200: "About six months of current VPS rental"
   stars_1200_label: "1200 stars"
   error: "An error occurred while creating the payment"
-  stars_sent: "You sent {count} stars!"
-  vps_notice: "All funds will go towards VPS rental! ❤️"
+  stars_sent: "You sent {count} stars!\nAll funds will go towards VPS rental! ❤️"
   vps_expiry: "💡 VPS rental ends in: {days} days ({date}). Support the bot! /donate."
   vps_appeal: " All funds will go towards VPS rental costs. Even a small contribution will help keep the bot running."
 

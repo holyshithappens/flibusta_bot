@@ -105,7 +105,11 @@ async def handle_group_search(update: Update, context: CallbackContext):
 
             if reply_markup:
                 user_name = (user.first_name if user.first_name else "") #+ (f" @{user.username}" if user.username else "")
-                header_found_text = f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
+                header_found_text = (
+                    t("search.results_title_for_user", context, user_name=user_name) if user_name
+                    else t("search.results_title", context)
+                )
+                    # f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
                 header_found_text += form_header_books(
                     context,
                     page, user_params.MaxBooks, found_books_count,
@@ -224,7 +228,11 @@ async def handle_group_page_change(update, context, action, params, user):
         search_area = user_params.SearchArea
 
         user_name = (user.first_name if user.first_name else "")
-        header_text = f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
+        header_text = (
+                    t("search.results_title_for_user", context, user_name=user_name) if user_name
+                    else t("search.results_title", context)
+                )
+            # f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
         header_text += form_header_books(
             context,
             page, user_params.MaxBooks, found_books_count,

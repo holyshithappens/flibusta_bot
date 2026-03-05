@@ -20,8 +20,7 @@ async def successful_payment(update: Update, context: CallbackContext):
     # Отправляем благодарность
     await update.message.reply_photo(
         photo='https://gifdb.com/images/high/robocop-thank-you-for-your-cooperation-gqen0zm4lhjdh14d.webp',
-        caption=f"🎉 {t('donate.stars_title', context)}! Вы отправили {payment.total_amount} звёзд!\n"
-                f"Все средства пойдут на аренду VPS! ❤️"
+        caption= t('donate.stars_sent', context, count=payment.total_amount)
     )
     # logger.log_payment(payment, user)
     structured_logger.log_payment(

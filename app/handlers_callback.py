@@ -234,7 +234,7 @@ async def handle_back_to_authors(update, context, action, params):
         page_num = get_last_authors_page(context)
         pages_of_authors = get_pages_of_authors(context)
         if not pages_of_authors:
-            await query.edit_message_text("❌ Не удалось восстановить результаты поиска")
+            await query.edit_message_text(t("callback.restore_error", context))
             return
 
         keyboard = create_authors_keyboard(page_num, pages_of_authors, context)
@@ -256,7 +256,7 @@ async def handle_back_to_authors(update, context, action, params):
 
     except Exception as e:
         print(f"Ошибка при возврате к авторам: {e}")
-        await query.edit_message_text("❌ Ошибка при возврате к результатам поиска")
+        await query.edit_message_text(t("callback.back_error", context))
 
 
 async def handle_close_message(update, context, action, params):
@@ -340,7 +340,7 @@ async def handle_show_pops(update, context, action, params):
 
     except Exception as e:
         print(f"Error in handle_show_pops: {e}")
-        await update.callback_query.message.reply_text("❌ Ошибка при загрузке популярных книг/новинок")
+        await update.callback_query.message.reply_text(t("callback.popular_error", context))
 
     await log_stats(context)
 
@@ -354,12 +354,12 @@ async def handle_download_books_csv(update, context, action, params):
         pages_of_books = get_pages_of_books(context)
 
         if not pages_of_books:
-            await query.answer("❌ Результаты поиска устарели. Выполните новый поиск.")
+            await query.answer(t("callback.results_expired"))
             return
 
         # Send immediate waiting message
         processing_msg = await query.message.reply_text(
-            "⏳ Формирую CSV-список книг. Пожалуйста, подождите...",
+            t("csv.generating", context),
             parse_mode=ParseMode.HTML,
             disable_notification=True
         )
@@ -377,7 +377,7 @@ async def handle_download_books_csv(update, context, action, params):
         await query.message.reply_document(
             document=csv_buffer,
             filename=filename,
-            caption=f"📚 Найдено книг: {total_books}",
+            caption=t("csv.books_found", context, count=total_books),
             disable_notification=True
         )
 
@@ -400,7 +400,7 @@ async def handle_download_books_csv(update, context, action, params):
         # Delete the waiting message if it exists
         if processing_msg:
             await processing_msg.delete()
-        await query.message.reply_text("❌ Ошибка при создании CSV файла")
+        await query.message.reply_text(t("csv.error", context))
         structured_logger.log_error(
             error_type="csv_generation_failed",
             error_message=str(e),

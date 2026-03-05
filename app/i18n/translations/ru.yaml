@@ -67,9 +67,10 @@ search:
   results_expired_title: "🕒 <b>Результаты поиска устарели</b>\n\nПожалуйста, выполните новый поиск."
   page_error: "❌ Ошибка в номере страницы"
   page_change_error: "❌ Произошла ошибка при смене страницы"
-  series_error: "❌ Ошибка при загрузке серии"
-  author_error: "❌ Ошибка при загрузке автора"
-  
+  series_error: "❌ Ошибка при обработке серии: {error}"
+  author_error: "❌ Ошибка при обработке автора: {error}"
+  error_detail: "❌ Ошибка при поиске: {error}"
+
   pagination:
     home: "⬆ В начало"
     prev: "⬅️ Назад"
@@ -82,9 +83,8 @@ search:
 
   author_about: "👤 Об авторе"
 
-  results_title: "📚 Результаты поиска"
-  for_user: " для {user_name}"
-  error_detail: "❌ Ошибка при поиске: {error}"
+  results_title: "📚 Результаты поиска:\n\n"
+  results_title_for_user: "📚 Результаты поиска для {user_name}:\n\n"
 
 # Book display
 book:
@@ -158,8 +158,7 @@ donate:
   stars_1200: "Примерно полгода аренды текущего VPS"
   stars_1200_label: "1200 звёзд"
   error: "Произошла ошибка при создании платежа"
-  stars_sent: "Вы отправили {count} звёзд!"
-  vps_notice: "Все средства пойдут на аренду VPS! ❤️"
+  stars_sent: "Вы отправили {count} звёзд!\nВсе средства пойдут на аренду VPS! ❤️"
   vps_expiry: "💡 До конца аренды VPS: {days} дней ({date}). Поддержи бота! /donate."
   vps_appeal: " Все средства пойдут на оплату аренды VPS. Даже небольшой вклад поможет сохранить бота."
 

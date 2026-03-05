@@ -160,7 +160,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
 
     except Exception as e:
         # Обработка ошибок
-        await processing_msg.edit_text(f"❌ Ошибка при поиске: {str(e)}")
+        await processing_msg.edit_text(t("search.error_detail", context, error=str(e)))
 
 
 async def process_search_books(context: CallbackContext, books, found_books_count: int, processing_msg, query_text: str,
@@ -314,7 +314,7 @@ async def async_search_series(context: CallbackContext, query_text: str, process
 
     except Exception as e:
         # Обработка ошибок
-        await processing_msg.edit_text(f"❌ Ошибка при поиске: {str(e)}")
+        await processing_msg.edit_text(t("search.error_detail", context, error=str(e)))
 
 
 async def process_search_series(context: CallbackContext, series, found_series_count: int, processing_msg,
@@ -373,44 +373,9 @@ async def handle_search_series_books(update, context, action, params):
             async_search_books(context, query_text, query.message if query.message else query, user, series_id=series_id)
         )
 
-        # # Извлекаем настройки пользователя из контекста или БД
-        # user_params = get_user_params(context)
-        #
-        # # print(f"DEBUG: query_text = {query_text}")
-        #
-        # books = DB_BOOKS.search_books(
-        #     query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
-        #     search_area=user_params.SearchArea,
-        #     series_id=series_id  # Добавляем ограничение по выбранной серии
-        # )
-        # found_books_count = len(books)
-        #
-        # if books:
-        #     pages_of_books = [books[i:i + user_params.MaxBooks] for i in range(0, len(books), user_params.MaxBooks)]
-        #     set_books(context, pages_of_books, found_books_count)
-        #     set_last_activity(context, datetime.now())  # Сохраняем время поиска
-        #     # Извлекаем имя серии из данных первой книги
-        #     series_name = books[0].SeriesTitle
-        #     set_current_series_name(context, series_name)
-        #
-        #     page = 0
-        #     keyboard = create_books_keyboard(page, pages_of_books, SEARCH_TYPE_SERIES)
-        #
-        #     if keyboard:
-        #         reply_markup = InlineKeyboardMarkup(keyboard)
-        #
-        #         header_text = form_header_books(
-        #             page, user_params.MaxBooks, found_books_count, SEARCH_TYPE_BOOKS,
-        #             series_name=series_name,
-        #             search_area=user_params.SearchArea
-        #         )
-        #         await query.edit_message_text(header_text, reply_markup=reply_markup)
-        # else:
-        #     await query.edit_message_text(f"Не найдено книг в серии '{series_id}'")
-
     except (ValueError, IndexError) as e:
         print(f"Ошибка при обработке серии: {e}")
-        await query.edit_message_text(t('search.series_error', context))
+        await query.edit_message_text(t('search.series_error', context, str(e)))
 
 
 async def handle_search_authors(update: Update, context: CallbackContext):
@@ -484,7 +449,7 @@ async def async_search_authors(context: CallbackContext, query_text: str, proces
 
     except Exception as e:
         # Обработка ошибок
-        await processing_msg.edit_text(f"❌ Ошибка при поиске: {str(e)}")
+        await processing_msg.edit_text(t("search.error_detail", context, error=str(e)))
 
 
 async def process_search_authors(context: CallbackContext, authors, found_authors_count: int, processing_msg,
@@ -582,7 +547,7 @@ async def handle_search_author_books(update, context, action, params):
 
     except (ValueError, IndexError) as e:
         print(f"Ошибка при обработке автора: {e}")
-        await query.edit_message_text(t('search.author_error', context))
+        await query.edit_message_text(t('search.author_error', context, error=str(e)))
 
 
 async def handle_books_page_change(update, context, action, params):
