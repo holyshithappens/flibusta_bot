@@ -5,7 +5,7 @@ collation-server=utf8mb3_unicode_ci
 skip-character-set-client-handshake
 
 # InnoDB — основной движок
-innodb-buffer-pool-size=1400M
+innodb-buffer-pool-size=1200M
 innodb-log-file-size=128M
 innodb-flush-log-at-trx-commit=2
 innodb-file-per-table=ON          # можно оставить для совместимости, но не обязательно
