@@ -99,7 +99,7 @@ class SingletonLogger:
             'invoice_payload': payment.invoice_payload,
             'provider_payment_charge_id': payment.provider_payment_charge_id,
             'order_info': str(payment.order_info) if payment.order_info else None,
-            'shipping_address': str(payment.shipping_address) if payment.shipping_address else None,
+            'shipping_address': str(payment.order_info.shipping_address) if payment.order_info and payment.order_info.shipping_address else None,
             'user_language': user.language_code,
             'refundable': True
         }
