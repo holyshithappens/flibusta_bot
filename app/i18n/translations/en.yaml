@@ -155,7 +155,7 @@ donate:
   stars_1200_label: "1200 stars"
   error: "An error occurred while creating the payment"
   stars_sent: "You sent {count} stars!\nAll funds will go towards VPS rental! ❤️"
-  vps_expiry: "💡 VPS rental ends in: {days} days ({date}). Support the bot! /donate."
+  vps_expiry: "💡 VPS rental ends in: {days_left} days ({end_date_str}). Support the bot! /donate."
   vps_appeal: " All funds will go towards VPS rental costs. Even a small contribution will help keep the bot running."
 
 

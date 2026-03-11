@@ -57,7 +57,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
         if book_data:
             # Сообщение об истечении срока аренды vps
-            message = get_short_donation_notice()
+            message = get_short_donation_notice(context)
 
             await query.message.reply_document(
                 document=book_data,

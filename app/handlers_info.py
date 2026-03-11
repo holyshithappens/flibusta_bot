@@ -36,7 +36,7 @@ async def handle_book_info(update, context, action, params):
             return
 
         # Формируем сообщение с информацией о книге
-        message_text = format_book_info(book_info)
+        message_text = format_book_info(book_info, context)
 
         # print(f"DEBUG: book_info = {book_info}")
         # print(f"DEBUG: len = {len(message_text)} message_text = {message_text}")
@@ -102,7 +102,7 @@ async def handle_book_details(update, context, action, params):
             await query.message.reply_text(t('errors.not_found', context))
             return
 
-        message_text = format_book_details(book_details)
+        message_text = format_book_details(book_details, context)
 
         # Отправляем сообщение без кнопок сначала
         info_message = await query.message.reply_text(
@@ -144,7 +144,7 @@ async def handle_author_info(update, context: CallbackContext, action, params):
             return
 
         message_ids = []  # Храним ID всех сообщений
-        message_text = format_author_info(author_info)
+        message_text = format_author_info(author_info, context)
 
         # Сообщение 1: Фото без подписи (если есть)
         if author_info.get('photo_url'):
@@ -187,7 +187,7 @@ async def handle_book_reviews(update, context, action, params):
         #     return
 
         if reviews:
-            message_text = format_book_reviews(reviews)
+            message_text = format_book_reviews(reviews, context)
             info_message = await query.message.reply_text(
                 message_text,
                 parse_mode=ParseMode.HTML
