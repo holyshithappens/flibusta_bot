@@ -21,7 +21,7 @@ ALTER TABLE IF EXISTS libbpics CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_
 --ALTER TABLE libfilename CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
 --ALTER TABLE libjoinedbooks CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
 --ALTER TABLE libgenretranslate CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
---ALTER TABLE libtranslator CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
+ALTER TABLE libtranslator CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;
 
 SELECT 'All tables charset conversion completed' AS OperationStatus;
 -- SET FOREIGN_KEY_CHECKS=1;
