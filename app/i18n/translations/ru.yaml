@@ -34,7 +34,7 @@ settings:
 
 # Search
 search:
-  loading: "⏰ <i>Ищу книги, ожидайте...</i>"
+  loading: "⏰ <i>Ожидайте, загружаю информацию о книге...</i>"
   loading_series: "⏰ <i>Ищу серии, ожидайте...</i>"
   loading_authors: "⏰ <i>Ищу авторов, ожидайте...</i>"
   
@@ -106,6 +106,7 @@ book:
   pages: "📃 <b>Страниц:</b>"
   size: "📦 <b>Размер:</b>"
   rating: "⭐ <b>Рейтинг:</b>"
+  reviews: "💬 Отзывы"
   annotation_title: "📖 <b>Аннотация о книге:</b>"
   reviews_title: "💬 <b>Отзывы о книге:</b>"
   not_specified: "Не указаны"

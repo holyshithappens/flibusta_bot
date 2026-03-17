@@ -11,7 +11,7 @@ from telegram.ext import CallbackContext
 from .context import get_user_params
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
-from .i18n import t
+from .i18n import t, get_or_detect_locale
 from .tools import format_size, upload_to_tmpfiles,  get_short_donation_notice
 from .core.structured_logger import structured_logger
 from .flibusta_client import flibusta_client, FlibustaClient
@@ -41,7 +41,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
     try:
         processing_msg = await query.message.reply_text(
-            t("download.waiting_for_user",context,user_name=for_user.first_name) if for_user else t("download.waiting"),
+            t("download.waiting_for_user",context,user_name=for_user.first_name) if for_user else t("download.waiting", context),
             parse_mode=ParseMode.HTML,
             disable_notification=True
         )

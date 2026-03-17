@@ -64,7 +64,7 @@ async def handle_book_info(update, context, action, params):
             [InlineKeyboardButton(t('book.download', context), callback_data=f"send_file:{file_name}")],
             [InlineKeyboardButton(t('book.info', context), callback_data=f"book_details:{book_id}"),
             InlineKeyboardButton(t('book.author', context), callback_data=f"author_info:{author_ids[0]}")],
-            [InlineKeyboardButton(t('book.rating', context), callback_data=f"book_reviews:{book_id}"),
+            [InlineKeyboardButton(t('book.reviews', context), callback_data=f"book_reviews:{book_id}"),
             InlineKeyboardButton(t('common.close', context), callback_data=f"close_info:{info_message.message_id}")],
         ]
 
@@ -194,7 +194,7 @@ async def handle_book_reviews(update, context, action, params):
             )
         else:
             info_message = await query.message.reply_text(
-                t('book.rating', context),
+                t('book.reviews', context),
                 parse_mode=ParseMode.HTML
             )
 
