@@ -46,10 +46,10 @@ async def start_cmd(update: Update, context: CallbackContext):
 async def genres_cmd(update: Update, context: CallbackContext):
     """Показывает родительские жанры"""
     # Initialize locale (auto-detect if needed)
-    get_or_detect_locale(update, context)
+    locale = get_or_detect_locale(update, context)
     
     try:
-        results = DB_BOOKS.get_parent_genres_with_counts()
+        results = DB_BOOKS.get_parent_genres_count(locale)
 
         # print(f"DEBUG: genres_cmd results = {results}")
         # print(f"DEBUG: Number of results = {len(results)}")

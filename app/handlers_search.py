@@ -114,7 +114,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                 None,  # Используем стандартный ThreadPoolExecutor
                 lambda: DB_BOOKS.search_pop_books(
                     user_params.Lang, user_params.BookSize, user_params.Rating,
-                    days
+                    days,
+                    locale=user_params.Locale or 'ru'
                 )
             )
         else:
@@ -124,7 +125,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                     query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
                     search_area=user_params.SearchArea,
                     series_id=series_id,
-                    author_id=author_id
+                    author_id=author_id,
+                    locale=user_params.Locale or 'ru'
                 )
             )
         found_books_count = len(books)
@@ -279,12 +281,13 @@ async def async_search_series(context: CallbackContext, query_text: str, process
         # Извлекаем настройки пользователя из контекста или БД
         user_params = get_user_params(context)
 
-        # Ищем серии
+         # Ищем серии
         series = await asyncio.get_event_loop().run_in_executor(
             None,  # Используем стандартный ThreadPoolExecutor
             lambda: DB_BOOKS.search_series(
                 query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
-                search_area=user_params.SearchArea
+                search_area=user_params.SearchArea,
+                locale=user_params.Locale or 'ru'
             )
         )
         found_series_count = len(series)
@@ -419,7 +422,8 @@ async def async_search_authors(context: CallbackContext, query_text: str, proces
             None,  # Используем стандартный ThreadPoolExecutor
             lambda: DB_BOOKS.search_authors(
                 query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
-                search_area=user_params.SearchArea
+                search_area=user_params.SearchArea,
+                locale=user_params.Locale or 'ru'
             )
         )
         found_authors_count = len(authors)

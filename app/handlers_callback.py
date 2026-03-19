@@ -27,7 +27,7 @@ from .tools import form_header_books
 from .health import log_stats
 from .core.structured_logger import structured_logger
 from .core.logging_schema import EventType
-from .i18n import t
+from .i18n import t, get_or_detect_locale
 
 # ===== CALLBACK ОБРАБОТЧИКИ =====
 async def button_callback(update: Update, context: CallbackContext):
@@ -148,14 +148,17 @@ async def handle_show_genres(update, context, action, params):
     """Показывает жанры выбранной категории"""
     query = update.callback_query
     try:
+        # Initialize locale (auto-detect if needed)
+        locale = get_or_detect_locale(update, context)
+        
         genre_index = int(params[0])  # Получаем genre index
 
-        # Получаем полный список жанров
-        results = DB_BOOKS.get_parent_genres_with_counts()
+        # Получаем полный список жанров с учётом локали
+        results = DB_BOOKS.get_parent_genres_count(locale)
 
         parent_genre = results[genre_index][0]  # Получаем название по индексу
         # print(f"DEBUG: {genre_id}")
-        genres = DB_BOOKS.get_genres_with_counts(parent_genre)
+        genres = DB_BOOKS.get_genres_with_counts(parent_genre, locale)
         # print(f"DEBUG: {genres}")
 
         if genres:

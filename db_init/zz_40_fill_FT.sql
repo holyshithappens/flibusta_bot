@@ -23,6 +23,7 @@ SELECT
         GROUP_CONCAT(DISTINCT CONCAT_WS(' ', an.LastName, an.FirstName, an.MiddleName)),
         GROUP_CONCAT(DISTINCT sn.SeqName),
         GROUP_CONCAT(DISTINCT gl.GenreDesc),
+        GROUP_CONCAT(DISTINCT gle.GenreDesc),
         REPLACE(b.Keywords, ',', ' ')
     ) as FT
 FROM libbook b
@@ -32,6 +33,7 @@ LEFT JOIN libseq s ON s.BookID = b.BookID
 LEFT JOIN libseqname sn ON s.SeqID = sn.SeqID
 LEFT JOIN libgenre g ON g.BookID = b.BookID
 LEFT JOIN libgenrelist gl ON g.GenreID = gl.GenreID
+LEFT JOIN cb_libgenrelist_en gle ON g.GenreID = gle.GenreID
 WHERE b.Deleted = '0'
 GROUP BY b.BookID -- , b.Title, b.Lang, b.Year
 ON DUPLICATE KEY UPDATE FT = VALUES(FT);

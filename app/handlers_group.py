@@ -89,7 +89,8 @@ async def handle_group_search(update: Update, context: CallbackContext):
         # Выполняем поиск книг
         books = DB_BOOKS.search_books(
             clean_query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
-            search_area=user_params.SearchArea
+            search_area=user_params.SearchArea,
+            locale=user_params.Locale or 'ru'
         )
         found_books_count = len(books)
 

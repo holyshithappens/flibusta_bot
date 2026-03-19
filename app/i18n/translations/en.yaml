@@ -34,7 +34,8 @@ settings:
 
 # Search
 search:
-  loading: "⏰ <i>Please wait, loading book information...</i>"
+  loading: "⏰ <i>Searching for books, please wait...</i>"
+  loading_book_info: "⏰ <i>Please wait, loading book information...</i>"
   loading_series: "⏰ <i>Searching for series, please wait...</i>"
   loading_authors: "⏰ <i>Searching for authors, please wait...</i>"
 

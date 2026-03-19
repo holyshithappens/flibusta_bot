@@ -23,13 +23,14 @@ async def handle_book_info(update, context, action, params):
         get_or_detect_locale(update, context)
 
         processing_msg = await query.message.reply_text(
-            t('search.loading', context),
+            t('search.loading_book_info', context),
             parse_mode=ParseMode.HTML,
             disable_notification=True
         )
 
         # Получаем информацию о книге из БД
-        book_info = await DB_BOOKS.get_book_info(book_id)
+        locale = get_or_detect_locale(update, context)
+        book_info = await DB_BOOKS.get_book_info(book_id, locale)
 
         if not book_info:
             await query.answer(t('errors.not_found', context))

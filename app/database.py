@@ -44,13 +44,16 @@ BASE_FIELDS = """
 """
 
 # Базовые JOIN (БЕЗ FROM)
-BASE_JOINS = """
+def get_base_joins(locale: str = 'ru') -> str:
+    """Return base JOINs with locale-aware genre table"""
+    genre_table = _get_genre_table(locale)
+    return f"""
 -- LEFT JOIN (select bookid, min(avtorid) as avtorid from cb_libavtor group by bookid) a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtorname an ON an.AvtorID = a.AvtorID
 LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre group by bookid) g ON g.BookID = b.BookID
 -- LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
-LEFT JOIN cb_libgenrelist gl ON gl.GenreID = g.GenreID
+LEFT JOIN {genre_table} gl ON gl.GenreID = g.GenreID
 -- LEFT JOIN (select bookid, min(SeqID) as SeqID from cb_libseq group by bookid) s ON s.BookID = b.BookID
 LEFT JOIN cb_libseq s ON s.BookID = b.BookID
 LEFT JOIN cb_libseqname sn on sn.SeqID = s.SeqID
@@ -62,35 +65,35 @@ LEFT JOIN (
 """
 
 # Основной полнотекстовый поиск
-SQL_QUERY_BOOKS = f"""
+SQL_QUERY_BOOKS = lambda locale: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
     MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE) as Relevance
 FROM cb_libbook_fts fts
 JOIN cb_libbook b ON b.BookID = fts.BookID
-{BASE_JOINS}
+{get_base_joins(locale)}
 WHERE b.Deleted = '0'
   AND MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)
 ) as subq 
 """
 
 # Поиск по аннотациям книг
-SQL_QUERY_ABOOKS = f"""
+SQL_QUERY_ABOOKS = lambda locale: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
     MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE) as Relevance
 FROM cb_libbannotations ba
 JOIN cb_libbook b ON b.BookID = ba.BookID
-{BASE_JOINS}
+{get_base_joins(locale)}
 WHERE b.Deleted = '0'
   AND MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)
 ) as subq2
 """
 
 # Поиск по аннотациям книг
-SQL_QUERY_AAUTHORS = f"""
+SQL_QUERY_AAUTHORS = lambda locale: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
@@ -98,7 +101,7 @@ SELECT
 FROM cb_libaannotations aa
 JOIN cb_libavtor ab ON ab.AvtorId = aa.AvtorId
 JOIN cb_libbook b ON b.BookID = ab.BookID
-{BASE_JOINS}
+{get_base_joins(locale)}
 WHERE b.Deleted = '0'
   AND MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE)
 ) as subq2
@@ -110,23 +113,28 @@ SELECT_SQL_QUERY = {
     SETTING_SEARCH_AREA_AA: SQL_QUERY_AAUTHORS
 }
 
-SQL_QUERY_PARENT_GENRES_COUNT = """
-	select coalesce(gl.GenreMeta,'Неотсортированное'), count(b.BookId)
+def _get_genre_table(locale: str) -> str:
+    """Return correct genre table based on user's locale"""
+    return 'cb_libgenrelist_en' if locale == 'en' else 'cb_libgenrelist'
+
+
+SQL_QUERY_PARENT_GENRES_COUNT = lambda locale: f"""
+	select coalesce(gl.GenreMeta,'{'Unsorted' if locale == 'en' else 'Неотсортированное'}'), count(b.BookId)
       from cb_libbook b
-        left outer join cb_libgenre g on g.BookId = b.BookId 
-        left outer join cb_libgenrelist gl on gl.GenreId = g.GenreId 
+        left outer join cb_libgenre g on g.BookId = b.BookId
+        left outer join {_get_genre_table(locale)} gl on gl.GenreId = g.GenreId
     where b.Deleted = '0'
       -- AND (#s = '' OR b.Lang = #s)
-    group by coalesce(gl.GenreMeta, 'Неотсортированное')
+    group by coalesce(gl.GenreMeta, '{'Unsorted' if locale == 'en' else 'Неотсортированное'}')
     order by 1
 """
 
-SQL_QUERY_CHILDREN_GENRES_COUNT = """
+SQL_QUERY_CHILDREN_GENRES_COUNT = lambda locale: f"""
 	select gl.GenreDesc, count(g.BookId), 
 	  gl.GenreId
       from cb_libbook b
 	    left outer join cb_libgenre g on g.BookId = b.BookId 
-        left outer join cb_libgenrelist gl on gl.GenreId = g.GenreId 
+        left outer join {_get_genre_table(locale)} gl on gl.GenreId = g.GenreId 
     Where 
       b.Deleted = '0'
       and gl.GenreMeta = %s
@@ -889,19 +897,29 @@ class DatabaseBooks():
         if DatabaseBooks._class_cached_parent_genres is None:
             with self.connect() as conn:
                 cursor = conn.cursor(buffered=True)
-                cursor.execute(SQL_QUERY_PARENT_GENRES_COUNT)
+                cursor.execute(SQL_QUERY_PARENT_GENRES_COUNT('ru'))
                 DatabaseBooks._class_cached_parent_genres = cursor.fetchall()
         return DatabaseBooks._class_cached_parent_genres
 
 
-    def get_genres_with_counts(self, parent_genre):
-        if parent_genre not in DatabaseBooks._class_cached_genres:
+    def get_parent_genres_count(self, locale: str = 'ru'):
+        """Получает родительские жанры с учётом локали"""
+        query = SQL_QUERY_PARENT_GENRES_COUNT(locale)
+        with self.connect() as conn:
+            cursor = conn.cursor(buffered=True)
+            cursor.execute(query)
+            return cursor.fetchall()
+
+
+    def get_genres_with_counts(self, parent_genre, locale: str = 'ru'):
+        cache_key = (parent_genre, locale)
+        if cache_key not in DatabaseBooks._class_cached_genres:
             with self.connect() as conn:
                 cursor = conn.cursor(buffered=True)
-                cursor.execute(SQL_QUERY_CHILDREN_GENRES_COUNT, (parent_genre,))
+                cursor.execute(SQL_QUERY_CHILDREN_GENRES_COUNT(locale), (parent_genre,))
                 results = cursor.fetchall()
-                DatabaseBooks._class_cached_genres[parent_genre] = results #[(genre[0].strip(), genre[1]) for genre in results if genre[0].strip()]
-        return DatabaseBooks._class_cached_genres[parent_genre]
+                DatabaseBooks._class_cached_genres[cache_key] = results
+        return DatabaseBooks._class_cached_genres[cache_key]
 
 
     def get_langs(self):
@@ -914,11 +932,11 @@ class DatabaseBooks():
         return DatabaseBooks._class_cached_langs
 
 
-    def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0):
+    def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
         """Ищем книги по запросу пользователя"""
         sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id)
         # Строим запросы для поиска книг и подсчёта количества найденных книг
-        sql_query = self.build_sql_query_books(sql_where, 'desc', search_area)
+        sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
@@ -937,11 +955,12 @@ class DatabaseBooks():
         return books
 
 
-    async def get_book_info(self, book_id):
+    async def get_book_info(self, book_id, locale: str = 'ru'):
         """Получает основную информацию о книге"""
+        genre_table = _get_genre_table(locale)
         with self.connect() as conn:
             cursor = conn.cursor(buffered=True)
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT b.Title, b.Year, sn.SeqName,
                        GROUP_CONCAT(DISTINCT CONCAT(gl.GenreID, ',', gl.GenreDesc) SEPARATOR ',') as Genres,
                        GROUP_CONCAT(DISTINCT CONCAT(an.AvtorID, ',', an.LastName, ' ', an.FirstName, ' ', an.MiddleName) SEPARATOR ',') as Authors,
@@ -953,7 +972,7 @@ class DatabaseBooks():
                 LEFT JOIN cb_libseq s ON s.BookID = b.BookID
                 LEFT JOIN cb_libseqname sn ON s.SeqID = sn.SeqID
                 LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
-                LEFT JOIN cb_libgenrelist gl ON g.GenreID = gl.GenreID
+                LEFT JOIN {genre_table} gl ON g.GenreID = gl.GenreID
                 LEFT JOIN cb_libbpics bp ON b.BookID = bp.BookID
                 left outer join ( 
                     select 
@@ -1023,7 +1042,7 @@ class DatabaseBooks():
         LIMIT {MAX_SERIES_SEARCH}
         """
 
-    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0):
+    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
         """Ищет серии по запросу"""
         sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
 
@@ -1032,7 +1051,7 @@ class DatabaseBooks():
         params.extend([query] * 2)
 
         # запрос для поиска серий
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
         sql_query = self.build_sql_query_series(sql_query_nested, sql_where)
 
         # #DEBUG
@@ -1131,7 +1150,7 @@ class DatabaseBooks():
         LIMIT {MAX_AUTHORS_SEARCH}
         """
 
-    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0):
+    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
         """Ищет авторов по запросу"""
         sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
 
@@ -1140,7 +1159,7 @@ class DatabaseBooks():
         params.extend([query] * 2)
 
         # Модифицируем запрос для поиска авторов
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
         sql_query = self.build_sql_query_authors(sql_query_nested, sql_where)
 
         # print(f"[DEBUG] search_authors, sql_query={sql_query}")
@@ -1152,7 +1171,7 @@ class DatabaseBooks():
 
         return authors
 
-    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back:int=0):
+    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back:int=0, locale: str = 'ru'):
         """Поиск популярных книг за период"""
         # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
 
@@ -1174,7 +1193,7 @@ class DatabaseBooks():
             , b.relevance
             , ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn 
         FROM ( {sql_query_nested} ) b
-        {BASE_JOINS} ) subq
+        {get_base_joins(locale)} ) subq
         {sql_where} 
         and rn = 1
         ORDER BY relevance DESC
@@ -1191,66 +1210,66 @@ class DatabaseBooks():
         return books
 
 
-    def search_pop_series(self, lang, size_limit, rating_filter=None, days_back:int=0):
-        """Поиск популярных книг по сериям за период"""
-        # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
-
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
-        if days_back == 0:
-            # Поиск новинок
-            sql_query_nested = DatabaseBooks.build_sql_query_nov(self)
-        else:
-            # Поиск популярных
-            filter_recent = 1 if days_back < 999 else 0
-            current_date = self.lib_last_update
-            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, days_back)
-
-        sql_query_nested2 = f"""
-        SELECT {BASE_FIELDS}
-            , b.relevance
-        FROM ( {sql_query_nested} ) b
-        {BASE_JOINS} 
-        """
-
-        sql_query = self.build_sql_query_series(sql_query_nested2, sql_where)
-
-        with self.connect() as conn:
-            cursor = conn.cursor(buffered=True)
-            cursor.execute(sql_query)
-            series = cursor.fetchall()
-
-        return series
-
-
-    def search_pop_authors(self, lang, size_limit, rating_filter=None, days_back:int=0):
-        """Поиск популярных книг по авторам за период"""
-        # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
-
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
-        if days_back == 0:
-            # Поиск новинок
-            sql_query_nested = DatabaseBooks.build_sql_query_nov(self)
-        else:
-            # Поиск популярных
-            filter_recent = 1 if days_back < 999 else 0
-            current_date = self.lib_last_update
-            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, days_back)
-
-        sql_query_nested2 = f"""
-        SELECT {BASE_FIELDS}
-            , b.relevance
-        FROM ( {sql_query_nested} ) b
-        {BASE_JOINS}
-        """
-
-        sql_query = self.build_sql_query_authors(sql_query_nested2, sql_where)
-
-        with self.connect() as conn:
-            cursor = conn.cursor(buffered=True)
-            cursor.execute(sql_query)
-            authors = cursor.fetchall()
-
-        return authors
+    # def search_pop_series(self, lang, size_limit, rating_filter=None, days_back:int=0, locale: str = 'ru'):
+    #     """Поиск популярных книг по сериям за период"""
+    #     # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
+    #
+    #     sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+    #     if days_back == 0:
+    #         # Поиск новинок
+    #         sql_query_nested = DatabaseBooks.build_sql_query_nov(self)
+    #     else:
+    #         # Поиск популярных
+    #         filter_recent = 1 if days_back < 999 else 0
+    #         current_date = self.lib_last_update
+    #         sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, days_back)
+    #
+    #     sql_query_nested2 = f"""
+    #     SELECT {BASE_FIELDS}
+    #         , b.relevance
+    #     FROM ( {sql_query_nested} ) b
+    #     {get_base_joins(locale)}
+    #     """
+    #
+    #     sql_query = self.build_sql_query_series(sql_query_nested2, sql_where)
+    #
+    #     with self.connect() as conn:
+    #         cursor = conn.cursor(buffered=True)
+    #         cursor.execute(sql_query)
+    #         series = cursor.fetchall()
+    #
+    #     return series
+    #
+    #
+    # def search_pop_authors(self, lang, size_limit, rating_filter=None, days_back:int=0, locale: str = 'ru'):
+    #     """Поиск популярных книг по авторам за период"""
+    #     # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
+    #
+    #     sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+    #     if days_back == 0:
+    #         # Поиск новинок
+    #         sql_query_nested = DatabaseBooks.build_sql_query_nov(self)
+    #     else:
+    #         # Поиск популярных
+    #         filter_recent = 1 if days_back < 999 else 0
+    #         current_date = self.lib_last_update
+    #         sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, days_back)
+    #
+    #     sql_query_nested2 = f"""
+    #     SELECT {BASE_FIELDS}
+    #         , b.relevance
+    #     FROM ( {sql_query_nested} ) b
+    #     {get_base_joins(locale)}
+    #     """
+    #
+    #     sql_query = self.build_sql_query_authors(sql_query_nested2, sql_where)
+    #
+    #     with self.connect() as conn:
+    #         cursor = conn.cursor(buffered=True)
+    #         cursor.execute(sql_query)
+    #         authors = cursor.fetchall()
+    #
+    #     return authors
 
 
     @staticmethod
@@ -1391,7 +1410,7 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_query_books(sql_where, sort_order='desc', search_area=SETTING_SEARCH_AREA_B):
+    def build_sql_query_books(sql_where, sort_order='desc', search_area=SETTING_SEARCH_AREA_B, locale: str = 'ru'):
         fields = Book._fields
 
         # Всегда используем sum для Relevance
@@ -1402,7 +1421,7 @@ class DatabaseBooks():
 
         select_fields = ', '.join(processed_fields)
 
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
         from_clause = f"FROM ( {sql_query_nested} {sql_where} ) as subquery"
 
         sql_query = f"""

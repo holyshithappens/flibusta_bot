@@ -67,13 +67,13 @@ copy_sql_files() {
     # Копируем SQL файлы если они существуют
     scp db_init/manage_flibusta_db.sh $VPS_USER@$VPS_IP:$VPS_PATH/db_init/manage_flibusta_db.sh
     scp db_init/zz_*.sql $VPS_USER@$VPS_IP:$VPS_PATH/db_init/
-#    if ls db_init/sql/*.sql.gz 1> /dev/null 2>&1; then
-#        echo "📦 Copying SQL.gz files to VPS..."
-##        scp db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql/
-#        rsync -avz --progress --partial db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql
-#    else
-#        echo "⚠️  No SQL.gz files found in db_init/sql/"
-#    fi
+    if ls db_init/sql/*.sql.gz 1> /dev/null 2>&1; then
+        echo "📦 Copying SQL.gz files to VPS..."
+#        scp db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql/
+        rsync -avz --progress --partial db_init/sql/*.sql.gz $VPS_USER@$VPS_IP:$VPS_PATH/db_init/sql
+    else
+        echo "⚠️  No SQL.gz files found in db_init/sql/"
+    fi
 
     echo "✅ SQL files setup completed"
 }

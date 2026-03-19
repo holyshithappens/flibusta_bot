@@ -179,7 +179,8 @@ async def edit_or_reply_message(query, text, reply_markup=None):
 
 def get_rating_emoji(rating):
     """Возвращает эмодзи для рейтинга"""
-    return BOOK_RATINGS.get(rating, ("⚪️", ""))[0]
+    # Convert rating to string to match BOOK_RATINGS dictionary keys
+    return BOOK_RATINGS.get(str(rating), ("⚪️", ""))[0]
 
 
 def create_back_button(context) -> list:

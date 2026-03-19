@@ -56,17 +56,6 @@ async def error_handler(update: Update, context: CallbackContext):
 async def set_commands(application: Application):
     """Устанавливает меню команд"""
     for locale in ['ru','en']:
-        # commands = [
-        #     BotCommand("start", "Запустить бота"),
-        #     BotCommand("news", "Новости и обновления"),
-        #     BotCommand("about", "Инфа о боте и библиотеке"),
-        #     BotCommand("help", "Помощь по запросам"),
-        #     BotCommand("genres", "Список жанров"),
-        #     BotCommand("pop", "Популярные и новинки"),
-        #     # BotCommand("langs", "Доступные языки"),
-        #     BotCommand("set", "Настройки поиска"),
-        #     BotCommand("donate", "Поддержать разработчика")
-        # ]
         commands = [
             BotCommand(cmd, t(f"commands.{cmd}", locale=locale))
             for cmd in ['start','news','about','help','genres','pop','set','donate']
