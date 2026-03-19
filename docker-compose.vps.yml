@@ -26,7 +26,7 @@ services:
       resources:
         limits:
           # Ставим лимит чуть выше настройки буфера + оверхед (~700-800M)
-          memory: 1.5G
+          memory: 1.0G
           cpus: '1.5'
     volumes:
       - mariadb_data:/var/lib/mysql  # Тот же volume
