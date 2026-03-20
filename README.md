@@ -55,7 +55,17 @@ flibusta_bot/
 ├── db_init/
 │   ├── manage_flibusta_db.sh   # Database management script
 │   ├── README_CB_MIGRATION.md  # Migration documentation
-│   └── *.sql                   # Migration & initialization scripts
+│   ├── zz_00_rollback_cb_tables.sql
+│   ├── zz_01_cleanup_old_tables.sql
+│   ├── zz_10_convert_charset.sql
+│   ├── zz_20_create_indexes.sql
+│   ├── zz_30_create_FT_indexes.sql
+│   ├── zz_40_fill_FT.sql
+│   ├── zz_50_repair_FT.sql
+│   ├── zz_59_migrate_cb_tables_to_old.sql
+│   ├── zz_60_migrate_to_cb_tables.sql
+│   ├── zz_65_copy_lib_to_cb_tables.sql
+│   └── scripts/                # Database management scripts
 ├── config/
 │   ├── my.cnf                  # Local MySQL config
 │   └── my.cnf.vps              # VPS MySQL config
@@ -68,6 +78,7 @@ flibusta_bot/
 ├── docker-compose.vps.yml      # Docker composition (VPS)
 ├── Dockerfile                  # Container definition
 ├── requirements.txt            # Python dependencies
+├── requirements-dev.txt        # Development dependencies
 ├── pyproject.toml             # Tool configurations (mypy, black, isort)
 ├── CHANGELOG.md               # Version history
 ├── flibusta_bot_spec.md       # Detailed specification (1226 lines)
@@ -151,11 +162,19 @@ flibusta_bot/
 ## 🗄️ Database Schema
 
 ### MariaDB (Flibusta)
-- **cb_books** - Book metadata
-- **cb_authors** - Author information
-- **cb_genres** - Genre classification
-- **cb_series** - Book series
-- Full-text indexes on title, author, annotations
+- **cb_libbook** - Book metadata
+- **cb_libavtor** - Author-book relationships
+- **cb_libavtorname** - Author information
+- **cb_libgenre** - Book-genre relationships
+- **cb_libgenrelist** - Genre classification
+- **cb_libseq** - Book-series relationships
+- **cb_libseqname** - Series information
+- **cb_librate** - Book ratings
+- **cb_librecs** - Recommendations
+- **cb_libreviews** - Reviews
+- **cb_libbannotations** - Book annotations
+- **cb_libaannotations** - Author annotations
+- **cb_libbook_fts** - Full-text search index
 
 ### SQLite
 - **User sessions** - active user tracking
@@ -183,11 +202,23 @@ flibusta_bot/
 2. **Edit environment variables** in `.env`:
    ```env
    BOT_TOKEN=your_bot_token_here
+   TZ=Europe/Moscow
+   BOT_USERNAME=your_bot_username
    DB_HOST=localhost
+   DB_PORT=3306
+   DB_NAME=flibusta
    DB_USER=flibusta
    DB_PASSWORD=flibusta
-   DB_NAME=flibusta
-   DB_ROOT_PASSWORD=rootpassword
+   FEEDBACK_EMAIL=your_email@example.com
+   ADMIN_PASSWORD=your_admin_password
+   # Crypto donation addresses
+   DONATE_SOL=your_sol_address
+   DONATE_BTC=your_btc_address
+   DONATE_ETH=your_eth_address
+   DONATE_POL=your_pol_address
+   DONATE_SUI=your_sui_address
+   DONATE_TON=your_ton_address
+   DONATE_TRX=your_trx_address
    ```
 
 3. **Install dependencies**:
@@ -227,7 +258,7 @@ docker-compose down
 - **Network** - internal communication between services
 
 ### docker-compose.vps.yml (Production)
-- **Resource constraints** - optimized for 1 GB RAM VPS
+- **Resource constraints** - optimized for 2 GB RAM / 2 CPU VPS
 - **Restart policies** - `unless-stopped` for reliability
 - **Health checks** - automatic container restart on failure
 - **Volume mounts** - external configs and data directories
@@ -236,18 +267,18 @@ docker-compose down
 ### Resource Limits
 ```yaml
 MariaDB:
-  Memory: 768M
-  CPU: 0.9 cores
+  Memory: 1.0G
+  CPU: 1.5 cores
   
 Bot:
   Memory: 256M
-  CPU: 0.9 cores
+  CPU: 0.8 cores
 ```
 
 ## 📦 Production Deployment
 
 ### Prerequisites for VPS
-- VPS with 1 GB RAM, 1 CPU
+- VPS with 2 GB RAM, 2 CPU
 - SSH access to VPS
 - Docker & Docker Compose installed on VPS
 - Docker Hub account (for image pushing)
@@ -376,13 +407,15 @@ cd ~/flbst-bot-mdb/db_init
 ### Database Manager Menu
 
 ```
-1) Download SQL files from Flibusta
-2) Load lib*.sql into database
-3) Apply preparation scripts (indexes, full-text search)
-4) Activate cb_lib* tables (rename from lib* → cb_lib*)
-5) Rollback to cb_lib_old* tables
-6) Delete old cb_lib_old* tables
-0) Exit
+🔧 Flibusta DB Manager
+1) Скачать SQL-файлы (в sql/)
+2) Загрузить lib*.sql в БД (staging)
+3) Применить скрипты подготовки (zz_10 → zz_50)
+4) Переименовать lib* → cb_lib* (активация)
+5) Откат: cb_lib*_old → cb_lib*
+6) Удалить старые cb_lib*_old
+7) Удалить все .sql.gz в sql/
+0) Выйти
 ```
 
 ### Database Initialization Workflow
@@ -421,22 +454,6 @@ Option 5: Rollback to cb_lib_old*
 - Restores previous tables
 - No data loss
 ```
-
-### Database Tables
-
-The `cb_` prefixed tables include:
-- `cb_books` - Book metadata
-- `cb_authors` - Author information
-- `cb_avtorname` - Author translations
-- `cb_genres` - Genre classifications
-- `cb_genrelist` - Genre lists
-- `cb_series` - Book series
-- `cb_seqname` - Series translations
-- `cb_rate` - Book ratings
-- `cb_filename` - File information
-- `cb_translator` - Translator info
-- `cb_annotations` - Annotations (books & authors)
-- Additional tables for recommendations and reviews
 
 ### SQL Migration Files
 
