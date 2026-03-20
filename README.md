@@ -11,8 +11,8 @@ A comprehensive Telegram bot for searching and downloading books from the Flibus
 - **Primary Database**: MariaDB 12.0 (Flibusta native database)
 - **Secondary Database**: SQLite (user logs and settings)
 - **Deployment**: Docker + docker-compose
-- **Hosting**: VPS (1 CPU / 1 GB RAM)
-- **Latest Version**: 1.1.0
+- **Hosting**: VPS (2 CPU / 2 GB RAM)
+- **Latest Version**: 1.1.9
 
 ## 🛠️ Tech Stack
 
@@ -488,187 +488,21 @@ INSERT INTO cb_libbook SELECT * FROM libbook;
 | Risk aversion | zz_65 (COPY) - easy rollback |
 | Disk space tight | zz_60 (RENAME) - uses less space |
 
-## 📊 Recent Changes (v1.1.0)
+## 📊 Recent Changes (v1.1.9)
 
 ### Changed
 - Migration to `cb_` prefix for Flibusta tables
 - Safe database update strategy with rollback support
+- Show current bot version in admin panel
 
 ### Added
 - SQL migration scripts with version control
 - Database update documentation
 - Rollback procedures
 
-### Fixed (v1.0.0)
-- Book downloads across all languages
-- Group chat stability
-
-## 📈 Development Status
-
-### Current Focus
-- Full function type hints implementation
-- Refactoring to class-based architecture
-- SQL query optimization
-
-### Known Limitations
-- 1 GB RAM resource constraint
-- Language filtering in progress
-
-## 📝 Important Files
-
-- **`flibusta_bot_spec.md`** (1226 lines) - Complete system specification
-- **`refactoring_plan.md`** (50KB) - Refactoring roadmap and guidelines
-- **`CHANGELOG.md`** - Version history and migration notes
-- **`README_CB_MIGRATION.md`** - Database migration documentation
-
-## 🔧 Configuration Files
-
-- **`pyproject.toml`** - Tool configurations (mypy, black, isort)
-- **`docker-compose.yml`** - Local development stack
-- **`docker-compose.vps.yml`** - VPS production stack
-- **`.env.example`** - Environment variables template
-
-## 🐛 Error Handling
-
-The bot includes comprehensive error handling for:
-- Blocked users (Forbidden errors)
-- Expired callback queries
-- Network timeouts
-- Invalid requests
-- General exceptions
-
-See `main.py:25-45` for error handler implementation.
-
-## 📞 Key Module Responsibilities
-
-| Module | Purpose |
-|--------|---------|
-| `main.py` | Bot initialization, handler registration, error handling |
-| `handlers_search.py` | Core search functionality and pagination |
-| `database.py` | MariaDB/SQLite abstraction and queries |
-| `admin.py` | Admin panel and privileged operations |
-| `flibusta_client.py` | External Flibusta API integration |
-| `context.py` | User session state management |
-| `handlers_payments.py` | Telegram Stars payment processing |
-
-## 🔐 Security Notes
-
-- **Environment variables** - Bot token and credentials in `.env` only (never committed)
-- **Admin password protection** - Secure access to admin panel
-- **User data isolation** - SQLite user data kept separate from Flibusta database
-- **Prepared statements** - MySQL connector prevents SQL injection
-- **No secrets in code** - All sensitive data externalized
-- **VPS configuration** - SSH key-based authentication recommended
-
-## 📋 Deployment Checklist
-
-### Pre-Deployment
-- [ ] Telegram Bot Token obtained from @BotFather
-- [ ] VPS credentials (IP, username)
-- [ ] Docker Hub account created (for image storage)
-- [ ] Docker Hub PAT generated
-- [ ] `.env` file configured with all required variables
-- [ ] SSH keys configured for VPS access
-
-### Deployment
-- [ ] Run `./deploy.sh` for full deployment or appropriate option
-- [ ] Monitor deployment script output
-- [ ] Verify containers are running: `docker-compose ps`
-- [ ] Check logs for errors: `docker-compose logs -f`
-- [ ] Test bot with `/start` command
-
-### Post-Deployment
-- [ ] Database initialization via `manage_flibusta_db.sh` (if needed)
-- [ ] Test search functionality
-- [ ] Verify admin panel access
-- [ ] Check resource usage: `docker stats`
-- [ ] Review logs for any warnings
-
-## 📞 Common Deployment Issues
-
-### Issue: "Bot was blocked by the user"
-**Solution**: This is normal - users are blocking the bot. Check logs to see activity.
-
-### Issue: "Query is too old"
-**Solution**: Old callback buttons expire. This is handled gracefully in error handler.
-
-### Issue: Database connection fails
-**Solution**: Ensure MariaDB container is healthy - check `docker-compose logs db`
-
-### Issue: Out of memory
-**Solution**: 1 GB VPS is tight. Monitor with `docker stats`. Consider:
-- Increasing VPS resources
-- Optimizing queries in `database.py`
-- Reducing cache retention in `context.py`
-
-### Issue: Slow searches
-**Solution**: 
-- Verify full-text indexes created (Option 3 in manage_flibusta_db.sh)
-- Check MariaDB logs for query warnings
-- Consider running OPTIMIZE on tables
-
-## 🔄 Typical Maintenance Tasks
-
-### Update Bot Code
-```bash
-./deploy.sh -u
-```
-Pull latest image and restart containers.
-
-### Update News
-```bash
-./deploy.sh -n
-```
-Deploy updated bot news without full rebuild.
-
-### Update Database
-```bash
-./deploy.sh -s
-```
-Copy latest SQL scripts, then SSH to VPS:
-```bash
-cd ~/flbst-bot-mdb/db_init
-./manage_flibusta_db.sh
-```
-
-### Monitor Resources
-```bash
-ssh username@vps_ip
-cd ~/flbst-bot-mdb
-docker stats
-```
-
-### View Logs
-```bash
-docker-compose logs -f bot
-docker-compose logs -f db --tail=100
-```
-
-### Restart Services
-```bash
-docker-compose restart
-# or specific service
-docker-compose restart bot
-```
-
-## 📈 Performance Optimization
-
-### Database Optimization
-- Full-text indexes on `cb_books` title and `cb_authors` name
-- Regular index maintenance via `zz_50_repair_FT.sql`
-- Query result caching in `context.py`
-
-### Memory Management
-- User session cleanup every 24 hours (see `health.py`)
-- Async processing prevents blocking (see `handlers_search.py`)
-- Connection pooling in `database.py`
-
-### VPS Resource Usage
-- MariaDB: ~500-600 MB (with data)
-- Bot: ~50-100 MB
-- OS/Docker: ~200-300 MB
-- Free buffer: ~100-200 MB
-
----
-
-*Last Updated: 2025-12-19 | Version: 1.1.0 | Deployment Guide Included*
+### Fixed
+- Log payment error resolution
+- Correct number of authors calculation
+- Cleanup interval to 3600 seconds
+- Cache repopulation issues
+- Cleanup of inactive sessions
