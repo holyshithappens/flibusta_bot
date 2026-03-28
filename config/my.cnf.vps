@@ -18,9 +18,10 @@ key-buffer-size=16M
 max-heap-table-size=32M
 tmp-table-size=32M
 join-buffer-size=256K
-sort-buffer-size=256K
+sort-buffer-size=512K            # ← doubled from 256K; helps ORDER BY during charset conversion
 read-buffer-size=128K
-read-rnd-buffer-size=256K
+read-rnd-buffer-size=512K        # ← doubled; helps sequential re-reads during ALTER TABLE
+bulk-insert-buffer-size=32M      # ← new; speeds up the MyISAM bulk inserts during import
 
 # Connections
 max-connections=50

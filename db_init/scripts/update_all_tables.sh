@@ -130,8 +130,8 @@ activate_cb_tables() {
 
         total_count=$((total_count + 1))
 
-        # Drop old backup table
-        "$DB_DIR/scripts/drop_old_table.sh" "cb_${table}_old"
+#        # Drop old backup table
+#        "$DB_DIR/scripts/drop_old_table.sh" "cb_${table}_old"
 
         # Rename cb_<table> to cb_<table>_old (backup)
         "$DB_DIR/scripts/rename_table.sh" "cb_${table}" "cb_${table}_old"
@@ -145,6 +145,29 @@ activate_cb_tables() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: Activated $success_count/$total_count tables"
 }
 
+drop_old_cb_tables() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 🚀 Starting task: Drop cb_lib*_old tables..."
+
+    local success_count=0
+    local total_count=0
+
+    # Process tables from tables.conf using atomic scripts
+    while IFS='=' read -r table filename; do
+        # Skip comments and empty lines
+        [[ "$table" =~ ^#.*$ ]] && continue
+        [[ -z "$table" ]] && continue
+
+        total_count=$((total_count + 1))
+
+        # Drop old backup table
+        "$DB_DIR/scripts/drop_old_table.sh" "cb_${table}_old"
+
+        success_count=$((success_count + 1))
+    done < "$DB_DIR/scripts/tables.conf"
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: Dropped $success_count/$total_count tables"
+}
+
 apply_preparation_scripts() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 🔧 Starting task: Apply preparation scripts..."
 
@@ -155,6 +178,8 @@ apply_preparation_scripts() {
     scripts+=("zz_40_fill_FT.sql")
 #    scripts+=("zz_50_repair_FT.sql")
 
+#    _run_sql "SET GLOBAL innodb_buffer_pool_size = 268435456;"  -- 256M
+
     local success_count=0
     for script in "${scripts[@]}"; do
         if [ -f "$DB_DIR/$script" ]; then
@@ -164,6 +189,8 @@ apply_preparation_scripts() {
             echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Script not found: $script"
         fi
     done
+
+#    _run_sql "SET GLOBAL innodb_buffer_pool_size = 536870912;"  -- restore 512M
 
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: Applied $success_count preparation scripts"
 }
@@ -214,6 +241,8 @@ main() {
             load_sql_to_lib_tables
         elif [[ "$task_name" == "apply_preparation_scripts" ]]; then
             apply_preparation_scripts
+        elif [[ "$task_name" == "drop_old_cb_tables" ]]; then
+            drop_old_cb_tables
         elif [[ "$task_name" == "activate_cb_tables" ]]; then
             activate_cb_tables
         elif [[ "$task_name" == "process_libbook_fts" ]]; then
