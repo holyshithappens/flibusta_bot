@@ -3,10 +3,13 @@
 """
 
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from typing import Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime
+import os
 
 from .logging_schema import LogEvent, EventCategory, EventType, SearchEvent, DownloadEvent, SettingsChangeEvent
+from ..constants import FLIBUSTA_LOG_PATH
 
 if TYPE_CHECKING:
     from ..repositories.logs_repository import LogsRepository
@@ -31,6 +34,27 @@ class StructuredLogger:
         if not hasattr(self, '_initialized'):
             self.file_logger = logging.getLogger('structured_logger')
             self.file_logger.setLevel(info)
+
+            # Формат записи логов
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+            # Обработчик для записи логов в файл с ротацией по дням
+            os.makedirs(FLIBUSTA_LOG_PATH, exist_ok=True)
+            file_handler = TimedRotatingFileHandler(
+                filename=FLIBUSTA_LOG_PATH + '/structured.log',  # Базовое имя файла
+                when='midnight',     # Ротация каждый день в полночь
+                interval=1,          # Интервал ротации (1 день)
+                backupCount=60,      # Хранить логи за последние 60 дней
+                encoding='utf-8'
+            )
+            file_handler.setFormatter(formatter)
+            file_handler.suffix = "%Y-%m-%d"  # Добавляем дату в имя файла
+
+            # Добавляем обработчик к логгеру
+            self.file_logger.addHandler(file_handler)
+
+            # Prevent log propagation to root logger
+            self.file_logger.propagate = False
 
             # Будем инициализировать DB logger при первом использовании
             self._db_logger = None
