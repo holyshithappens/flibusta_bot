@@ -145,7 +145,7 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
                 1
             )
             message = (
-                f"<a href='{direct_download_url}'>{t("download.download_link",context)}</a>\n" +
+                f"<a href='{direct_download_url}'>{t('download.download_link',context)}</a>\n" +
                 t("download.link_expires",context)
             )
             await query.message.reply_text(
