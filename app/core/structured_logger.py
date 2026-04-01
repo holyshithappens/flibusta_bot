@@ -22,15 +22,15 @@ class StructuredLogger:
 
     _instance: Optional['StructuredLogger'] = None
 
-    def __new__(cls):
+    def __new__(cls, info):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, info):
         if not hasattr(self, '_initialized'):
             self.file_logger = logging.getLogger('structured_logger')
-            self.file_logger.setLevel(logging.INFO)
+            self.file_logger.setLevel(info)
 
             # Будем инициализировать DB logger при первом использовании
             self._db_logger = None
@@ -312,4 +312,4 @@ class StructuredLogger:
 
 
 # Глобальный экземпляр
-structured_logger = StructuredLogger()
+structured_logger = StructuredLogger(logging.DEBUG)
