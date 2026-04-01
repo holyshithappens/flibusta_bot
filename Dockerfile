@@ -35,7 +35,7 @@ RUN mkdir -p /app/data /app/logs && \
 USER botuser
 
 # Открываем порт (если нужно)
-EXPOSE 8000
+# EXPOSE 8000
 
 # Запускаем бота
 CMD ["python", "-m", "app.main"]
