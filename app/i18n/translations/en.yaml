@@ -270,38 +270,40 @@ help:
     <b>Help with book search.</b>
 
     <u>Simple search by any words:</u>
-    ✏️ <code>Leo Tolstoy war peace</code>
+    ✏️ <code>war peace</code>
     ✏️ <code>science fiction space stars 2025</code>
     ✏️ <code>Harry Potter</code>
-    ✏️ <code>Perelman mathematics physics</code>
+    ✏️ <code>mathematics physics</code>
 
     <u>Tips for effective searching:</u>
     🔍 <b>Multiple words</b> - the bot searches for books containing any of the listed words
-    ➕ <b>Required word</b> - use + before a word: <code>+life +remarkable people</code>
-    ➖ <b>Excluding words</b> - use - before a word: <code>+Rasputin -Valentin</code>
+    ➕ <b>Required word</b> - use + before a word: <code>+life +people</code>
+    ➖ <b>Excluding words</b> - use - before a word: <code>+President -Trump</code>
     ⭐️ <b>Word parts</b> - you can use *: <code>mathemat* problem*</code>
     🔄 <b>Word grouping</b> - use (): <code>+(elf goblin orc dwarf) +(lonely evil sad huge)</code>
-    📏 <b>Word proximity</b> - use @N after a phrase in double quotes: <code>"currently lives Moscow" @5</code>
+    📏 <b>Word proximity</b> - use @N after a phrase in double quotes: <code>"currently lives" @3</code>
     🔎 <b>Annotation search</b> - in settings enable "Search area" → "by book annotations" or "by author annotations"
 
     <u>Search scope:</u>
     📖 Main search covers: <b>book title, authors, genres, series, and publication year</b>
     📚 Annotation search - searches through <b>full book descriptions or author biographies</b>. Words of 3+ letters are indexed
 
+    <u>Language & Original Names:</u>
+    🌐 Book series and author names are displayed in their original form (without translation), predominantly in Russian
+
     <u>Examples for book annotation search:</u>
     📘 <code>+(elves dwarves orcs) +(evil lonely big sad)</code> - fantasy worlds with magic
     📘 <code>+(travel invasions aliens) +(space time other worlds)</code> - space sci-fi
     📘 <code>+author +created amazing magical +world</code> - books with rich worldbuilding
     📘 <code>+russian +commander Patriotic war</code> - historical literature
-    📘 <code>+collection +fantastic +(stories novellas) +soviet -(foreign)</code> - Soviet sci-fi
+    📘 <code>+collection +fantastic +(stories novellas)</code> - sci-fi collections
 
     <u>Examples for author annotation search:</u>
     👤 <code>+awarded +(medals orders)</code> - authors awarded medals or orders
     👤 <code>"died 1980" @5</code> - authors who died in 1980 (words within 5 words of each other)
-    👤 <code>+(born lived died) +Penza +province</code> - authors connected to Penza province
-    👤 <code>+philologist +translator +journalist</code> - philologists, translators and journalists
-    👤 <code>"currently lives Moscow" @5</code> - authors currently living in Moscow
-    👤 <code>"fought wounded battle" @10</code> - authors wounded in combat
+    👤 <code>+(born lived died) +New-York</code> - authors connected to New-York
+    👤 <code>+translator +journalist</code> - translators and journalists
+    👤 <code>"currently lives" @3</code> - authors currently living
     
     <u>Result limits:</u>
     ⚡️ Search results are temporarily limited to <b>2000 books, 200 authors, and 200 series</b> for performance
