@@ -37,5 +37,7 @@ USER botuser
 # Открываем порт (если нужно)
 # EXPOSE 8000
 
+ENV PYTHONUNBUFFERED=1
+
 # Запускаем бота
-CMD ["python", "-m", "app.main"]
+CMD ["python", "-u", "-m", "app.main"]

@@ -65,6 +65,9 @@ async def set_commands(application: Application):
 
 def main():
 
+    import logging
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
     # Получаем токен из переменной окружения
     TOKEN = os.getenv("BOT_TOKEN")
     if not TOKEN:
