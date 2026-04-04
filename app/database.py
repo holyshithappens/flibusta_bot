@@ -1354,7 +1354,7 @@ class DatabaseBooks():
             WHEN 0 THEN {weighted_all_time}
             WHEN 1 THEN {weighted_recent}
         END DESC
-    LIMIT {MAX_BOOKS_SEARCH}
+    -- LIMIT {MAX_BOOKS_SEARCH * 5} -- теряется инфа
         """
 
 
@@ -1374,7 +1374,7 @@ class DatabaseBooks():
     FROM cb_libbook b
     WHERE b.Deleted = '0'
     ORDER BY b.BookID desc 
-    LIMIT {MAX_BOOKS_SEARCH}
+    -- LIMIT {MAX_BOOKS_SEARCH * 5} -- теряется инфа
         """
 
 

@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime
 import os
 
-from .logging_schema import LogEvent, EventCategory, EventType, SearchEvent, DownloadEvent, SettingsChangeEvent
+from .logging_schema import LogEvent, EventCategory, EventType, SearchEvent, DownloadEvent, SettingsChangeEvent, PaymentEvent
 from ..constants import FLIBUSTA_LOG_PATH
 
 if TYPE_CHECKING:
@@ -72,7 +72,10 @@ class StructuredLogger:
         # 2. Базовое логирование в БД
         if self._db_logger:
             try:
-                self._db_logger.write_structured_log(event)
+                if event.category == EventCategory.PAYMENT:
+                    self._db_logger.write_payment(event)
+                else:
+                    self._db_logger.write_structured_log(event)
             except Exception as e:
                 self.file_logger.error(f"Failed to write to DB: {e}")
 
@@ -330,6 +333,38 @@ class StructuredLogger:
             chat_type="system",
             chat_id=None,
             data=data or {'message': message}
+        )
+
+        self.log_event(event)
+
+    def log_payment(
+            self,
+            user_id: int,
+            username: str,
+            payment_id: str,
+            amount: int,
+            currency: str,
+            payment_method: str = "telegram_stars",
+            chat_type: str = "private",
+            chat_id: Optional[int] = None
+    ) -> None:
+        """Логирует платеж"""
+        payment_data = PaymentEvent(
+            payment_id=payment_id,
+            amount=amount,
+            currency=currency,
+            payment_method=payment_method
+        )
+
+        event = LogEvent(
+            timestamp=datetime.now(),
+            category=EventCategory.PAYMENT,
+            event_type=EventType.PAYMENT_RECEIVED,
+            user_id=user_id,
+            username=username,
+            chat_type=chat_type,
+            chat_id=chat_id or user_id,
+            data=payment_data.__dict__
         )
 
         self.log_event(event)

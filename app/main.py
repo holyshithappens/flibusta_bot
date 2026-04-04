@@ -16,7 +16,7 @@ from .constants import CLEANUP_INTERVAL
 from .health import cleanup_old_sessions
 from .flibusta_client import flibusta_client
 from .handlers_payments import pre_checkout, successful_payment
-
+from .VERSION import __version__
 from .core.structured_logger import structured_logger
 from .repositories.logs_repository import LogsRepository
 from .core.logging_schema import EventType
@@ -87,7 +87,7 @@ def main():
     structured_logger.log_system(
         EventType.SYSTEM_STARTUP,
         "Bot started successfully",
-        {"version": "1.1.0"}
+        {"version": __version__}
     )
 
     application.add_error_handler(error_handler)

@@ -134,3 +134,12 @@ class ErrorEvent:
     context: Dict[str, Any]
     traceback: Optional[str] = None
 
+
+@dataclass
+class PaymentEvent:
+    """Данные события платежа"""
+    payment_id: str
+    amount: int  # Telegram Stars are integers
+    currency: str
+    payment_method: str  # 'telegram_stars', etc.
+

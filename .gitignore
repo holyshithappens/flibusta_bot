@@ -1,6 +1,8 @@
 .idea/
 .env
 .env.vps
+.env.test
+.env.prod
 logs/
 data/
 db_init/sql/

@@ -63,7 +63,7 @@ async def button_callback(update: Update, context: CallbackContext):
                       'recent_downloads', 'top_downloads', 'top_searches', 'back_to_stats',
                       'refresh_stats']:
             # Перенаправляем в админский обработчик
-            from admin import handle_admin_callback
+            from .admin import handle_admin_callback
             await handle_admin_callback(update, context)
             return
         # Существующая логика для личных сообщений
