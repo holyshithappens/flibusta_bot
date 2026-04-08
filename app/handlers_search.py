@@ -142,7 +142,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
         structured_logger.log_search(
             user_id=user_id,
             username=user.username or user.first_name or "Unknown",
-            query=query_text,
+            query=query_text if switch_search else switch_search,
             search_type=search_type,
             search_area=search_area,
             results_count=len(books),

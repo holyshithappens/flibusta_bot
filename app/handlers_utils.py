@@ -72,7 +72,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown",
                 book_id=book_id,
-                book_title="", # TODO: substitute with book title
+                book_title=f"{book_id}.{book_format}", # TODO: substitute with book title
                 format=book_format,
                 file_size=len(book_data) if book_data else 0,
                 success=True,
