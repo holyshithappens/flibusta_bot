@@ -50,7 +50,7 @@ copy_config_files() {
     echo ""
     echo "📁 Copying config files to VPS..."
     ssh "$VPS_USER@$VPS_IP" "mkdir -p ~/$VPS_PATH/{data,logs,config}"
-    scp .env.vps "$VPS_USER@$VPS_IP:$VPS_PATH/.env"
+    scp .env.prod "$VPS_USER@$VPS_IP:$VPS_PATH/.env"
     scp config/my.cnf.vps "$VPS_USER@$VPS_IP:$VPS_PATH/config/my.cnf"
     scp app/VERSION.py "$VPS_USER@$VPS_IP:$VPS_PATH/VERSION.py"
     scp docker-compose.vps.yml "$VPS_USER@$VPS_IP:$VPS_PATH/docker-compose.yml"
