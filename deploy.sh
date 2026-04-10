@@ -290,7 +290,7 @@ case "${1:-}" in
         DEPLOY_REF=$(read_deploy_ref)
         copy_config_files
         copy_sql_files
-        init_sqlite_dbs
+#        init_sqlite_dbs
         copy_news_file
 #        setup_permissions
         build_and_push_image "$DEPLOY_REF"
