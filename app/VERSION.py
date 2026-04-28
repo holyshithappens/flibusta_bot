@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.1.10"
+__version__ = "1.1.11"
 __version_info__ = (1, 1, 10)
 
 # История версий:
+# 1.1.11 (2026-04-28) - Fix: correct the queries for searching novelties and popular books
 # 1.1.10 (2026-04-10) - Fix: remove error nested query limitations for pop/nov book search
 # 1.1.9 (2026-03-19) - Feat: show current bot version in admin panel
 # 1.1.8 (2026-03-09) - Fix: resolve log_payment error
