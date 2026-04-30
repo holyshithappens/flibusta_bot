@@ -349,6 +349,9 @@ async def admin_system(update: Update, context: CallbackContext):
     if not is_admin(update.effective_user.id):
         return
 
+    # Получаем версию бота
+    from VERSION import __version__
+
     # Получаем системную статистику
     from health import get_system_stats, get_memory_usage
     stats = get_system_stats()
@@ -359,6 +362,9 @@ async def admin_system(update: Update, context: CallbackContext):
 
     system_text = f"""
 ⚙️ <b>Системная информация</b>
+
+<b>Версия бота:</b>
+• Текущая версия: <code>{__version__}</code>
 
 <b>Память:</b>
 • Используется процессом: <code>{stats['memory_used']} MB</code>

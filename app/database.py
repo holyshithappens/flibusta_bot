@@ -691,7 +691,7 @@ class DatabaseSettings(Database):
                 # Check if Locale column exists
                 cursor.execute("PRAGMA table_info(UserSettings)")
                 columns = [col[1] for col in cursor.fetchall()]
-                
+
                 if 'Locale' not in columns:
                     # Add Locale column with empty string default
                     cursor.execute("ALTER TABLE UserSettings ADD COLUMN Locale VARCHAR(5) DEFAULT ''")
@@ -1171,31 +1171,53 @@ class DatabaseBooks():
 
         return authors
 
-    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back:int=0, locale: str = 'ru'):
+    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0):
         """Поиск популярных книг за период"""
         # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
 
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+        # sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+        # Build filter conditions - using actual table columns, not aliases
+        conditions = ["b.Deleted = '0'"]
+
+        if lang:
+            conditions.append(f"b.Lang = '{lang.lower()}'")
+
+        # Size filter uses actual FileSize column, not BookSizeCat alias
+        if size_limit:
+            if size_limit == 'less800':
+                conditions.append("b.FileSize <= 819200")  # 800 * 1024
+            elif size_limit == 'more800':
+                conditions.append("b.FileSize > 819200")
+
+        # Rating filter uses actual LibRate from joined table, not alias
+        if rating_filter and rating_filter != '':
+            conditions.append(f"ROUND(COALESCE(r.LibRate, 0)) IN ({rating_filter})")
+
+        sql_where = " AND ".join(conditions)
+
         if days_back == 0:
             # Поиск новинок
-            sql_query_nested = DatabaseBooks.build_sql_query_nov(self)
+            sql_query_nested = DatabaseBooks.build_sql_query_nov(self, sql_where)
         else:
             # Поиск популярных
             filter_recent = 1 if days_back < 999 else 0
             current_date = self.lib_last_update
-            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, days_back)
+            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, sql_where,
+                                                                 days_back)
 
         select_fields = ', '.join(Book._fields)
 
         sql_query = f"""
         SELECT {select_fields} FROM (
-        SELECT {BASE_FIELDS}
-            , b.relevance
-            , ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn 
-        FROM ( {sql_query_nested} ) b
-        {get_base_joins(locale)} ) subq
-        {sql_where} 
-        and rn = 1
+        -- SELECT /BASE_FIELDS/
+            -- , b.relevance
+            -- , ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn 
+        -- FROM ( /sql_query_nested/ ) b
+        -- /BASE_JOINS/ 
+        {sql_query_nested} ) subq
+        -- /sql_where/ 
+        -- and rn = 1
+        where rn = 1
         ORDER BY relevance DESC
         LIMIT {MAX_BOOKS_SEARCH};
         """
@@ -1209,8 +1231,7 @@ class DatabaseBooks():
 
         return books
 
-
-    # def search_pop_series(self, lang, size_limit, rating_filter=None, days_back:int=0, locale: str = 'ru'):
+    # def search_pop_series(self, lang, size_limit, rating_filter=None, days_back:int=0):
     #     """Поиск популярных книг по сериям за период"""
     #     # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
     #
@@ -1228,7 +1249,7 @@ class DatabaseBooks():
     #     SELECT {BASE_FIELDS}
     #         , b.relevance
     #     FROM ( {sql_query_nested} ) b
-    #     {get_base_joins(locale)}
+    #     {BASE_JOINS}
     #     """
     #
     #     sql_query = self.build_sql_query_series(sql_query_nested2, sql_where)
@@ -1239,9 +1260,8 @@ class DatabaseBooks():
     #         series = cursor.fetchall()
     #
     #     return series
-    #
-    #
-    # def search_pop_authors(self, lang, size_limit, rating_filter=None, days_back:int=0, locale: str = 'ru'):
+
+    # def search_pop_authors(self, lang, size_limit, rating_filter=None, days_back:int=0):
     #     """Поиск популярных книг по авторам за период"""
     #     # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
     #
@@ -1259,7 +1279,7 @@ class DatabaseBooks():
     #     SELECT {BASE_FIELDS}
     #         , b.relevance
     #     FROM ( {sql_query_nested} ) b
-    #     {get_base_joins(locale)}
+    #     {BASE_JOINS}
     #     """
     #
     #     sql_query = self.build_sql_query_authors(sql_query_nested2, sql_where)
@@ -1271,9 +1291,8 @@ class DatabaseBooks():
     #
     #     return authors
 
-
     @staticmethod
-    def build_sql_query_pop(self, filter_recent:int, current_date:str, days_back:int):
+    def build_sql_query_pop(self, filter_recent: int, current_date: str, sql_where: str, days_back: int):
         """Build SQL query for popular books with weighted scoring.
 
         Popularity formula:
@@ -1307,11 +1326,12 @@ class DatabaseBooks():
 
         return f"""
     SELECT 
-        b.BookID,
-        b.Lang,
-        b.Title,
-        b.FileSize,
-        b.Year,
+        -- b.BookID,
+        -- b.Lang,
+        -- b.Title,
+        -- b.FileSize,
+        -- b.Year,
+        {BASE_FIELDS},
         CASE {filter_recent}
             WHEN 0 THEN {weighted_all_time}
             WHEN 1 THEN {weighted_recent}
@@ -1319,8 +1339,10 @@ class DatabaseBooks():
         CASE {1 - filter_recent}
             WHEN 0 THEN {weighted_all_time}
             WHEN 1 THEN {weighted_recent}
-        END AS relevance_oppos
+        END AS relevance_oppos,
+        ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
+    {BASE_JOINS}
     LEFT JOIN (
         SELECT bookid, COUNT(DISTINCT id) AS cnt
         FROM cb_librate
@@ -1340,7 +1362,8 @@ class DatabaseBooks():
            OR {filter_recent} = 0
         GROUP BY bookid
     ) rv ON rv.BookId = b.BookId
-    WHERE b.Deleted = '0'
+    -- WHERE b.Deleted = '0'
+    WHERE {sql_where}
       AND (CASE {filter_recent}
             WHEN 0 THEN {weighted_all_time}
             WHEN 1 THEN {weighted_recent}
@@ -1354,27 +1377,30 @@ class DatabaseBooks():
             WHEN 0 THEN {weighted_all_time}
             WHEN 1 THEN {weighted_recent}
         END DESC
-    -- LIMIT {MAX_BOOKS_SEARCH * 5} -- теряется инфа
+    LIMIT {MAX_BOOKS_SEARCH * 3} 
         """
 
 
     @staticmethod
-    def build_sql_query_nov(self):
+    def build_sql_query_nov(self, sql_where):
         """Поиск новинок"""
 
         return f"""
     SELECT 
-        b.BookID,
-        b.Lang,
-        b.Title,
-        b.FileSize,
-        b.Year,
+        -- b.BookID,
+        -- b.Lang,
+        -- b.Title,
+        -- b.FileSize,
+        -- b.Year,
+        {BASE_FIELDS},
         b.BookID AS relevance,
-        0 AS relevance_oppos
+        0 AS relevance_oppos,
+        ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    WHERE b.Deleted = '0'
+    {BASE_JOINS}
+    WHERE {sql_where}
     ORDER BY b.BookID desc 
-    -- LIMIT {MAX_BOOKS_SEARCH * 5} -- теряется инфа
+    LIMIT {MAX_BOOKS_SEARCH * 3} 
         """
 
 

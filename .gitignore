@@ -37,3 +37,4 @@ ENV/
 # Temporary files
 *.tmp
 .DS_Store
+/.github/
