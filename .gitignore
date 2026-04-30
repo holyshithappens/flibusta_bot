@@ -38,3 +38,5 @@ ENV/
 .DS_Store
 /.env.prod
 /.env.test
+/.kilocode/
+/.zencoder/
