@@ -38,3 +38,6 @@ ENV/
 *.tmp
 .DS_Store
 /.github/
+/.kilocode/
+/.zencoder/
+/plans/
