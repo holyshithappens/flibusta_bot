@@ -1,0 +1,422 @@
+from datetime import datetime
+from typing import Any, List, Optional
+
+from telegram.ext import Application, CallbackContext
+
+from .custom_types import UserSettings
+from ..repositories.user_repository import UserRepository
+
+
+# Константы для ключей контекста
+class CMConst:
+    class CMC_UserParams:
+        USER_PARAMS = "USER_PARAMS"
+
+    class CMC_Proc:
+        LAST_ACTIVITY = "last_activity"
+        LAST_SERIES_PAGE = "last_series_page"
+        LAST_AUTHORS_PAGE = "last_authors_page"
+        CURRENT_AUTHOR_ID = "author_id"
+        CURRENT_SERIES_NAME = "current_series_name"
+        CURRENT_AUTHOR_NAME = "current_author_name"
+        LAST_BOT_MESSAGE_ID = "last_bot_message_id"
+        LAST_SEARCH_QUERY = "last_search_query"
+        SWITCH_SEARCH = "switch_search"  # переключатель поиска по популярным и новинкам
+        BOOKS_CACHE = 'books_cache'
+
+    # Ключи для поисковых данных
+    class CMC_SearchData:
+        PAGES_OF_BOOKS = "PAGES_OF_BOOKS"
+        FOUND_BOOKS_COUNT = "FOUND_BOOKS_COUNT"
+        PAGES_OF_SERIES = "PAGES_OF_SERIES"
+        FOUND_SERIES_COUNT = "FOUND_SERIES_COUNT"
+        PAGES_OF_AUTHORS = "PAGES_OF_AUTHORS"
+        FOUND_AUTHORS_COUNT = "FOUND_AUTHORS_COUNT"
+
+
+class ContextManager:
+    _instance = None
+    _db_settings = None
+
+    @classmethod
+    def _init_db(cls):
+        """Ленивая инициализация БД"""
+        if cls._db_settings is None:
+            # Use default path for UserRepository
+            cls._db_settings = UserRepository('data/FlibustaBot.sqlite')
+
+    @classmethod
+    def _get_ids_from_context(cls, context: CallbackContext) -> tuple[Optional[int], Optional[int]]:
+        """Извлекает user_id и chat_id из контекста"""
+        user_id = getattr(context, "_user_id", None)
+        chat_id = getattr(context, "_chat_id", None)
+        return user_id, chat_id
+
+    @classmethod
+    def _get_bot_context_key(cls, context: CallbackContext) -> str:
+        """Формирует ключ данных в контексте бота по char_id"""
+        user_id, chat_id = cls._get_ids_from_context(context)
+        return f"group_search_{chat_id}"
+
+    @classmethod
+    def _get_context_data(cls, context: CallbackContext) -> dict[str, Any]:
+        """Получает соответствующий словарь контекста с автоматическим определением типа чата"""
+        user_id, chat_id = cls._get_ids_from_context(context)
+        is_private_chat = (user_id == chat_id)
+
+        if is_private_chat:
+            if hasattr(context, 'user_data'):
+                return context.user_data  # type: ignore[return-value]
+            return {}
+        else:
+            if chat_id and hasattr(context, 'bot_data'):
+                search_context_key = cls._get_bot_context_key(context)
+                if search_context_key not in context.bot_data:
+                    context.bot_data[search_context_key] = {}
+                return context.bot_data[search_context_key]  # type: ignore [no-any-return]
+            return {}
+
+    @classmethod
+    def get(cls, context: CallbackContext, key: str, default: Optional[Any] = None) -> Optional[Any]:
+        """Универсальный геттер для контекста"""
+        # Особый случай для USER_PARAMS - загружаем из БД при необходимости
+        if key == CMConst.CMC_UserParams.USER_PARAMS:
+            return cls._get_user_params(context)
+
+        data = cls._get_context_data(context)
+        return data.get(key, default)
+
+    @classmethod
+    def set(cls, context: CallbackContext, key: str, value: Optional[Any]) -> None:
+        """Универсальный сеттер для контекста"""
+        # Особый случай для USER_PARAMS - обновляем в БД
+        if key == CMConst.CMC_UserParams.USER_PARAMS:
+            if value is not None:
+                cls._update_user_params(context, value)
+            return
+
+        data = cls._get_context_data(context)
+        data[key] = value
+
+    @classmethod
+    def delete(cls, context: CallbackContext, key: str) -> None:
+        """Удаляет ключ из контекста"""
+        data = cls._get_context_data(context)
+        if key in data:
+            del data[key]
+
+    @classmethod
+    def clear_search_data(cls, context: CallbackContext) -> None:
+        """Очищает все поисковые данные"""
+        search_keys = [value for key, value in vars(CMConst.CMC_SearchData).items() if not key.startswith("_")]
+
+        data = cls._get_context_data(context)
+        for key in search_keys:
+            if key in data:
+                del data[key]
+
+    @classmethod
+    def _get_user_params(cls, context: CallbackContext) -> Optional[UserSettings]:
+        """Получает настройки пользователя из контекста или БД"""
+        cls._init_db()
+        user_id, chat_id = cls._get_ids_from_context(context)
+
+        if not user_id:
+            return None
+
+        # Пытаемся получить из контекста
+        data = cls._get_context_data(context)
+        if CMConst.CMC_UserParams.USER_PARAMS in data:
+            cached = data[CMConst.CMC_UserParams.USER_PARAMS]
+            # Проверяем что это правильный тип
+            if isinstance(cached, UserSettings):  # UserSettings это dataclass
+                return cached
+            return None
+
+        # Загружаем из БД
+        if cls._db_settings is None:  # ← Проверка
+            return None
+
+        user_settings: UserSettings = cls._db_settings.get_settings(user_id)
+
+        # Сохраняем в контекст
+        data[CMConst.CMC_UserParams.USER_PARAMS] = user_settings
+
+        return user_settings
+
+    @classmethod
+    def _update_user_params(cls, context: CallbackContext, user_params: UserSettings) -> None:
+        """Обновляет настройки пользователя в БД и контексте"""
+        cls._init_db()
+        user_id, chat_id = cls._get_ids_from_context(context)
+
+        if not user_id or cls._db_settings is None:
+            return
+
+        # Обновляем в БД - преобразуем dataclass в dict
+        update_dict: dict[str, Any] = {
+            'max_books': user_params.max_books,
+            'lang': user_params.lang,
+            'book_format': user_params.book_format,
+            'search_type': user_params.search_type,
+            'rating': user_params.rating,
+            'book_size': user_params.book_size,
+            'search_area': user_params.search_area,
+            'is_blocked': user_params.is_blocked,
+            'last_news_date': user_params.last_news_date
+        }
+
+        cls._db_settings.update_settings(user_id, **update_dict)
+
+        # Обновляем в контексте
+        data = cls._get_context_data(context)
+        data[CMConst.CMC_UserParams.USER_PARAMS] = user_params
+
+    @classmethod
+    def update_user_params_partial(cls, context: CallbackContext, **kwargs: Any) -> None:
+        """Частичное обновление настроек пользователя"""
+        cls._init_db()
+        user_id, chat_id = cls._get_ids_from_context(context)
+
+        if not user_id or cls._db_settings is None:
+            return
+
+        # Получаем текущие настройки
+        current_params = cls._get_user_params(context)
+        if not current_params:
+            return
+
+        # Обновляем в БД
+        cls._db_settings.update_user_settings(user_id, **kwargs)
+
+        # Обновляем в контексте
+        if isinstance(current_params, UserSettings):
+            # Создаем новый UserSettings с обновленными полями
+            updated_params = UserSettings(
+                user_id=current_params.user_id,
+                max_books=kwargs.get('max_books', current_params.max_books),
+                lang=kwargs.get('lang', current_params.lang),
+                book_format=kwargs.get('book_format', current_params.book_format),
+                search_type=kwargs.get('search_type', current_params.search_type),
+                rating=kwargs.get('rating', current_params.rating),
+                book_size=kwargs.get('book_size', current_params.book_size),
+                search_area=kwargs.get('search_area', current_params.search_area),
+                is_blocked=kwargs.get('is_blocked', current_params.is_blocked),
+                last_news_date=kwargs.get('last_news_date', current_params.last_news_date)
+            )
+            data = cls._get_context_data(context)
+            data[CMConst.CMC_UserParams.USER_PARAMS] = updated_params
+
+    @classmethod
+    def cleanup_inactive_sessions(cls, app: Application, cleanup_interval: int) -> Any:
+        """Очищает неактивные сессии"""
+        cleaned_count_private = 0
+        cleaned_count_group = 0
+
+        # Очистка личных чатов
+        if hasattr(app, "user_data"):
+            for user_id, user_data in app.user_data.items():
+                if cls._should_cleanup_session(user_data, cleanup_interval):
+                    cls._cleanup_user_session(user_data)
+                    cleaned_count_private += 1
+
+        # Очистка групповых чатов
+        if hasattr(app, "bot_data"):
+            for key in list(app.bot_data.keys()):
+                if key.startswith("group_search_"):
+                    bot_data = app.bot_data[key]
+                    if cls._should_cleanup_session(bot_data, cleanup_interval):
+                        del app.bot_data[key]
+                        cleaned_count_group += 1
+
+        return cleaned_count_private, cleaned_count_group
+
+    @classmethod
+    def _should_cleanup_session(cls, session_data: dict[Any, Any], cleanup_interval: int) -> bool:
+        """Проверяет, нужно ли очищать сессию"""
+        if not isinstance(session_data, dict):
+            return False
+
+        last_activity = session_data.get(CMConst.CMC_Proc.LAST_ACTIVITY)
+        return (
+            isinstance(last_activity, datetime) and (datetime.now() - last_activity).total_seconds() > cleanup_interval
+        )
+
+    @classmethod
+    def _cleanup_user_session(cls, user_data):
+        """Очищает данные пользовательской сессии"""
+        for key in [value for key, value in vars(CMConst.CMC_Proc).items() if not key.startswith("_")]:
+            if key in user_data:
+                del user_data[key]
+
+    @classmethod
+    def cache_book_info(cls, context: CallbackContext, book_id: int, book_title: str) -> None:
+        """
+        Кеширует информацию о книге в контексте
+
+        Args:
+            context: Telegram context
+            book_id: ID книги
+            book_title: Название книги
+        """
+        data = cls._get_context_data(context)
+
+        if CMConst.CMC_Proc.BOOKS_CACHE not in data:
+            data[CMConst.CMC_Proc.BOOKS_CACHE] = {}
+
+        data[CMConst.CMC_Proc.BOOKS_CACHE][book_id] = book_title
+
+        # print(f"DEBUG: cache_book_info: context: {context}")
+        # print(f"DEBUG: cache_book_info: data: {data}")
+        # print(f"DEBUG: cached in context: {data[CMConst.CMC_Proc.BOOKS_CACHE][book_id]}")
+
+    @classmethod
+    def get_cached_book_title(cls, context: CallbackContext, book_id: int) -> Optional[str]:
+        """
+        Получает название книги из кеша
+
+        Args:
+            context: Telegram context
+            book_id: ID книги
+
+        Returns:
+            Название книги или None если не найдено
+        """
+        data = cls._get_context_data(context)
+        cache = data.get(CMConst.CMC_Proc.BOOKS_CACHE, {})
+        book_title = cache.get(book_id)
+        # print(f"DEBUG: get_cached_book_title: context: {context}")
+        # print(f"DEBUG: get_cached_book_title: data: {data}")
+        # print(f"DEBUG: get_cached_book_title: cache: {cache}")
+        # print(f"DEBUG: get_cached_book_title: book_title: {book_title}")
+        return book_title
+
+# Специализированные геттеры для часто используемых ключей
+def set_last_activity(context: CallbackContext, dt: Any) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.LAST_ACTIVITY, dt)
+
+
+def get_last_series_page(context: CallbackContext) -> int:
+    result = ContextManager.get(context, CMConst.CMC_Proc.LAST_SERIES_PAGE, 0)
+    return int(result)  # type: ignore[arg-type]
+
+
+def set_last_series_page(context: CallbackContext, page: int) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.LAST_SERIES_PAGE, page)
+
+
+def get_last_authors_page(context: CallbackContext) -> int:
+    result = ContextManager.get(context, CMConst.CMC_Proc.LAST_AUTHORS_PAGE, 0)
+    return int(result)  # type: ignore[arg-type]
+
+
+def set_last_authors_page(context: CallbackContext, page: int) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.LAST_AUTHORS_PAGE, page)
+
+
+def get_current_series_name(context: CallbackContext) -> str:
+    result = ContextManager.get(context, CMConst.CMC_Proc.CURRENT_SERIES_NAME, "")
+    return str(result)
+
+
+def set_current_series_name(context: CallbackContext, series: str) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.CURRENT_SERIES_NAME, series)
+
+
+def get_current_author_id(context: CallbackContext) -> int:
+    result = ContextManager.get(context, CMConst.CMC_Proc.CURRENT_AUTHOR_ID, 0)
+    return int(result)  # type: ignore[arg-type]
+
+
+def set_current_author_id(context: CallbackContext, author_id: int) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.CURRENT_AUTHOR_ID, author_id)
+
+
+def get_current_author_name(context: CallbackContext) -> str:
+    result = ContextManager.get(context, CMConst.CMC_Proc.CURRENT_AUTHOR_NAME, "")
+    return str(result)
+
+
+def set_current_author_name(context: CallbackContext, author_name: str) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.CURRENT_AUTHOR_NAME, author_name)
+
+
+def get_last_bot_message_id(context: CallbackContext) -> Optional[int]:
+    return ContextManager.get(context, CMConst.CMC_Proc.LAST_BOT_MESSAGE_ID)
+
+
+def set_last_bot_message_id(context: CallbackContext, message_id: int) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.LAST_BOT_MESSAGE_ID, message_id)
+
+
+def get_last_search_query(context: CallbackContext) -> Optional[str]:
+    return ContextManager.get(context, CMConst.CMC_Proc.LAST_SEARCH_QUERY)
+
+
+def set_last_search_query(context: CallbackContext, query: Optional[str]) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.LAST_SEARCH_QUERY, query)
+
+
+def get_switch_search(context: CallbackContext) -> Optional[str]:
+    return ContextManager.get(context, CMConst.CMC_Proc.SWITCH_SEARCH)
+
+
+def set_switch_search(context: CallbackContext, value: Optional[str]) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.SWITCH_SEARCH, value)
+
+
+# Данные поиска
+def get_pages_of_books(context: CallbackContext) -> List[List[Any]]:
+    result = ContextManager.get(context, CMConst.CMC_SearchData.PAGES_OF_BOOKS, [])
+    return result if isinstance(result, list) else []
+
+
+def get_pages_of_series(context: CallbackContext) -> List[List[Any]]:
+    result = ContextManager.get(context, CMConst.CMC_SearchData.PAGES_OF_SERIES, [])
+    return result if isinstance(result, list) else []
+
+
+def get_pages_of_authors(context: CallbackContext) -> List[List[Any]]:
+    result = ContextManager.get(context, CMConst.CMC_SearchData.PAGES_OF_AUTHORS, [])
+    return result if isinstance(result, list) else []
+
+
+def get_found_books_count(context: CallbackContext) -> Optional[int]:
+    return ContextManager.get(context, CMConst.CMC_SearchData.FOUND_BOOKS_COUNT)
+
+
+def get_found_series_count(context: CallbackContext) -> Optional[int]:
+    return ContextManager.get(context, CMConst.CMC_SearchData.FOUND_SERIES_COUNT)
+
+
+def get_found_authors_count(context: CallbackContext) -> Optional[int]:
+    return ContextManager.get(context, CMConst.CMC_SearchData.FOUND_AUTHORS_COUNT)
+
+
+def set_books(context: CallbackContext, pages_of_books: List[List[Any]], count: int) -> None:
+    # ContextManager.set(context, CMConst.CMC_SearchData.BOOKS, books)
+    ContextManager.set(context, CMConst.CMC_SearchData.PAGES_OF_BOOKS, pages_of_books)
+    ContextManager.set(context, CMConst.CMC_SearchData.FOUND_BOOKS_COUNT, count)
+
+
+def set_series(context: CallbackContext, pages_of_series: List[List[Any]], count: int) -> None:
+    # ContextManager.set(context, CMConst.CMC_SearchData.SERIES, series)
+    ContextManager.set(context, CMConst.CMC_SearchData.PAGES_OF_SERIES, pages_of_series)
+    ContextManager.set(context, CMConst.CMC_SearchData.FOUND_SERIES_COUNT, count)
+
+
+def set_authors(context: CallbackContext, pages_of_authors: List[List[Any]], count: int) -> None:
+    # ContextManager.set(context, CMConst.CMC_SearchData.AUTHORS, authors)
+    ContextManager.set(context, CMConst.CMC_SearchData.PAGES_OF_AUTHORS, pages_of_authors)
+    ContextManager.set(context, CMConst.CMC_SearchData.FOUND_AUTHORS_COUNT, count)
+
+
+# Специальные функции для USER_PARAMS
+def get_user_params(context: CallbackContext) -> Optional[UserSettings]:
+    """Получает настройки пользователя (с загрузкой из БД при необходимости)"""
+    return ContextManager.get(context, CMConst.CMC_UserParams.USER_PARAMS)
+
+
+def update_user_params(context, **kwargs: Any) -> None:
+    """Обновляет настройки пользователя в БД и контексте"""
+    ContextManager.update_user_params_partial(context, **kwargs)
