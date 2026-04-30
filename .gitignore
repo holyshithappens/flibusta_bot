@@ -36,3 +36,5 @@ ENV/
 # Temporary files
 *.tmp
 .DS_Store
+/.env.prod
+/.env.test
