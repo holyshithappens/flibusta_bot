@@ -16,10 +16,10 @@ key-buffer-size=128M
 myisam-sort-buffer-size=32M
 max-heap-table-size=64M
 tmp-table-size=64M
-join-buffer-size=2M
-sort-buffer-size=2M
-read-buffer-size=2M
-read-rnd-buffer-size=2M
+join-buffer-size=512K
+sort-buffer-size=512K
+read-buffer-size=256K
+read-rnd-buffer-size=512K
 
 # Connections
 max-connections=50
