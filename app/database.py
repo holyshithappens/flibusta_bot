@@ -1203,8 +1203,7 @@ class DatabaseBooks():
             # Поиск популярных
             filter_recent = 1 if days_back < 999 else 0
             current_date = self.lib_last_update
-            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, sql_where,
-                                                                 days_back)
+            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, sql_where, days_back)
 
         select_fields = ', '.join(Book._fields)
 
