@@ -719,6 +719,7 @@ class DatabaseSettings(Database):
     #                 SearchType TEXT DEFAULT 'books',
     #                 Rating TEXT DEFAULT '',
     #                 SearchArea TEXT DEFAULT 'b',
+    #                 Locale VARCHAR(5) DEFAULT '',
     #                 PRIMARY KEY(User_ID)
     #             );
     #         """)
