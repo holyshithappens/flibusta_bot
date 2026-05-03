@@ -1,6 +1,6 @@
 -- UserSettings definition
 
-CREATE TABLE UserSettings (
+CREATE TABLE IF NOT EXISTS UserSettings (
                     User_ID INTEGER NOT NULL UNIQUE,
                     MaxBooks INTEGER NOT NULL DEFAULT 20,
                     Lang VARCHAR(2) DEFAULT '',
@@ -16,5 +16,5 @@ CREATE TABLE UserSettings (
                     PRIMARY KEY(User_ID)
                 );
 
-CREATE UNIQUE INDEX IXUserSettings_User_ID 
+CREATE UNIQUE INDEX IF NOT EXISTS IXUserSettings_User_ID
                 ON UserSettings (User_ID);

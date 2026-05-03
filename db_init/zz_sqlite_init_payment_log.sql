@@ -1,6 +1,6 @@
 -- PaymentLog definition
 
-CREATE TABLE PaymentLog (
+CREATE TABLE IF NOT EXISTS PaymentLog (
             payment_id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
             username TEXT,
@@ -14,9 +14,9 @@ CREATE TABLE PaymentLog (
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
-CREATE INDEX idx_paymentlog_user_id ON PaymentLog(user_id);
-CREATE INDEX idx_paymentlog_payment_date ON PaymentLog(payment_date);
-CREATE INDEX idx_paymentlog_status ON PaymentLog(payment_status);
+CREATE INDEX IF NOT EXISTS idx_paymentlog_user_id ON PaymentLog(user_id);
+CREATE INDEX IF NOT EXISTS idx_paymentlog_payment_date ON PaymentLog(payment_date);
+CREATE INDEX IF NOT EXISTS idx_paymentlog_status ON PaymentLog(payment_status);
 
 -- UserPayment definition OLD
 

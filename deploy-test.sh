@@ -55,108 +55,34 @@ copy_config_files() {
     echo "✅ Config files copied"
 }
 
+copy_sql_init_files() {
+    echo ""
+    echo "📁 Copying SQLite initialization SQL files to VPS..."
+
+    # Ensure db_init directory exists on VPS
+    ssh "$VPS_USER@$VPS_IP" "mkdir -p ~/$VPS_PATH/db_init"
+    
+    # Copy all SQLite init SQL files to VPS
+    scp db_init/zz_sqlite_init_*.sql "$VPS_USER@$VPS_IP:$VPS_PATH/db_init/"
+    
+    echo "✅ SQL initialization files copied"
+}
+
 init_sqlite_dbs() {
     echo ""
     echo "🗄️ Initializing SQLite databases on VPS..."
 
     ssh "$VPS_USER@$VPS_IP" "cd ~/$VPS_PATH && \
         mkdir -p data logs && \
-        python3 -c \"
-import sqlite3, os
-
-os.makedirs('data', exist_ok=True)
-os.makedirs('logs', exist_ok=True)
-
-# --- FlibustaSettings.sqlite ---
-db_settings = 'data/FlibustaSettings.sqlite'
-conn = sqlite3.connect(db_settings)
-cursor = conn.cursor()
-cursor.execute('''CREATE TABLE IF NOT EXISTS UserSettings (
-    User_ID INTEGER NOT NULL UNIQUE,
-    MaxBooks INTEGER NOT NULL DEFAULT 20,
-    Lang VARCHAR(2) DEFAULT '',
-    BookFormat VARCHAR(5) DEFAULT 'fb2',
-    LastNewsDate VARCHAR(10) DEFAULT '2000-01-01',
-    IsBlocked BOOLEAN DEFAULT FALSE,
-    BookSize TEXT DEFAULT '',
-    SearchType TEXT DEFAULT 'books',
-    Rating TEXT DEFAULT '',
-    SearchArea TEXT DEFAULT 'b',
-    Locale VARCHAR(5) DEFAULT '',
-    PRIMARY KEY(User_ID)
-)''')
-cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS IXUserSettings_User_ID ON UserSettings (User_ID)')
-conn.commit()
-conn.close()
-print('✅ FlibustaSettings.sqlite initialized')
-
-# --- FlibustaLogs.sqlite ---
-db_logs = 'data/FlibustaLogs.sqlite'
-conn = sqlite3.connect(db_logs)
-cursor = conn.cursor()
-cursor.executescript('''
-CREATE TABLE IF NOT EXISTS StructuredLog (
-    timestamp TEXT NOT NULL,
-    category TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    user_id INTEGER,
-    username TEXT,
-    chat_type TEXT NOT NULL,
-    chat_id INTEGER,
-    data_json TEXT,
-    duration_ms INTEGER,
-    error_message TEXT,
-    error_type TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_timestamp ON StructuredLog(timestamp);
-CREATE INDEX IF NOT EXISTS idx_category ON StructuredLog(category);
-CREATE INDEX IF NOT EXISTS idx_event_type ON StructuredLog(event_type);
-CREATE INDEX IF NOT EXISTS idx_user_id ON StructuredLog(user_id);
-CREATE INDEX IF NOT EXISTS idx_category_timestamp ON StructuredLog(category, timestamp);
-
-CREATE TABLE IF NOT EXISTS UserLog (
-    Timestamp VARCHAR(27) NOT NULL,
-    UserID INTEGER NOT NULL,
-    UserName VARCHAR(50),
-    Action VARCHAR(50),
-    Detail VARCHAR(255),
-    PRIMARY KEY(Timestamp, UserID)
-);
-CREATE INDEX IF NOT EXISTS IXUserLog_UserID_Timestamp ON UserLog (UserID, Timestamp);
-
-CREATE TABLE IF NOT EXISTS UserPayment (
-    PaymentID VARCHAR(100) PRIMARY KEY,
-    UserID INTEGER NOT NULL,
-    UserName VARCHAR(100),
-    Amount DECIMAL(15,2) NOT NULL,
-    Currency VARCHAR(10) NOT NULL,
-    PaymentMethod VARCHAR(50),
-    PaymentDate DATETIME NOT NULL,
-    PaymentStatus VARCHAR(20) NOT NULL,
-    ProviderChargeID VARCHAR(100),
-    TelegramPaymentChargeID VARCHAR(100),
-    InvoicePayload TEXT,
-    ProviderPaymentChargeID VARCHAR(100),
-    OrderInfo TEXT,
-    ShippingAddress TEXT,
-    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    Refundable BOOLEAN DEFAULT TRUE,
-    RefundedAmount DECIMAL(15,2) DEFAULT 0,
-    RefundedAt DATETIME,
-    RefundReason TEXT,
-    RefundTransactionID VARCHAR(100),
-    UserLanguage VARCHAR(10),
-    UserTimezone VARCHAR(50),
-    IPAddress VARCHAR(45),
-    UserAgent TEXT
-);
-CREATE INDEX IF NOT EXISTS IXUserPayments_UserID ON UserPayment (UserID);
-''')
-conn.commit()
-conn.close()
-print('✅ FlibustaLogs.sqlite initialized')
-\""
+        
+        # Initialize FlibustaSettings.sqlite
+        sqlite3 data/FlibustaSettings.sqlite < db_init/zz_sqlite_init_user_settings.sql && \
+        echo '✅ FlibustaSettings.sqlite initialized' && \
+        
+        # Initialize FlibustaLogs.sqlite with all required tables
+        sqlite3 data/FlibustaLogs.sqlite < db_init/zz_sqlite_init_structured_log.sql && \
+        sqlite3 data/FlibustaLogs.sqlite < db_init/zz_sqlite_init_payment_log.sql && \
+        echo '✅ FlibustaLogs.sqlite initialized'"
 
     echo "✅ SQLite databases initialized"
 }
@@ -229,6 +155,7 @@ case "${1:-}" in
 
     -d|--init-db)
         prompt_user_input_vps
+        copy_sql_init_files
         init_sqlite_dbs
         ;;
 
@@ -247,6 +174,7 @@ case "${1:-}" in
         prompt_user_input_docker
         DEPLOY_REF=$(read_deploy_ref)
         copy_config_files
+        copy_sql_init_files
         init_sqlite_dbs
         copy_news_file
         build_and_push_test_image "$DEPLOY_REF"

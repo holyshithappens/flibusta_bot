@@ -1,6 +1,6 @@
 -- UserLog definition OLD
 
---CREATE TABLE UserLog (
+--CREATE TABLE IF NOT EXISTS UserLog (
 --                    Timestamp VARCHAR(27) NOT NULL,
 --                    UserID INTEGER NOT NULL,
 --                    UserName VARCHAR(50),
@@ -9,5 +9,5 @@
 --                    PRIMARY KEY(Timestamp, UserID)
 --                );
 --
---CREATE INDEX IXUserLog_UserID_Timestamp
+--CREATE INDEX IF NOT EXISTS IXUserLog_UserID_Timestamp
 --                ON UserLog (UserID, Timestamp);
