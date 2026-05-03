@@ -681,24 +681,24 @@ class DatabaseSettings(Database):
 
     def __init__(self, db_path = FLIBUSTA_DB_SETTINGS_PATH):
         super().__init__(db_path)
-        self._ensure_locale_column()
+        # self._ensure_locale_column()
 
-    def _ensure_locale_column(self):
-        """Ensures the Locale column exists in UserSettings table (migration for existing DBs)."""
-        try:
-            with self.connect() as conn:
-                cursor = conn.cursor()
-                # Check if Locale column exists
-                cursor.execute("PRAGMA table_info(UserSettings)")
-                columns = [col[1] for col in cursor.fetchall()]
-
-                if 'Locale' not in columns:
-                    # Add Locale column with empty string default
-                    cursor.execute("ALTER TABLE UserSettings ADD COLUMN Locale VARCHAR(5) DEFAULT ''")
-                    conn.commit()
-        except Exception as e:
-            # Log but don't fail - column might already exist or table might be empty
-            print(f"Note: Could not add Locale column (may already exist): {e}")
+    # def _ensure_locale_column(self):
+    #     """Ensures the Locale column exists in UserSettings table (migration for existing DBs)."""
+    #     try:
+    #         with self.connect() as conn:
+    #             cursor = conn.cursor()
+    #             # Check if Locale column exists
+    #             cursor.execute("PRAGMA table_info(UserSettings)")
+    #             columns = [col[1] for col in cursor.fetchall()]
+    #
+    #             if 'Locale' not in columns:
+    #                 # Add Locale column with empty string default
+    #                 cursor.execute("ALTER TABLE UserSettings ADD COLUMN Locale VARCHAR(5) DEFAULT ''")
+    #                 conn.commit()
+    #     except Exception as e:
+    #         # Log but don't fail - column might already exist or table might be empty
+    #         print(f"Note: Could not add Locale column (may already exist): {e}")
 
     # def _initialize_database(self):
     #     """Инициализирует БД настроек при первом подключении"""
@@ -1342,7 +1342,7 @@ class DatabaseBooks():
         END AS relevance_oppos,
         ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    {BASE_JOINS}
+    {get_base_joins()}
     LEFT JOIN (
         SELECT bookid, COUNT(DISTINCT id) AS cnt
         FROM cb_librate
@@ -1397,7 +1397,7 @@ class DatabaseBooks():
         0 AS relevance_oppos,
         ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    {BASE_JOINS}
+    {get_base_joins()}
     WHERE {sql_where}
     ORDER BY b.BookID desc 
     LIMIT {MAX_BOOKS_SEARCH * 3} 
