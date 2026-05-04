@@ -114,8 +114,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                 None,  # Используем стандартный ThreadPoolExecutor
                 lambda: DB_BOOKS.search_pop_books(
                     user_params.Lang, user_params.BookSize, user_params.Rating,
-                    days
-                    # locale=user_params.Locale or 'ru'
+                    days,
+                    locale=user_params.Locale or 'ru'
                 )
             )
         else:

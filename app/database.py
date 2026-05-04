@@ -1172,7 +1172,7 @@ class DatabaseBooks():
 
         return authors
 
-    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0):
+    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0, locale: str = 'ru'):
         """Поиск популярных книг за период"""
         # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
 
@@ -1198,12 +1198,12 @@ class DatabaseBooks():
 
         if days_back == 0:
             # Поиск новинок
-            sql_query_nested = DatabaseBooks.build_sql_query_nov(self, sql_where)
+            sql_query_nested = DatabaseBooks.build_sql_query_nov(sql_where, locale)
         else:
             # Поиск популярных
             filter_recent = 1 if days_back < 999 else 0
             current_date = self.lib_last_update
-            sql_query_nested = DatabaseBooks.build_sql_query_pop(self, filter_recent, current_date, sql_where, days_back)
+            sql_query_nested = DatabaseBooks.build_sql_query_pop(filter_recent, current_date, sql_where, days_back, locale)
 
         select_fields = ', '.join(Book._fields)
 
@@ -1292,7 +1292,7 @@ class DatabaseBooks():
     #     return authors
 
     @staticmethod
-    def build_sql_query_pop(self, filter_recent: int, current_date: str, sql_where: str, days_back: int):
+    def build_sql_query_pop(filter_recent: int, current_date: str, sql_where: str, days_back: int, locale: str = 'ru'):
         """Build SQL query for popular books with weighted scoring.
 
         Popularity formula:
@@ -1342,7 +1342,7 @@ class DatabaseBooks():
         END AS relevance_oppos,
         ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    {get_base_joins()}
+    {get_base_joins(locale)}
     LEFT JOIN (
         SELECT bookid, COUNT(DISTINCT id) AS cnt
         FROM cb_librate
@@ -1382,7 +1382,7 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_query_nov(self, sql_where):
+    def build_sql_query_nov(sql_where, locale: str = 'ru'):
         """Поиск новинок"""
 
         return f"""
@@ -1397,7 +1397,7 @@ class DatabaseBooks():
         0 AS relevance_oppos,
         ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    {get_base_joins()}
+    {get_base_joins(locale)}
     WHERE {sql_where}
     ORDER BY b.BookID desc 
     LIMIT {MAX_BOOKS_SEARCH * 3} 
