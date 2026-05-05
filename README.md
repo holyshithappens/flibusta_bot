@@ -12,7 +12,7 @@ A comprehensive Telegram bot for searching and downloading books from the Flibus
 - **Secondary Database**: SQLite (user logs and settings)
 - **Deployment**: Docker + docker-compose
 - **Hosting**: VPS (2 CPU / 2 GB RAM)
-- **Latest Version**: 1.1.9
+- **Latest Version**: 1.2.0
 
 ## 🛠️ Tech Stack
 
@@ -22,6 +22,7 @@ A comprehensive Telegram bot for searching and downloading books from the Flibus
 - **mysql-connector-python** - MariaDB connection handling
 - **beautifulsoup4** - HTML parsing
 - **psutil** - System resource monitoring
+- **pyyaml** - YAML parsing for i18n translations
 
 ### Development Tools
 - **mypy** - Static type checking (Python 3.11)
@@ -48,13 +49,33 @@ flibusta_bot/
 │   ├── flibusta_client.py      # HTTP client for Flibusta
 │   ├── constants.py            # Application constants
 │   ├── custom_types.py         # Type definitions
-│   ├── logger.py               # Logging configuration
+│   ├── tools.py                # Bot utility tools
 │   ├── utils.py                # Utility functions
 │   ├── health.py               # Health checks & cleanup
-│   └── VERSION.py              # Version info
+│   ├── VERSION.py              # Version info
+│   ├── core/                   # Core modules
+│   │   ├── logging_schema.py   # Structured logging schema
+│   │   └── structured_logger.py # JSON format logger
+│   ├── i18n/                   # Internationalization
+│   │   ├── i18n.py             # i18n helper functions
+│   │   ├── locale_manager.py   # Locale management
+│   │   ├── plural_rules.py     # Pluralization rules
+│   │   └── translations/       # Translation files
+│   │       ├── en.yaml         # English translations
+│   │       └── ru.yaml         # Russian translations
+│   └── repositories/           # Data access layer
+│       ├── base_sqlite.py      # Base SQLite repository
+│       └── logs_repository.py  # Logs repository
+├── app_ref/                     # Reference architecture
+│   ├── core/
+│   ├── handlers/
+│   ├── repositories/
+│   └── utils/
 ├── db_init/
 │   ├── manage_flibusta_db.sh   # Database management script
 │   ├── README_CB_MIGRATION.md  # Migration documentation
+│   ├── sql/                     # SQL files directory
+│   │   └── cb_libgenrelist_en.sql  # English genre translations
 │   ├── zz_00_rollback_cb_tables.sql
 │   ├── zz_01_cleanup_old_tables.sql
 │   ├── zz_10_convert_charset.sql
@@ -62,27 +83,42 @@ flibusta_bot/
 │   ├── zz_30_create_FT_indexes.sql
 │   ├── zz_40_fill_FT.sql
 │   ├── zz_50_repair_FT.sql
+│   ├── zz_55_check_migration.sql
+│   ├── zz_56_db_statistics.sql
 │   ├── zz_59_migrate_cb_tables_to_old.sql
 │   ├── zz_60_migrate_to_cb_tables.sql
 │   ├── zz_65_copy_lib_to_cb_tables.sql
+│   ├── zz_sqlite_init_payment_log.sql
+│   ├── zz_sqlite_init_structured_log.sql
+│   ├── zz_sqlite_init_user_log.sql
+│   ├── zz_sqlite_init_user_settings.sql
 │   └── scripts/                # Database management scripts
 ├── config/
 │   ├── my.cnf                  # Local MySQL config
 │   └── my.cnf.vps              # VPS MySQL config
+├── data/
+│   ├── bot_news_en.py          # English news content
+│   ├── bot_news_ru.py          # Russian news content
+│   └── bot_news_*.example.py   # Example templates
+├── docs/
+│   ├── FLIBUSTA_BOT_SPEC.md   # Detailed specification
+│   ├── USER_GUIDE.md          # User guide
+│   └── vps_performance_guide.md # VPS optimization guide
 ├── .github/
 │   ├── workflows/              # CI/CD pipelines
 │   └── pull_request_template.md
-├── tools/
-│   └── df.sh                   # Disk usage script
 ├── docker-compose.yml          # Docker composition (local)
 ├── docker-compose.vps.yml      # Docker composition (VPS)
+├── docker-compose.prod.yml     # Docker composition (production)
+├── docker-compose.test.yml     # Docker composition (testing)
+├── deploy.sh                   # Production deployment script
+├── deploy-local.sh             # Local deployment script
+├── deploy-test.sh              # Test deployment script
 ├── Dockerfile                  # Container definition
 ├── requirements.txt            # Python dependencies
 ├── requirements-dev.txt        # Development dependencies
 ├── pyproject.toml             # Tool configurations (mypy, black, isort)
 ├── CHANGELOG.md               # Version history
-├── flibusta_bot_spec.md       # Detailed specification (1226 lines)
-├── refactoring_plan.md        # Refactoring roadmap (50KB)
 └── .env.example               # Environment variables template
 ```
 
@@ -114,6 +150,9 @@ flibusta_bot/
 - **Admin panel** - moderation and statistics
 - **Async processing** - efficient concurrent request handling
 - **Error handling** - comprehensive error recovery
+- **Internationalization (i18n)** - multi-language support (RU/EN)
+- **Structured logging** - JSON format logs for analytics
+- **Analytical views** - database views for statistics
 
 ## 🏗️ Architecture
 
@@ -122,19 +161,26 @@ flibusta_bot/
 ┌─────────────────────────────────────────────────────┐
 │                  Telegram Bot API                   │
 └─────────────────────┬───────────────────────────────┘
-                      │
+                       │
 ┌─────────────────────▼───────────────────────────────┐
 │              Python Application                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │
 │  │   Handlers   │  │   Database   │  │  Flibusta │ │
 │  │   (commands, │◄─┤   Layer      │◄─┤  Client   │ │
-│  │   callbacks, │  │   (MariaDB + │  │  (HTTP)   │ │
-│  │   messages)  │  │    SQLite)   │  └───────────┘ │
-│  └──────────────┘  └──────────────┘                │
+│  │   callbacks, │  │ (Repositories│  │  (HTTP)   │ │
+│  │   messages)  │  │  + MariaDB + │  └───────────┘ │
+│  └──────────────┘  │   SQLite)    │                │
+│         │           └──────────────┘                │
+│         │                                          │
+│  ┌──────▼────────┐  ┌──────────────────────────┐  │
+│  │  i18n Module  │  │  Structured Logging       │  │
+│  │ (translations,│  │  (JSON format,           │  │
+│  │  locale mgmt) │  │   analytics views)        │  │
+│  └───────────────┘  └──────────────────────────┘  │
 └─────────────────────────────────────────────────────┘
-                      │
-         ┌────────────┴────────────┐
-         ▼                         ▼
+                       │
+          ┌────────────┴────────────┐
+          ▼                         ▼
 ┌─────────────────┐    ┌──────────────────┐
 │   MariaDB       │    │   SQLite DBs     │
 │  (books, authors,    │  (logs, user     │
@@ -154,10 +200,22 @@ flibusta_bot/
 - User session and context management
 - Search query processing
 
-**Data Layer** (`database.py`)
+**Internationalization Layer** (`i18n/`)
+- Multi-language support (RU/EN)
+- Translation management via YAML files
+- Locale detection and switching
+- Pluralization rules support
+
+**Data Layer** (`database.py`, `repositories/`)
 - MariaDB connection pooling
 - SQLite user data management
+- Repository pattern for data access
 - Query execution and result mapping
+
+**Logging Layer** (`core/`)
+- Structured JSON format logging
+- Analytical database views (not yet)
+- Log parsing and transformation
 
 ## 🗄️ Database Schema
 
@@ -166,7 +224,8 @@ flibusta_bot/
 - **cb_libavtor** - Author-book relationships
 - **cb_libavtorname** - Author information
 - **cb_libgenre** - Book-genre relationships
-- **cb_libgenrelist** - Genre classification
+- **cb_libgenrelist** - Genre classification (Russian)
+- **cb_libgenrelist_en** - Genre classification (English translations)
 - **cb_libseq** - Book-series relationships
 - **cb_libseqname** - Series information
 - **cb_librate** - Book ratings
@@ -209,8 +268,13 @@ flibusta_bot/
    DB_NAME=flibusta
    DB_USER=flibusta
    DB_PASSWORD=flibusta
-   FEEDBACK_EMAIL=your_email@example.com
    ADMIN_PASSWORD=your_admin_password
+   # Feedback contacts
+   FEEDBACK_EMAIL=your_email@example.com
+   FEEDBACK_PIKABU=https://pikabu.ru/@username
+   FEEDBACK_PIKABU_USERNAME=@username
+   FEEDBACK_TELEGRAM=https://t.me/username
+   FEEDBACK_TELEGRAM_NAME=@username
    # Crypto donation addresses
    DONATE_SOL=your_sol_address
    DONATE_BTC=your_btc_address
@@ -257,12 +321,17 @@ docker-compose down
 - **Named volumes** - persist database data
 - **Network** - internal communication between services
 
-### docker-compose.vps.yml (Production)
+### docker-compose.test.yml (Test Environment)
 - **Resource constraints** - optimized for 2 GB RAM / 2 CPU VPS
 - **Restart policies** - `unless-stopped` for reliability
 - **Health checks** - automatic container restart on failure
 - **Volume mounts** - external configs and data directories
 - **Environment variables** - loaded from `.env` file
+
+### docker-compose.prod.yml (Production Alternative)
+- **Simplified production** - alternative production configuration
+- **Optimized resources** - tailored for production workloads
+- **Service isolation** - separate containers for bot and database
 
 ### Resource Limits
 ```yaml
@@ -496,6 +565,7 @@ INSERT INTO cb_libbook SELECT * FROM libbook;
 - **Recommended for**: Testing, validation, conservative deployments
 
 **When to use each:**
+
 | Scenario | Use |
 |----------|-----|
 | Fresh installation | zz_60 (RENAME) - faster, cleaner |
@@ -505,21 +575,42 @@ INSERT INTO cb_libbook SELECT * FROM libbook;
 | Risk aversion | zz_65 (COPY) - easy rollback |
 | Disk space tight | zz_60 (RENAME) - uses less space |
 
-## 📊 Recent Changes (v1.1.9)
+## 📊 Recent Changes (v1.2.0)
 
-### Changed
-- Migration to `cb_` prefix for Flibusta tables
-- Safe database update strategy with rollback support
+### Added (v1.2.0 - 2026-05-05)
+- **Internationalization (i18n)** - Full support for RU/EN locales
+- **i18n module** - Translation management with YAML files
+- **Language settings** - Users can switch interface language in menu
+- **Structured logging** - JSON format logs for better analytics
+- **Analytical database views** - For advanced statistics
+- **Log parser** - Convert old logs to new structured format
+
+### In Planning (v1.2.0)
+- Refactoring to Service/Repository/Handler architecture
+- Splitting `database.py` into dedicated repositories
+- Creating service layer for business logic
+
+### Fixed (v1.1.11 - 2026-04-28)
+- Corrected queries for searching novelties and popular books
+
+### Fixed (v1.1.10 - 2026-04-10)
+- Removed error nested query limitations for popular/new books search
+
+### Added (v1.1.9 - 2026-03-19)
 - Show current bot version in admin panel
 
-### Added
-- SQL migration scripts with version control
-- Database update documentation
-- Rollback procedures
+### Fixed (v1.1.8 - 2026-03-05)
+- Resolved log_payment error
 
-### Fixed
-- Log payment error resolution
-- Correct number of authors calculation
-- Cleanup interval to 3600 seconds
-- Cache repopulation issues
-- Cleanup of inactive sessions
+### Fixed (v1.1.7 - 2026-03-05)
+- Corrected number of authors calculation
+
+### Fixed (v1.1.6 - 2026-02-15)
+- Removed cache repopulation issues
+
+### Fixed (v1.1.5 - 2026-02-07)
+- Cleanup interval set to 3600 seconds
+
+### Fixed (v1.1.4 - 2026-02-07)
+- Cache invalidation after database updates
+- Cleanup of inactive user sessions
