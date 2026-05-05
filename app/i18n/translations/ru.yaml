@@ -41,19 +41,19 @@ search:
   
   results:
     books:
-      one: "книг"
-      few: "книг"
-      many: "книг"
+      one: "книг"  # Used in "из найденных книг" - genitive plural for all numbers
+      few: "книг"   # Intentional: same form for all counts
+      many: "книг"  # Used in phrases like "Показываю с X по Y из Z найденных книг"
       other: "книг"
     series:
-      one: "серий"
-      few: "серий"
-      many: "серий"
+      one: "серий"  # Used in "в серии" - genitive plural for all numbers
+      few: "серий"  # Intentional: same form for all counts
+      many: "серий"  # Used in phrases like "из Z найденных серий"
       other: "серий"
     authors:
-      one: "авторов"
-      few: "авторов"
-      many: "авторов"
+      one: "авторов"  # Used in "из найденных авторов" - genitive plural for all numbers
+      few: "авторов"  # Intentional: same form for all counts
+      many: "авторов"  # Used in phrases like "из Z найденных авторов"
       other: "авторов"
     header: "Показываю с {start} по {end} из {total} найденных {pop}{object}{filter}{in_str}"
     filter_series: " в серии '{series}'"
@@ -161,7 +161,12 @@ donate:
   stars_1200_label: "1200 звёзд"
   error: "Произошла ошибка при создании платежа"
   stars_sent: "Вы отправили {count} звёзд!\nВсе средства пойдут на аренду VPS! ❤️"
-  vps_expiry: "💡 До конца аренды VPS: {days_left} дней ({end_date_str}). Поддержи бота! /donate."
+  vps_expiry: "💡 До конца аренды VPS: {days_left} {days_str} ({end_date_str}). Поддержи бота! /donate."
+  vps_expiry_days:
+    one: "день"    # 1 день
+    few: "дня"    # 2-4 дня
+    many: "дней"   # 5+ дней
+    other: "дней"
   vps_appeal: " Все средства пойдут на оплату аренды VPS. Даже небольшой вклад поможет сохранить бота."
 
 

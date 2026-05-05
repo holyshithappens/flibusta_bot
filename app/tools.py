@@ -328,8 +328,10 @@ def get_short_donation_notice(context):
     end_date_str = os.getenv("VPS_EXPIRY_DATE", "2026-03-26")
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
     days_left = (end_date - datetime.now()).days
-
+    # Get proper plural form for "days" (день/дня/дней)
+    days_str = tp("donate.vps_expiry_days", context, days_left)
+    
     return (
-        t("donate.vps_expiry", context, days_left=days_left, end_date_str=end_date_str)
+        t("donate.vps_expiry", context, days_left=days_left, days_str=days_str, end_date_str=end_date_str)
         + t("donate.vps_appeal", context)
     )
