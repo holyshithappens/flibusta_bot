@@ -1,5 +1,6 @@
 import zipfile
 from datetime import datetime
+import json
 import os
 import time
 
@@ -7,14 +8,14 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKey
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler
 
-from context import get_user_params, update_user_params
-from database import DB_LOGS
+from .context import get_user_params, update_user_params
+from .repositories.logs_repository import LogsRepository
+
+# Создаем экземпляр репозитория логов
+LOGS_REPO = LogsRepository()
 
 # Добавляем константы для пагинации
 USERS_PER_PAGE = 10
-
-# Создаем экземпляр базы данных логов
-# DB_LOGS = DatabaseLogs()
 
 # Админские кнопки: ключ - имя обработчика, значение - текст кнопки
 # Добавляем новые админские кнопки
@@ -402,13 +403,13 @@ async def admin_user_stats(update: Update, context: CallbackContext, from_callba
         return
 
     # Получаем общую статистику
-    stats = DB_LOGS.get_user_stats_summary()
+    stats = LOGS_REPO.get_user_stats_summary()
 
     # Получаем статистику по дням
-    daily_stats = DB_LOGS.get_daily_user_stats(7)
+    daily_stats = LOGS_REPO.get_daily_user_stats(7)
 
     # Получаем статистику по донатам
-    payment_stats = DB_LOGS.get_payment_stats(30)
+    payment_stats = LOGS_REPO.get_payment_stats(30)
 
     stats_text = f"""
 📈 <b>Статистика пользователей</b>
@@ -469,7 +470,7 @@ async def admin_user_stats(update: Update, context: CallbackContext, from_callba
 
 async def show_top_searches(query, context: CallbackContext):
     """Показывает топ поисковых запросов"""
-    top_searches = DB_LOGS.get_top_searches(15)
+    top_searches = LOGS_REPO.get_top_searches(15)
 
     searches_text = "🔍 <b>Топ поисковых запросов</b>\n\n"
 
@@ -494,8 +495,8 @@ async def admin_recent_activity(update: Update, context: CallbackContext):
 
     # Получаем последние действия
     activities = []
-    recent_searches = DB_LOGS.get_recent_searches(10)
-    recent_downloads = DB_LOGS.get_recent_downloads(10)
+    recent_searches = LOGS_REPO.get_recent_searches(10)
+    recent_downloads = LOGS_REPO.get_recent_downloads(10)
 
     activity_text = "🔍 <b>Последняя активность</b>\n\n"
 
@@ -522,8 +523,8 @@ async def admin_recent_activity(update: Update, context: CallbackContext):
 
 async def show_users_list(query, context: CallbackContext, page=0):
     """Показывает список пользователей"""
-    users = DB_LOGS.get_users_list(USERS_PER_PAGE, page * USERS_PER_PAGE)
-    total_users = DB_LOGS.get_user_stats_summary()['total_users']
+    users = LOGS_REPO.get_users_list(USERS_PER_PAGE, page * USERS_PER_PAGE)
+    total_users = LOGS_REPO.get_user_stats_summary()['total_users']
 
     users_text = f"👥 <b>Список пользователей</b>\n\n"
     users_text += f"Страница {page + 1} из {((total_users - 1) // USERS_PER_PAGE) + 1}\n\n"
@@ -560,14 +561,14 @@ async def show_users_list(query, context: CallbackContext, page=0):
 async def show_user_detail(query, context: CallbackContext, user_id):
     """Показывает детальную информацию о пользователе"""
     # Получаем информацию о пользователе напрямую по ID
-    user = DB_LOGS.get_user_by_id(user_id)
+    user = LOGS_REPO.get_user_by_id(user_id)
 
     if not user:
         await query.edit_message_text("❌ Пользователь не найден")
         return
 
     # Получаем историю действий
-    activities = DB_LOGS.get_user_activity(user_id, 10)
+    activities = LOGS_REPO.get_user_activity(user_id, 10)
 
     # Проверяем статус блокировки
     # user_settings = DB_SETTINGS.get_user_settings(user_id)
@@ -585,15 +586,40 @@ async def show_user_detail(query, context: CallbackContext, user_id):
 
     user_text += "📋 <b>Последние действия:</b>\n"
     for activity in activities:
-        action_desc = activity['action']
-        if 'searched for' in activity['action']:
-            # Убираем часть с count из деталей поиска
-            detail = activity['detail'].split(';')[0] if ';' in activity['detail'] else activity['detail']
-            action_desc = f"🔍 Поиск: {detail}"
-        elif 'send file' in activity['action']:
-            action_desc = f"📥 Скачал: {activity['detail']}"
-        elif 'started bot' in activity['action']:
+        event_type = activity.get('event_type', '')
+        data_json = activity.get('data_json', '')
+
+        # Parse data_json if available
+        try:
+            data = json.loads(data_json) if data_json else {}
+        except (json.JSONDecodeError, TypeError):
+            data = {}
+
+        # Map event_type to human-readable description
+        if event_type.startswith('search.'):
+            query = data.get('query', '')
+            action_desc = f"🔍 Поиск: {query}"
+        elif event_type == 'book.download':
+            book_title = data.get('book_title', '')
+            action_desc = f"📥 Скачал: {book_title}"
+        elif event_type == 'bot.start':
             action_desc = "🚀 Запустил бота"
+        elif event_type == 'book.info.view':
+            book_title = data.get('book_title', '')
+            action_desc = f"📖 Просмотр книги: {book_title}"
+        elif event_type == 'author.info.view':
+            author_name = data.get('author_name', '')
+            action_desc = f"👤 Просмотр автора: {author_name}"
+        elif event_type == 'book.details.view':
+            book_title = data.get('book_title', '')
+            action_desc = f"📋 Детали книги: {book_title}"
+        elif event_type == 'book.reviews.view':
+            action_desc = "💬 Просмотр отзывов"
+        elif event_type == 'settings.change':
+            setting_name = data.get('setting_name', '')
+            action_desc = f"⚙️ Изменение настроек: {setting_name}"
+        else:
+            action_desc = event_type
 
         user_text += f"• {activity['timestamp']}: {action_desc}\n"
 
@@ -639,7 +665,7 @@ async def toggle_user_block(query, context: CallbackContext, user_id):
 
 async def show_recent_searches(query, context: CallbackContext):
     """Показывает последние поисковые запросы"""
-    searches = DB_LOGS.get_recent_searches(20)
+    searches = LOGS_REPO.get_recent_searches(20)
 
     searches_text = "🔍 <b>Последние поисковые запросы</b>\n\n"
 
@@ -654,7 +680,7 @@ async def show_recent_searches(query, context: CallbackContext):
 
 async def show_recent_downloads(query, context: CallbackContext):
     """Показывает последние скачивания"""
-    downloads = DB_LOGS.get_recent_downloads(20)
+    downloads = LOGS_REPO.get_recent_downloads(20)
 
     downloads_text = "📥 <b>Последние скачивания</b>\n\n"
 
@@ -669,7 +695,7 @@ async def show_recent_downloads(query, context: CallbackContext):
 
 async def show_top_downloads(query, context: CallbackContext):
     """Показывает топ скачанных книг"""
-    top_downloads = DB_LOGS.get_top_downloads(20)
+    top_downloads = LOGS_REPO.get_top_downloads(20)
 
     top_text = "🏆 <b>Топ скачанных книг</b>\n\n"
 

@@ -2,49 +2,51 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from handlers_utils import add_close_button, edit_or_reply_message, create_back_button
-from database import DB_BOOKS
-from constants import  SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
+from .handlers_utils import add_close_button, edit_or_reply_message, create_back_button
+from .database import DB_BOOKS
+from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
-    SETTING_SEARCH_AREA
-from context import get_user_params, update_user_params
-from logger import logger
+    SETTING_SEARCH_AREA, SETTING_LOCALE, UI_SEPARATOR
+from .context import get_user_params, update_user_params
+from .core.structured_logger import structured_logger
+from .i18n import t, set_user_locale, get_setting_title
 
 
 # ===== НАСТРОЙКИ =====
-async def show_settings_menu(update_or_query, context, from_callback=False):
+async def show_settings_menu(update, context, from_callback=False):
     """Показывает главное меню настроек"""
-    settings_keyboard = create_settings_menu(context)
-
-    # Добавляем кнопку закрытия без message_id
-    add_close_button(settings_keyboard)
-
-    reply_markup = InlineKeyboardMarkup(settings_keyboard)
-
     if from_callback:
-        await update_or_query.edit_message_text("Настроить:", reply_markup=reply_markup)
-        user = update_or_query.from_user
+        settings_keyboard = create_settings_menu(context)
+        add_close_button(settings_keyboard, context)
+        reply_markup = InlineKeyboardMarkup(settings_keyboard)
+        await update.edit_message_text(t('settings.menu.title', context), reply_markup=reply_markup)
     else:
-        await update_or_query.message.reply_text("Настроить:", reply_markup=reply_markup)
-        user = update_or_query.message.from_user
+        # query = update.callback_query
+        settings_keyboard = create_settings_menu(context)
+        add_close_button(settings_keyboard, context)
+        reply_markup = InlineKeyboardMarkup(settings_keyboard)
+        await update.message.reply_text(t('settings.menu.title', context), reply_markup=reply_markup)
+        # user = update.message.from_user
 
-    logger.log_user_action(user, "showed settings menu")
+    # logger.log_user_action(user, "showed settings menu")
 
 
-async def handle_set_max_books(query, context, action, params):
+async def handle_set_max_books(update, context, action, params):
     """Показывает настройки максимального вывода"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.MaxBooks
 
-    options = SETTING_OPTIONS[SETTING_MAX_BOOKS]
-    reply_markup = create_settings_keyboard(SETTING_MAX_BOOKS, current_value, options)
+    options =  SETTING_OPTIONS[SETTING_MAX_BOOKS]
+    reply_markup = create_settings_keyboard(SETTING_MAX_BOOKS, current_value, options, context)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_MAX_BOOKS], reply_markup)
-    logger.log_user_action(query.from_user, "showed max books setting for user")
+    await edit_or_reply_message(query, get_setting_title(SETTING_MAX_BOOKS, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed max books setting for user")
 
 
-async def handle_set_lang_search(query, context, action, params):
+async def handle_set_lang_search(update, context, action, params):
     """Показывает настройки языка поиска"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.Lang
 
@@ -52,10 +54,10 @@ async def handle_set_lang_search(query, context, action, params):
     langs = DB_BOOKS.get_langs()
     options = [(lang[0], lang[0]) for lang in langs if lang[0]]
 
-    reply_markup = create_settings_keyboard(SETTING_LANG_SEARCH, current_value, options)
+    reply_markup = create_settings_keyboard(SETTING_LANG_SEARCH, current_value, options, context)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_LANG_SEARCH], reply_markup)
-    logger.log_user_action(query.from_user, "showed langs of books setting for user")
+    await edit_or_reply_message(query, get_setting_title(SETTING_LANG_SEARCH, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed langs of books setting for user")
 
 
 # async def handle_set_sort_order(query, context, action, params):
@@ -70,71 +72,111 @@ async def handle_set_lang_search(query, context, action, params):
 #     logger.log_user_action(query.from_user, "showed sort order setting for user")
 
 
-async def handle_set_size_limit(query, context, action, params):
+async def handle_set_size_limit(update, context, action, params):
     """Показывает настройки ограничения размера"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.BookSize
 
-    options = SETTING_OPTIONS[SETTING_SIZE_LIMIT]
-    reply_markup = create_settings_keyboard(SETTING_SIZE_LIMIT, current_value, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_SIZE_LIMIT]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_SIZE_LIMIT, current_value, options, context)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_SIZE_LIMIT], reply_markup)
-    logger.log_user_action(query.from_user, "showed size limit setting for user")
+    await edit_or_reply_message(query, get_setting_title(SETTING_SIZE_LIMIT, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed size limit setting for user")
 
 
-async def handle_set_book_format(query, context, action, params):
+async def handle_set_book_format(update, context, action, params):
     """Показывает настройки формата книг"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.BookFormat
 
-    options = SETTING_OPTIONS[SETTING_BOOK_FORMAT]
-    reply_markup = create_settings_keyboard(SETTING_BOOK_FORMAT, current_value, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_BOOK_FORMAT]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_BOOK_FORMAT, current_value, options, context)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_BOOK_FORMAT], reply_markup)
-    logger.log_user_action(query.from_user, "showed book format setting for user")
+    await edit_or_reply_message(query, get_setting_title(SETTING_BOOK_FORMAT, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed book format setting for user")
 
 
-async def handle_set_search_type(query, context, action, params):
+async def handle_set_search_type(update, context, action, params):
     """Показывает настройки типа поиска"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.SearchType
 
-    options = SETTING_OPTIONS[SETTING_SEARCH_TYPE]
-    reply_markup = create_settings_keyboard(SETTING_SEARCH_TYPE, current_value, options)
+    options = [
+        (value, t(label, context))
+        for value, label in SETTING_OPTIONS[SETTING_SEARCH_TYPE]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_SEARCH_TYPE, current_value, options, context)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_SEARCH_TYPE], reply_markup)
-    logger.log_user_action(query.from_user, "showed search type setting")
+    await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_TYPE, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed search type setting")
 
 
-async def handle_set_rating_filter(query, context, action, params):
+async def handle_set_rating_filter(update, context, action, params):
     """Показывает настройки фильтра по рейтингу"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.Rating
 
     # Преобразуем текущее значение в список для отображения
     current_ratings = current_value.split(',') if current_value else []
 
-    options = SETTING_OPTIONS[SETTING_RATING_FILTER]
-    reply_markup = create_rating_filter_keyboard(current_ratings, options)
+    options = [
+        (key, t(label, context))
+        for key, label in SETTING_OPTIONS[SETTING_RATING_FILTER]
+    ]
+    # print(f"DEBUG: options={options}")
+    reply_markup = create_rating_filter_keyboard(current_ratings, options, context)
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_RATING_FILTER], reply_markup)
-    logger.log_user_action(query.from_user, "showed rating filter setting")
+    await edit_or_reply_message(query, get_setting_title(SETTING_RATING_FILTER, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed rating filter setting")
 
 
-async def handle_set_actions(query, context, action, params):
+async def handle_set_actions(update, context, action, params):
     """Обрабатывает все set_ действия"""
+    query = update.callback_query
     user = query.from_user
+    action = query.data
+    user_params = get_user_params(context)
 
     # Определяем тип настройки из action
     if action.startswith(f'set_{SETTING_MAX_BOOKS}_to_'):
         setting_type = SETTING_MAX_BOOKS
+        old_value = user_params.MaxBooks
         new_value = int(action.removeprefix(f'set_{SETTING_MAX_BOOKS}_to_'))
         update_user_params(context, MaxBooks=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="MaxBooks",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_LANG_SEARCH}_to_'):
         setting_type = SETTING_LANG_SEARCH
+        old_value = user_params.Lang
         new_value = action.removeprefix(f'set_{SETTING_LANG_SEARCH}_to_')
         update_user_params(context, Lang=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="Lang",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     # elif action.startswith(f'set_{SETTING_SORT_ORDER}_to_'):
     #     setting_type = SETTING_SORT_ORDER
@@ -143,24 +185,79 @@ async def handle_set_actions(query, context, action, params):
 
     elif action.startswith(f'set_{SETTING_SIZE_LIMIT}_to_'):
         setting_type = SETTING_SIZE_LIMIT
+        old_value = user_params.BookSize
         new_value = action.removeprefix(f'set_{SETTING_SIZE_LIMIT}_to_')
         update_user_params(context, BookSize=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="BookSize",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_BOOK_FORMAT}_to_'):
         setting_type = SETTING_BOOK_FORMAT
+        old_value = user_params.BookFormat
         new_value = action.removeprefix(f'set_{SETTING_BOOK_FORMAT}_to_')
         update_user_params(context, BookFormat=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="BookFormat",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_SEARCH_TYPE}_to_'):
         setting_type = SETTING_SEARCH_TYPE
+        old_value = user_params.SearchType
         new_value = action.removeprefix(f'set_{SETTING_SEARCH_TYPE}_to_')
         update_user_params(context, SearchType=new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="SearchType",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
 
     elif action.startswith(f'set_{SETTING_SEARCH_AREA}_to_'):
         setting_type = SETTING_SEARCH_AREA
+        old_value = user_params.SearchArea
         new_value = action.removeprefix(f'set_{SETTING_SEARCH_AREA}_to_')
         update_user_params(context, SearchArea=new_value)
-
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="SearchArea",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
+    
+    elif action.startswith(f'set_{SETTING_LOCALE}_to_'):
+        setting_type = SETTING_LOCALE
+        old_value = getattr(user_params, 'Locale', '') or 'ru'
+        new_value = action.removeprefix(f'set_{SETTING_LOCALE}_to_')
+        # Update locale using the i18n function (handles DB and context cache)
+        set_user_locale(context, user.id, new_value)
+        structured_logger.log_settings_change(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            setting_name="Locale",
+            old_value=old_value,
+            new_value=new_value,
+            chat_type="private",
+            chat_id=user.id
+        )
     else:
         return
 
@@ -169,33 +266,60 @@ async def handle_set_actions(query, context, action, params):
         langs = DB_BOOKS.get_langs()
         options = [(lang[0], lang[0]) for lang in langs if lang[0]]
     else:
-        options = SETTING_OPTIONS[setting_type]
+        options = [
+            x if x == UI_SEPARATOR else (x[0], t(x[1],context))
+            for x in SETTING_OPTIONS[setting_type]
+        ]
 
-    reply_markup = create_settings_keyboard(setting_type, new_value, options)
+    reply_markup = create_settings_keyboard(setting_type, new_value, options, context)
 
     # print(f"DEBUG: {setting_type} {new_value}")
 
     # Обновляем сообщение
+    # For locale setting, use localized title
+    title = get_setting_title(setting_type, context)
+    
     try:
-        await query.edit_message_text(SETTING_TITLES[setting_type], reply_markup=reply_markup)
+        await query.edit_message_text(title, reply_markup=reply_markup)
     except BadRequest as e:
         if "Message is not modified" not in str(e):
             raise e
 
     # Логируем действие
-    logger.log_user_action(user, f"set {setting_type} to {new_value}")
+    # logger.log_user_action(user, f"set {setting_type} to {new_value}")
 
 
-async def handle_set_search_area(query, context, action, params):
+async def handle_set_search_area(update, context, action, params):
     """Показывает настройки дополнительного поиска"""
+    query = update.callback_query
     user_params = get_user_params(context)
     current_value = user_params.SearchArea
 
-    options = SETTING_OPTIONS[SETTING_SEARCH_AREA]
-    reply_markup = create_settings_keyboard(SETTING_SEARCH_AREA, current_value, options)
+    options = [
+        x if x == UI_SEPARATOR else (x[0], t(x[1], context))
+        for x in SETTING_OPTIONS[SETTING_SEARCH_AREA]
+    ]
 
-    await edit_or_reply_message(query, SETTING_TITLES[SETTING_SEARCH_AREA], reply_markup)
-    logger.log_user_action(query.from_user, "showed search area setting")
+    reply_markup = create_settings_keyboard(SETTING_SEARCH_AREA, current_value, options, context)
+
+    await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_AREA, context), reply_markup)
+    # logger.log_user_action(query.from_user, "showed search area setting")
+
+
+async def handle_set_locale(update, context, action, params):
+    """Shows language selection menu"""
+    query = update.callback_query
+    user_params = get_user_params(context)
+    current_value = getattr(user_params, 'Locale', '') or 'ru'
+    
+    options = [
+        (value, t(label,context)) for value, label in
+        SETTING_OPTIONS[SETTING_LOCALE]
+    ]
+    reply_markup = create_settings_keyboard(SETTING_LOCALE, current_value, options, context)
+    
+    title = t('settings.menu.locale', context)
+    await edit_or_reply_message(query, title, reply_markup)
 
 
 def create_settings_menu(context:CallbackContext):
@@ -228,27 +352,27 @@ def create_settings_menu(context:CallbackContext):
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.BookSize
                 for option in SETTING_OPTIONS[SETTING_SIZE_LIMIT]:
-                    if option == "__NEWLINE__":
+                    if option == UI_SEPARATOR:
                         continue
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})" if value else ""
+                        current_display = f"({t(display,context)})" if value else ""
                         break
 
             elif setting_type == SETTING_BOOK_FORMAT:
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.BookFormat
-                current_display = f"({current_value})"
+                current_display = f"({t(current_value,context)})"
 
             elif setting_type == SETTING_SEARCH_TYPE:
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.SearchType
                 for option in SETTING_OPTIONS[SETTING_SEARCH_TYPE]:
-                    if option == "__NEWLINE__":
+                    if option == UI_SEPARATOR:
                         continue
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})"
+                        current_display = f"({t(display,context)})"
                         break
 
             elif setting_type == SETTING_RATING_FILTER:
@@ -256,30 +380,39 @@ def create_settings_menu(context:CallbackContext):
                 if current_value:
                     # Для рейтинга показываем только эмодзи
                     ratings = current_value.split(',')
-                    emojis = "".join([BOOK_RATINGS.get(int(r), ("⚪️", ""))[0] for r in ratings if r])
+                    emojis = "".join([BOOK_RATINGS.get(r, ("⚪️", ""))[0] for r in ratings if r])
                     current_display = f"({emojis})" if emojis else ""
 
             elif setting_type == SETTING_SEARCH_AREA:
                 # Ищем отображаемое значение в списке настроек
                 current_value = user_params.SearchArea
                 for option in SETTING_OPTIONS[SETTING_SEARCH_AREA]:
-                    if option == "__NEWLINE__":
+                    if option == UI_SEPARATOR:
                         continue
                     value, display = option
                     if value == current_value:
-                        current_display = f"({display})"
+                        current_display = f"({t(display,context)})"
+                        break
+            
+            elif setting_type == SETTING_LOCALE:
+                # Display current locale with flag
+                current_value = getattr(user_params, 'Locale', '') or 'ru'
+                for option in SETTING_OPTIONS[SETTING_LOCALE]:
+                    value, display = option
+                    if value == current_value:
+                        current_display = f"({t(display,context)})"
                         break
 
         except Exception as e:
             print(f"Error getting setting {setting_type}: {e}")
 
-        button_text = f"{text} {current_display}".strip()
+        button_text = f"{t(text,context)} {current_display}".strip()
         keyboard.append([InlineKeyboardButton(button_text, callback_data=f"set_{setting_type}")])
 
     return keyboard
 
 
-def create_settings_keyboard(setting_type, current_value, options):
+def create_settings_keyboard(setting_type, current_value, options, context):
     """
     Создает клавиатуру для настроек с галочками и кнопкой назад
     :param setting_type: тип настройки (для callback_data)
@@ -293,7 +426,8 @@ def create_settings_keyboard(setting_type, current_value, options):
         if current_value:
             keyboard.append([
                 InlineKeyboardButton(
-                    f"✔ {current_value} - сбросить",
+                    # f"✔ {current_value} - сбросить",
+                    t("common.reset_lang",context,lang=current_value),
                     callback_data=f"set_{setting_type}_to_"
                 )
             ])
@@ -313,7 +447,7 @@ def create_settings_keyboard(setting_type, current_value, options):
         # Для остальных настроек - кнопки в строку
         row = []
         for option in options:
-            if option == "__NEWLINE__":
+            if option == UI_SEPARATOR:
                 if row:  # не добавляем пустую строку
                     keyboard.append(row)
                     row = []
@@ -328,12 +462,12 @@ def create_settings_keyboard(setting_type, current_value, options):
             keyboard.append(row)
 
     # Добавляем кнопку "Назад"
-    keyboard += create_back_button()
+    keyboard += create_back_button(context)
 
     return InlineKeyboardMarkup(keyboard)
 
 
-def create_rating_filter_keyboard(current_ratings, options):
+def create_rating_filter_keyboard(current_ratings, options, context):
     """Создает клавиатуру для множественного выбора рейтингов"""
     keyboard = []
 
@@ -348,9 +482,9 @@ def create_rating_filter_keyboard(current_ratings, options):
         )])
 
     # Кнопка сброса
-    keyboard.append([InlineKeyboardButton("🔄 Сбросить все", callback_data="reset_ratings")])
+    keyboard.append([InlineKeyboardButton(t("common.reset_all", context), callback_data="reset_ratings")])
 
     # Кнопка назад
-    keyboard += create_back_button()
+    keyboard += create_back_button(context)
 
     return InlineKeyboardMarkup(keyboard)

@@ -4,3 +4,4 @@ aiohttp
 mysql-connector-python
 psutil
 beautifulsoup4
+pyyaml

@@ -4,7 +4,7 @@ from urllib.parse import unquote
 import re
 from bs4 import BeautifulSoup
 
-from constants import FLIBUSTA_BASE_URL
+from .constants import FLIBUSTA_BASE_URL
 
 
 class FlibustaClient:

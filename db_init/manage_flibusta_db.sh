@@ -52,25 +52,30 @@ download_sql_files() {
         "https://flibusta.is/sql/lib.reviews.sql.gz"
         "https://flibusta.is/sql/lib.b.annotations.sql.gz"
         "https://flibusta.is/sql/lib.a.annotations.sql.gz"
+        "https://flibusta.is/sql/lib.libgenrelist.sql.gz"
+        "https://flibusta.is/sql/lib.libseqname.sql.gz"
+        "https://flibusta.is/sql/lib.b.annotations_pics.sql.gz"
+        "https://flibusta.is/sql/lib.a.annotations_pics.sql.gz"
     )
 
-    read -rp "Скачать доп. файлы? (y/N): " -n1 extra
-    echo
-    if [[ $extra =~ ^[Yy]$ ]]; then
-        EXTRA=(
-            "https://flibusta.is/sql/lib.libtranslator.sql.gz"
-            "https://flibusta.is/sql/lib.libfilename.sql.gz"
-            "https://flibusta.is/sql/lib.libgenrelist.sql.gz"
-            "https://flibusta.is/sql/lib.libgenretranslate.sql.gz"
-            "https://flibusta.is/sql/lib.libjoinedbooks.sql.gz"
-            "https://flibusta.is/sql/lib.libseqname.sql.gz"
-            "https://flibusta.is/sql/lib.b.annotations_pics.sql.gz"
-            "https://flibusta.is/sql/lib.a.annotations_pics.sql.gz"
-        )
-        FILES=("${REQUIRED[@]}" "${EXTRA[@]}")
-    else
-        FILES=("${REQUIRED[@]}")
-    fi
+#    read -rp "Скачать доп. файлы? (y/N): " -n1 extra
+#    echo
+#    if [[ $extra =~ ^[Yy]$ ]]; then
+#        EXTRA=(
+#            "https://flibusta.is/sql/lib.libtranslator.sql.gz"
+#            "https://flibusta.is/sql/lib.libfilename.sql.gz"
+#            "https://flibusta.is/sql/lib.libgenrelist.sql.gz"
+#            "https://flibusta.is/sql/lib.libgenretranslate.sql.gz"
+#            "https://flibusta.is/sql/lib.libjoinedbooks.sql.gz"
+#            "https://flibusta.is/sql/lib.libseqname.sql.gz"
+#            "https://flibusta.is/sql/lib.b.annotations_pics.sql.gz"
+#            "https://flibusta.is/sql/lib.a.annotations_pics.sql.gz"
+#        )
+#        FILES=("${REQUIRED[@]}" "${EXTRA[@]}")
+#    else
+#        FILES=("${REQUIRED[@]}")
+#    fi
+    FILES=("${REQUIRED[@]}")
 
     for url in "${FILES[@]}"; do
         filename=$(basename "$url")
