@@ -28,7 +28,7 @@ services:
           # Ставим лимит чуть выше настройки буфера + оверхед (~700-800M)
           memory: 1.2G
           cpus: '1.5'
-    mem_swappiness: 0          # ← don't let this container use swap at all
+    mem_swappiness: 20          # ← don't let this container use swap at all
     volumes:
       - mariadb_data:/var/lib/mysql  # Тот же volume
 #      - ./db_init:/docker-entrypoint-initdb.d:ro
@@ -53,7 +53,7 @@ services:
         limits:
           memory: 256M
           cpus: '0.8'
-    mem_swappiness: 0          # ← don't let this container use swap at all
+    mem_swappiness: 50          # ← don't let this container use swap at all
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

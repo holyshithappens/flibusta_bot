@@ -67,7 +67,8 @@ prepare_system() {
     SWAP_USED=$(free -m | awk '/^Swap:/{print $3}')
     if [ "$SWAP_USED" -gt 50 ] && [ "$FREE_MB" -gt 700 ]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Flushing ${SWAP_USED}MB of swap..."
-        sudo swapoff -a && sudo swapon -a
+# Consider run sudo commands without prompting password!
+#        sudo swapoff -a && sudo swapon -a
     else
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Skipping swap flush (free RAM: ${FREE_MB}MB, swap used: ${SWAP_USED}MB)"
     fi

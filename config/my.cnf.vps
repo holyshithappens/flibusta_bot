@@ -11,6 +11,13 @@ innodb-buffer-pool-size=512M
 innodb-log-file-size=64M
 innodb-flush-log-at-trx-commit=2
 
+# FTS cache — set large enough to hold libbook_fts working set
+# Observed peak need: 148MB. 96M covers most queries without over-allocating.
+# This is allocated on-demand, not permanently held in RAM.
+innodb-ft-cache-size=100M
+# Total FTS cache across all tables (default 640M is too high for your setup)
+innodb-ft-total-cache-size=256M
+
 # Memory tuning (conservative)
 key-buffer-size=128M
 myisam-sort-buffer-size=32M
