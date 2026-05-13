@@ -259,6 +259,82 @@ ensure_containers_healthy() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: Containers are healthy"
 }
 
+backup_sql_files() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 📦 Starting task: Backup SQL files..."
+    mkdir -p "$SQL_DIR"
+    cd "$SQL_DIR"
+
+    local today
+    today="$(date '+%Y%m%d')"
+    local backup_name="backup_flibusta_sql_${today}.tar.gz"
+    local previous_backup=""
+
+    # Find the previous backup archive (if any)
+    previous_backup=$(ls -1 backup_flibusta_sql_*.tar.gz 2>/dev/null | sort | tail -1)
+
+    # Create archive of all current .sql.gz files
+    local file_count=0
+    for f in *.sql.gz; do
+        [ -f "$f" ] && file_count=$((file_count + 1))
+    done
+
+    if [ "$file_count" -eq 0 ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ℹ️  No SQL files to backup, skipping"
+        return 0
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Creating archive $backup_name ($file_count files)..."
+    if tar -czf "$backup_name" *.sql.gz; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Archive created: $backup_name ($(du -h "$backup_name" | cut -f1))"
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Failed to create archive $backup_name"
+        return 1
+    fi
+
+    # Remove previous backup archive if it exists and differs from the new one
+    if [ -n "$previous_backup" ] && [ "$previous_backup" != "$backup_name" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Removing previous archive: $previous_backup"
+        rm -f "$previous_backup"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Previous archive removed"
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ℹ️  No previous archive to remove"
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: SQL files backed up to $backup_name"
+}
+
+restore_sql_files() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 📦 Starting task: Restore SQL files from backup..."
+    mkdir -p "$SQL_DIR"
+    cd "$SQL_DIR"
+
+    # Find the latest backup archive
+    local latest_backup
+    latest_backup=$(ls -1 backup_flibusta_sql_*.tar.gz 2>/dev/null | sort | tail -1)
+
+    if [ -z "$latest_backup" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ No backup archive found in $SQL_DIR"
+        return 1
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Found backup archive: $latest_backup ($(du -h "$latest_backup" | cut -f1))"
+
+    # List files in the archive
+    local file_count
+    file_count=$(tar -tzf "$latest_backup" | wc -l)
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Archive contains $file_count files"
+
+    # Extract archive to the same directory (overwrite existing files)
+    if tar -xzf "$latest_backup"; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Restored $file_count SQL files from $latest_backup"
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Failed to extract $latest_backup"
+        return 1
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: SQL files restored from backup"
+}
+
 # === Main Execution ===
 main() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 🔄 Starting Automated Flibusta DB Update Process"
@@ -291,6 +367,10 @@ main() {
             activate_cb_tables
         elif [[ "$task_name" == "process_libbook_fts" ]]; then
             process_libbook_fts
+        elif [[ "$task_name" == "backup_sql_files" ]]; then
+            backup_sql_files
+        elif [[ "$task_name" == "restore_sql_files" ]]; then
+            restore_sql_files
         elif [[ "$task_name" == "ensure_containers_healthy" ]]; then
             ensure_containers_healthy
         else
