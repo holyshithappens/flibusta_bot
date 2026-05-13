@@ -243,7 +243,7 @@ async def admin_backup(update: Update, context: CallbackContext):
 
     try:
         # Создаем временную директорию если не существует
-        from constants import BACKUP_TMP_PATH, BACKUP_DB_FILES, BACKUP_LOG_PATTERN
+        from .constants import BACKUP_TMP_PATH, BACKUP_DB_FILES, BACKUP_LOG_PATTERN
         import glob
 
         tmp_dir = BACKUP_TMP_PATH
@@ -350,10 +350,10 @@ async def admin_system(update: Update, context: CallbackContext):
         return
 
     # Получаем версию бота
-    from VERSION import __version__
+    from .VERSION import __version__
 
     # Получаем системную статистику
-    from health import get_system_stats, get_memory_usage
+    from .health import get_system_stats, get_memory_usage
     stats = get_system_stats()
 
     # Получаем информацию о текущих админских сессиях
@@ -476,7 +476,7 @@ async def show_top_searches(query, context: CallbackContext):
 
     for i, search in enumerate(top_searches, 1):
         # Обрезаем длинные запросы
-        query_text = search['query'][:50] + "..." if len(search['query']) > 50 else search['query']
+        query_text = search['query'][:50] + "..." if search['query'] and len(search['query']) > 50 else (search['query'] or 'N/A')
 
         searches_text += f"{i}. {query_text}\n"
         searches_text += f"   👥 {search['count']} раз ({search['unique_users']} пользователей)\n\n"
@@ -485,6 +485,41 @@ async def show_top_searches(query, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(searches_text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+
+
+PAYMENTS_PER_PAGE = 20
+
+
+async def show_payments_list(query, context: CallbackContext, page=0):
+    """Показывает список платежей с пагинацией"""
+    total_payments = LOGS_REPO.get_payments_count()
+    payments = LOGS_REPO.get_payments_list(PAYMENTS_PER_PAGE, page * PAYMENTS_PER_PAGE)
+
+    payments_text = "💰 <b>Список платежей</b>\n\n"
+    payments_text += f"Страница {page + 1} из {((total_payments - 1) // PAYMENTS_PER_PAGE) + 1 if total_payments > 0 else 1}\n\n"
+
+    if not payments:
+        payments_text += "Платежи не найдены."
+    else:
+        for payment in payments:
+            status_emoji = "✅" if payment['payment_status'] == 'completed' else "⏳"
+            payments_text += (
+                f"{status_emoji} <b>{payment['username'] or 'Пользователь #' + str(payment['user_id'])}</b>\n"
+                f"   💵 {payment['amount']} {payment['currency']}\n"
+                f"   📅 {payment['payment_date']}\n"
+                f"   🆔 {payment['payment_id']}\n\n"
+            )
+
+    keyboard = []
+    if page > 0:
+        keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f"payments_list:{page - 1}")])
+    if (page + 1) * PAYMENTS_PER_PAGE < total_payments:
+        keyboard.append([InlineKeyboardButton("Вперёд ➡️", callback_data=f"payments_list:{page + 1}")])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад в статистику", callback_data="back_to_stats")])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_text(payments_text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
 
 
 async def admin_recent_activity(update: Update, context: CallbackContext):
@@ -597,8 +632,8 @@ async def show_user_detail(query, context: CallbackContext, user_id):
 
         # Map event_type to human-readable description
         if event_type.startswith('search.'):
-            query = data.get('query', '')
-            action_desc = f"🔍 Поиск: {query}"
+            search_query = data.get('query', '')
+            action_desc = f"🔍 Поиск: {search_query}"
         elif event_type == 'book.download':
             book_title = data.get('book_title', '')
             action_desc = f"📥 Скачал: {book_title}"
@@ -614,10 +649,37 @@ async def show_user_detail(query, context: CallbackContext, user_id):
             book_title = data.get('book_title', '')
             action_desc = f"📋 Детали книги: {book_title}"
         elif event_type == 'book.reviews.view':
-            action_desc = "💬 Просмотр отзывов"
+             action_desc = "💬 Просмотр отзывов"
         elif event_type == 'settings.change':
             setting_name = data.get('setting_name', '')
             action_desc = f"⚙️ Изменение настроек: {setting_name}"
+        elif event_type == 'settings.menu.view':
+            action_desc = "⚙️ Просмотр меню настроек"
+        elif event_type == 'settings.rating.view':
+            action_desc = "⭐ Просмотр рейтингов"
+        elif event_type == 'genres.view':
+            action_desc = "📚 Просмотр жанров"
+        elif event_type == 'csv.download':
+            action_desc = "📥 Скачивание CSV"
+        elif event_type == 'help.view':
+            action_desc = "❓ Просмотр справки"
+        elif event_type == 'about.view':
+            action_desc = "ℹ️ Просмотр информации"
+        elif event_type == 'news.view':
+            action_desc = "📰 Просмотр новостей"
+        elif event_type == 'donate.view':
+            action_desc = "💰 Просмотр донатов"
+        elif event_type == 'payment.received':
+            payment_id = data.get('payment_id', '')
+            amount = data.get('amount', '')
+            currency = data.get('currency', '')
+            action_desc = f"💳 Получен платёж: {amount} {currency} ({payment_id})"
+        elif event_type == 'payment.refund':
+            action_desc = "💸 Возврат платежа"
+        elif event_type.startswith('error.'):
+            action_desc = f"❌ Ошибка: {event_type}"
+        elif event_type.startswith('system.'):
+            action_desc = f"🔧 Системное: {event_type}"
         else:
             action_desc = event_type
 
@@ -740,6 +802,10 @@ async def handle_admin_callback(update: Update, context: CallbackContext):
 
         elif action == "top_searches":
             await show_top_searches(query, context)
+
+        elif action == "payments_list":
+            page = int(data[1]) if len(data) > 1 else 0
+            await show_payments_list(query, context, page)
 
         elif action == "back_to_stats":
             await admin_user_stats(update, context, from_callback=True)

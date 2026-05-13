@@ -326,6 +326,50 @@ class LogsRepository(BaseSQLiteRepository):
 
     # ==================== ЧТЕНИЕ: ПОСЛЕДНИЕ ДЕЙСТВИЯ ====================
 
+    def get_payments_list(self, limit: int = 20, offset: int = 0) -> list:
+        """Возвращает список платежей с пагинацией"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT
+                    payment_id,
+                    user_id,
+                    username,
+                    amount,
+                    currency,
+                    payment_method,
+                    payment_date,
+                    payment_status,
+                    telegram_payment_charge_id
+                FROM PaymentLog
+                ORDER BY payment_date DESC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+
+            payments = []
+            for row in cursor.fetchall():
+                payments.append({
+                    'payment_id': row[0],
+                    'user_id': row[1],
+                    'username': row[2],
+                    'amount': row[3],
+                    'currency': row[4],
+                    'payment_method': row[5],
+                    'payment_date': row[6],
+                    'payment_status': row[7],
+                    'telegram_payment_charge_id': row[8]
+                })
+
+            return payments
+
+    def get_payments_count(self) -> int:
+        """Возвращает общее количество платежей"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM PaymentLog")
+            return cursor.fetchone()[0] or 0
+
     def get_recent_searches(self, limit: int = 20) -> list:
         """Возвращает последние поисковые запросы"""
         with self.get_connection() as conn:

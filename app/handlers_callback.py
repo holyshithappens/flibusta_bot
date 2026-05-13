@@ -60,8 +60,8 @@ async def button_callback(update: Update, context: CallbackContext):
     else:
         # Сначала проверяем АДМИНСКИЕ действия
         if action in ['users_list', 'user_detail', 'toggle_block', 'recent_searches',
-                      'recent_downloads', 'top_downloads', 'top_searches', 'back_to_stats',
-                      'refresh_stats']:
+                       'recent_downloads', 'top_downloads', 'top_searches', 'back_to_stats',
+                       'refresh_stats', 'payments_list']:
             # Перенаправляем в админский обработчик
             from .admin import handle_admin_callback
             await handle_admin_callback(update, context)
