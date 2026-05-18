@@ -51,6 +51,11 @@ BROADCAST_TEST_USER_IDS = [
     for uid in os.getenv("BROADCAST_TEST_USER_IDS", "").split(",")
     if uid.strip().isdigit()
 ]
+BROADCAST_SKIP_USER_IDS = [
+    int(uid.strip())
+    for uid in os.getenv("BROADCAST_SKIP_USER_IDS", "").split(",")
+    if uid.strip().isdigit()
+]
 
 # ===== АДМИНИСТРИРОВАНИЕ =====
 
@@ -117,6 +122,13 @@ async def cleanup_admin_sessions(context: CallbackContext):
 async def cancel_auth(update: Update, context: CallbackContext):
     """Отмена аутентификации"""
     await update.message.reply_text("❌ Аутентификация отменена")
+    return ConversationHandler.END
+
+
+async def cancel_broadcast(update: Update, context: CallbackContext):
+    """Отмена рассылки"""
+    context.user_data.pop("broadcast_message", None)
+    await update.message.reply_text("❌ Рассылка отменена.")
     return ConversationHandler.END
 
 
@@ -309,6 +321,9 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
             recipients = [uid for uid in all_user_ids if uid in BROADCAST_TEST_USER_IDS]
         else:
             recipients = all_user_ids
+            # Exclude users from skip list
+            if BROADCAST_SKIP_USER_IDS:
+                recipients = [uid for uid in recipients if uid not in BROADCAST_SKIP_USER_IDS]
 
         # Log broadcast start
         structured_logger.log_system(

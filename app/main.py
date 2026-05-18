@@ -12,7 +12,7 @@ from .handlers_search import handle_message
 from .handlers_callback import button_callback
 from .handlers_group import handle_group_message
 from .admin import (
-    admin_cmd, cancel_auth, auth_password, AUTH_PASSWORD,
+    admin_cmd, cancel_auth, cancel_broadcast, auth_password, AUTH_PASSWORD,
     handle_admin_buttons, ADMIN_BUTTONS,
     admin_broadcast, broadcast_receive_message,
     handle_broadcast_callback, BROADCAST_WAITING_MESSAGE,
@@ -120,7 +120,7 @@ def main():
                 MessageHandler(filters.ALL & ~filters.COMMAND, broadcast_receive_message)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel_auth)],
+        fallbacks=[CommandHandler('cancel', cancel_broadcast)],
     )
     application.add_handler(broadcast_conv_handler)
 
