@@ -518,6 +518,26 @@ class LogsRepository(BaseSQLiteRepository):
                 }
             return None
 
+    def get_all_users_with_names(self) -> List[Dict[str, Any]]:
+        """Returns all user_ids with their latest username from StructuredLog."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT user_id, username
+                FROM StructuredLog
+                WHERE user_id IS NOT NULL
+                  AND timestamp = (
+                      SELECT MAX(timestamp)
+                      FROM StructuredLog AS sub
+                      WHERE sub.user_id = StructuredLog.user_id
+                  )
+                GROUP BY user_id
+            """)
+            return [
+                {'user_id': row[0], 'username': row[1]}
+                for row in cursor.fetchall()
+            ]
+
     def get_user_activity(self, user_id: int, limit: int = 50) -> List[Dict[str, str]]:
         """Возвращает историю действий пользователя"""
         with self.get_connection() as conn:

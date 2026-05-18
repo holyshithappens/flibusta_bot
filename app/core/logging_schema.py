@@ -37,6 +37,11 @@ class EventType(Enum):
     NEWS_VIEW = "news.view"
     DONATE_VIEW = "donate.view"
 
+    # Рассылка
+    BROADCAST_STARTED = "broadcast.started"
+    BROADCAST_SENT = "broadcast.sent"
+    BROADCAST_FAILED = "broadcast.failed"
+
     # Системные события
     SYSTEM_STARTUP = "system.startup"
     SYSTEM_SHUTDOWN = "system.shutdown"

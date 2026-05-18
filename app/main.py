@@ -11,7 +11,12 @@ from .handlers_basic import start_cmd, genres_cmd, settings_cmd, donate_cmd, hel
 from .handlers_search import handle_message
 from .handlers_callback import button_callback
 from .handlers_group import handle_group_message
-from .admin import admin_cmd, cancel_auth, auth_password, AUTH_PASSWORD, handle_admin_buttons, ADMIN_BUTTONS
+from .admin import (
+    admin_cmd, cancel_auth, auth_password, AUTH_PASSWORD,
+    handle_admin_buttons, ADMIN_BUTTONS,
+    admin_broadcast, broadcast_receive_message,
+    handle_broadcast_callback, BROADCAST_WAITING_MESSAGE,
+)
 from .constants import CLEANUP_INTERVAL
 from .health import cleanup_old_sessions
 from .flibusta_client import flibusta_client
@@ -101,6 +106,26 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel_auth)]
     )
     application.add_handler(conv_handler)
+
+    # Broadcast conversation handler (must be before admin button handler)
+    broadcast_conv_handler = ConversationHandler(
+        entry_points=[
+            MessageHandler(
+                filters.Regex(r'^📢 Рассылка$') & filters.ChatType.PRIVATE,
+                admin_broadcast
+            )
+        ],
+        states={
+            BROADCAST_WAITING_MESSAGE: [
+                MessageHandler(filters.ALL & ~filters.COMMAND, broadcast_receive_message)
+            ]
+        },
+        fallbacks=[CommandHandler('cancel', cancel_auth)],
+    )
+    application.add_handler(broadcast_conv_handler)
+
+    # Broadcast confirm/cancel callback
+    application.add_handler(CallbackQueryHandler(handle_broadcast_callback, pattern=r"^broadcast:"))
 
     # Регулярное выражение для фильтрации админских кнопок
     admin_buttons_regex = r'^(' + '|'.join(ADMIN_BUTTONS.values()) + ')$'

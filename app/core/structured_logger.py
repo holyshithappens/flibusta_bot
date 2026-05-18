@@ -337,6 +337,34 @@ class StructuredLogger:
 
         self.log_event(event)
 
+    def log_broadcast_result(
+            self,
+            user_id: int,
+            username: str,
+            success: bool,
+            error_message: Optional[str] = None,
+            chat_type: str = "private",
+            chat_id: Optional[int] = None
+    ) -> None:
+        """Логирует результат доставки рассылки пользователю"""
+        event_type = EventType.BROADCAST_SENT if success else EventType.BROADCAST_FAILED
+        data = {"broadcast": True, "status": "sent" if success else "failed"}
+        if error_message:
+            data["error"] = error_message
+
+        event = LogEvent(
+            timestamp=datetime.now(),
+            category=EventCategory.USER_ACTION,
+            event_type=event_type,
+            user_id=user_id,
+            username=username,
+            chat_type=chat_type,
+            chat_id=chat_id or user_id,
+            data=data
+        )
+
+        self.log_event(event)
+
     def log_payment(
             self,
             user_id: int,

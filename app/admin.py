@@ -9,7 +9,10 @@ from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler
 
 from .context import get_user_params, update_user_params
+from .database import DatabaseSettings
 from .repositories.logs_repository import LogsRepository
+from .core.structured_logger import structured_logger
+from .core.logging_schema import EventType
 
 # Создаем экземпляр репозитория логов
 LOGS_REPO = LogsRepository()
@@ -41,9 +44,18 @@ admin_sessions = {}
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ADMIN_SESSION_TIMEOUT = 1800  # 30 минут
 
+# Broadcast settings
+BROADCAST_TEST_ONLY = os.getenv("BROADCAST_TEST_ONLY", "false").lower() == "true"
+BROADCAST_TEST_USER_IDS = [
+    int(uid.strip())
+    for uid in os.getenv("BROADCAST_TEST_USER_IDS", "").split(",")
+    if uid.strip().isdigit()
+]
+
 # ===== АДМИНИСТРИРОВАНИЕ =====
 
 AUTH_PASSWORD = 1
+BROADCAST_WAITING_MESSAGE = 2
 
 def authenticate_admin(password: str) -> bool:
     """Проверяет пароль администратора"""
@@ -219,19 +231,152 @@ async def admin_whoami(update: Update, context: CallbackContext):
 
 
 async def admin_broadcast(update: Update, context: CallbackContext):
-    """Массовая рассылка"""
+    """Entry point for broadcast via button — asks admin to send the message."""
     if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    mode_label = " (TEST MODE)" if BROADCAST_TEST_ONLY else ""
+    await update.message.reply_text(
+        f"📢 <b>Рассылка{mode_label}</b>\n\n"
+        "Отправьте сообщение для рассылки (текст, фото, и т.д.):\n"
+        "Или /cancel для отмены.",
+        parse_mode=ParseMode.HTML
+    )
+    return BROADCAST_WAITING_MESSAGE
+
+
+async def broadcast_receive_message(update: Update, context: CallbackContext):
+    """Receives the broadcast message, shows preview with confirm/cancel buttons."""
+    context.user_data["broadcast_message"] = update.message
+
+    mode_label = " (TEST MODE)" if BROADCAST_TEST_ONLY else ""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Отправить", callback_data="broadcast:confirm"),
+            InlineKeyboardButton("❌ Отмена", callback_data="broadcast:cancel"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        f"📢 <b>Предпросмотр рассылки{mode_label}:</b>\n\n"
+        "Ниже показано сообщение, которое будет отправлено:",
+        parse_mode=ParseMode.HTML
+    )
+    await update.message.copy(chat_id=update.effective_chat.id)
+    await update.message.reply_text(
+        "Отправить это сообщение всем пользователям?",
+        reply_markup=reply_markup
+    )
+
+    return ConversationHandler.END
+
+
+async def handle_broadcast_callback(update: Update, context: CallbackContext):
+    """Handles broadcast confirm / cancel callbacks."""
+    query = update.callback_query
+    await query.answer()
+
+    action = query.data.split(":")[1]
+
+    if action == "cancel":
+        await query.edit_message_text("❌ Рассылка отменена.")
+        context.user_data.pop("broadcast_message", None)
         return
 
-    if context.args:
-        message = " ".join(context.args)
-        # ... код рассылки ...
-    else:
-        await update.message.reply_text(
-            "📢 <b>Массовая рассылка</b>\n\n"
-            "Использование: /broadcast Ваше сообщение",
+    if action == "confirm":
+        broadcast_msg = context.user_data.get("broadcast_message")
+        if not broadcast_msg:
+            await query.edit_message_text("❌ Ошибка: сообщение не найдено. Начните заново.")
+            return
+
+        await query.edit_message_text("⏳ Рассылка начата...")
+
+        # Determine recipients with usernames
+        db_settings = DatabaseSettings()
+        all_user_ids = db_settings.get_all_user_ids()
+        print(f"[BROADCAST DEBUG] all_user_ids from UserSettings: {all_user_ids}")
+        print(f"[BROADCAST DEBUG] BROADCAST_TEST_ONLY: {BROADCAST_TEST_ONLY}")
+        print(f"[BROADCAST DEBUG] BROADCAST_TEST_USER_IDS: {BROADCAST_TEST_USER_IDS}")
+
+        # Build user_id → username map from StructuredLog
+        users_with_names = LOGS_REPO.get_all_users_with_names()
+        username_map = {u['user_id']: u['username'] for u in users_with_names}
+        print(f"[BROADCAST DEBUG] username_map: {username_map}")
+
+        if BROADCAST_TEST_ONLY:
+            recipients = [uid for uid in all_user_ids if uid in BROADCAST_TEST_USER_IDS]
+        else:
+            recipients = all_user_ids
+
+        # Log broadcast start
+        structured_logger.log_system(
+            EventType.BROADCAST_STARTED,
+            f"Broadcast started by admin {query.from_user.id}",
+            {
+                "admin_id": query.from_user.id,
+                "total_recipients": len(recipients),
+                "is_test": BROADCAST_TEST_ONLY,
+            }
+        )
+
+        sent = 0
+        failed = 0
+        failed_users = []
+
+        bot = context.bot
+
+        for user_id in recipients:
+            username = username_map.get(user_id)
+            print(f"[BROADCAST DEBUG] Sending to user_id={user_id}, username={username}")
+            try:
+                await bot.copy_message(
+                    chat_id=user_id,
+                    from_chat_id=broadcast_msg.chat_id,
+                    message_id=broadcast_msg.message_id
+                )
+                sent += 1
+                print(f"[BROADCAST DEBUG] ✅ Sent successfully to {user_id}")
+                structured_logger.log_broadcast_result(
+                    user_id=user_id,
+                    username=username,
+                    success=True
+                )
+            except Exception as e:
+                failed += 1
+                error_str = str(e)
+                failed_users.append((user_id, username, error_str))
+                print(f"[BROADCAST DEBUG] ❌ Failed to send to {user_id}: {error_str}")
+                structured_logger.log_broadcast_result(
+                    user_id=user_id,
+                    username=username,
+                    success=False,
+                    error_message=error_str
+                )
+
+        # Summary
+        mode_label = " (TEST)" if BROADCAST_TEST_ONLY else ""
+        summary = (
+            f"📢 <b>Рассылка завершена{mode_label}</b>\n\n"
+            f"✅ Отправлено: <code>{sent}</code>\n"
+            f"❌ Не отправлено: <code>{failed}</code>\n"
+            f"👥 Всего получателей: <code>{len(recipients)}</code>"
+        )
+
+        if failed_users:
+            summary += "\n\n<b>Не удалось отправить:</b>\n"
+            for uid, uname, err in failed_users[:20]:
+                name = uname or f"ID:{uid}"
+                summary += f"• {name} (<code>{uid}</code>): {err[:80]}\n"
+
+        await bot.send_message(
+            chat_id=query.from_user.id,
+            text=summary,
             parse_mode=ParseMode.HTML
         )
+
+        context.user_data.pop("broadcast_message", None)
 
 
 async def admin_backup(update: Update, context: CallbackContext):

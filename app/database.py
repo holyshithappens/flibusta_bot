@@ -752,6 +752,13 @@ class DatabaseSettings(Database):
                 settings = cursor.fetchone()
         return UserSettingsType(*settings)
 
+    def get_all_user_ids(self) -> list[int]:
+        """Returns all user_id values from UserSettings."""
+        with self.connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT User_ID FROM UserSettings")
+            return [row[0] for row in cursor.fetchall()]
+
     def update_user_settings(self, user_id, **kwargs):
         """
         Обновляет настройки пользователя в базе данных.
