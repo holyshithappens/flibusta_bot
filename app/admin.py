@@ -296,14 +296,14 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
         # Determine recipients with usernames
         db_settings = DatabaseSettings()
         all_user_ids = db_settings.get_all_user_ids()
-        print(f"[BROADCAST DEBUG] all_user_ids from UserSettings: {all_user_ids}")
-        print(f"[BROADCAST DEBUG] BROADCAST_TEST_ONLY: {BROADCAST_TEST_ONLY}")
-        print(f"[BROADCAST DEBUG] BROADCAST_TEST_USER_IDS: {BROADCAST_TEST_USER_IDS}")
+        # print(f"[BROADCAST DEBUG] all_user_ids from UserSettings: {all_user_ids}")
+        # print(f"[BROADCAST DEBUG] BROADCAST_TEST_ONLY: {BROADCAST_TEST_ONLY}")
+        # print(f"[BROADCAST DEBUG] BROADCAST_TEST_USER_IDS: {BROADCAST_TEST_USER_IDS}")
 
         # Build user_id → username map from StructuredLog
         users_with_names = LOGS_REPO.get_all_users_with_names()
         username_map = {u['user_id']: u['username'] for u in users_with_names}
-        print(f"[BROADCAST DEBUG] username_map: {username_map}")
+        # print(f"[BROADCAST DEBUG] username_map: {username_map}")
 
         if BROADCAST_TEST_ONLY:
             recipients = [uid for uid in all_user_ids if uid in BROADCAST_TEST_USER_IDS]
@@ -329,7 +329,7 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
 
         for user_id in recipients:
             username = username_map.get(user_id)
-            print(f"[BROADCAST DEBUG] Sending to user_id={user_id}, username={username}")
+            # print(f"[BROADCAST DEBUG] Sending to user_id={user_id}, username={username}")
             try:
                 await bot.copy_message(
                     chat_id=user_id,
@@ -337,7 +337,7 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
                     message_id=broadcast_msg.message_id
                 )
                 sent += 1
-                print(f"[BROADCAST DEBUG] ✅ Sent successfully to {user_id}")
+                # print(f"[BROADCAST DEBUG] ✅ Sent successfully to {user_id}")
                 structured_logger.log_broadcast_result(
                     user_id=user_id,
                     username=username,
@@ -347,7 +347,7 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
                 failed += 1
                 error_str = str(e)
                 failed_users.append((user_id, username, error_str))
-                print(f"[BROADCAST DEBUG] ❌ Failed to send to {user_id}: {error_str}")
+                # print(f"[BROADCAST DEBUG] ❌ Failed to send to {user_id}: {error_str}")
                 structured_logger.log_broadcast_result(
                     user_id=user_id,
                     username=username,
