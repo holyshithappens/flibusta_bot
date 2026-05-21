@@ -5,6 +5,15 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.3.0] - 2026-05-21
+
+### Added
+- Админ-панель: кнопка «📢 Рассылка» для массовой отправки сообщений всем пользователям
+- Режим тестовой рассылки через переменные окружения (`BROADCAST_TEST_ONLY`, `BROADCAST_TEST_USER_IDS`)
+- Подтверждение рассылки через inline-кнопки (отправить / отмена)
+- Логирование результатов рассылки в `StructuredLog` (новые типы событий `broadcast.sent`, `broadcast.failed`, `broadcast.started`)
+- Метод `get_all_user_ids()` в `DatabaseSettings` для получения списка всех пользователей
+
 ## [1.2.0] - 2026-05-05
 
 ### In planning
