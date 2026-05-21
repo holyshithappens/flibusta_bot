@@ -321,9 +321,9 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
             recipients = [uid for uid in all_user_ids if uid in BROADCAST_TEST_USER_IDS]
         else:
             recipients = all_user_ids
-            # Exclude users from skip list
-            if BROADCAST_SKIP_USER_IDS:
-                recipients = [uid for uid in recipients if uid not in BROADCAST_SKIP_USER_IDS]
+        # Exclude users from skip list
+        if BROADCAST_SKIP_USER_IDS:
+            recipients = [uid for uid in recipients if uid not in BROADCAST_SKIP_USER_IDS]
 
         # Log broadcast start
         structured_logger.log_system(
