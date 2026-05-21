@@ -1,0 +1,30 @@
+# docker-compose.test.yml
+# Test environment - bot only (uses production database)
+
+services:
+  bot-test:
+    image: holyshithappens/flbst-bot-mdb:test
+    container_name: flibusta-bot-test
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DB_HOST=flibusta-db
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+    mem_swappiness: 0
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    # Connect to the production database network
+    # The 'db' service is defined in docker-compose.vps.yml
+    networks:
+      - flibusta-network
+
+networks:
+  flibusta-network:
+    external: true
+    name: flbst-bot-mdb_default

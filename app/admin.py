@@ -1,5 +1,6 @@
 import zipfile
 from datetime import datetime
+import json
 import os
 import time
 
@@ -7,14 +8,17 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKey
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler
 
-from context import get_user_params, update_user_params
-from database import DB_LOGS
+from .context import get_user_params, update_user_params
+from .database import DatabaseSettings
+from .repositories.logs_repository import LogsRepository
+from .core.structured_logger import structured_logger
+from .core.logging_schema import EventType
+
+# Создаем экземпляр репозитория логов
+LOGS_REPO = LogsRepository()
 
 # Добавляем константы для пагинации
 USERS_PER_PAGE = 10
-
-# Создаем экземпляр базы данных логов
-# DB_LOGS = DatabaseLogs()
 
 # Админские кнопки: ключ - имя обработчика, значение - текст кнопки
 # Добавляем новые админские кнопки
@@ -40,9 +44,23 @@ admin_sessions = {}
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ADMIN_SESSION_TIMEOUT = 1800  # 30 минут
 
+# Broadcast settings
+BROADCAST_TEST_ONLY = os.getenv("BROADCAST_TEST_ONLY", "false").lower() == "true"
+BROADCAST_TEST_USER_IDS = [
+    int(uid.strip())
+    for uid in os.getenv("BROADCAST_TEST_USER_IDS", "").split(",")
+    if uid.strip().isdigit()
+]
+BROADCAST_SKIP_USER_IDS = [
+    int(uid.strip())
+    for uid in os.getenv("BROADCAST_SKIP_USER_IDS", "").split(",")
+    if uid.strip().isdigit()
+]
+
 # ===== АДМИНИСТРИРОВАНИЕ =====
 
 AUTH_PASSWORD = 1
+BROADCAST_WAITING_MESSAGE = 2
 
 def authenticate_admin(password: str) -> bool:
     """Проверяет пароль администратора"""
@@ -104,6 +122,13 @@ async def cleanup_admin_sessions(context: CallbackContext):
 async def cancel_auth(update: Update, context: CallbackContext):
     """Отмена аутентификации"""
     await update.message.reply_text("❌ Аутентификация отменена")
+    return ConversationHandler.END
+
+
+async def cancel_broadcast(update: Update, context: CallbackContext):
+    """Отмена рассылки"""
+    context.user_data.pop("broadcast_message", None)
+    await update.message.reply_text("❌ Рассылка отменена.")
     return ConversationHandler.END
 
 
@@ -218,19 +243,155 @@ async def admin_whoami(update: Update, context: CallbackContext):
 
 
 async def admin_broadcast(update: Update, context: CallbackContext):
-    """Массовая рассылка"""
+    """Entry point for broadcast via button — asks admin to send the message."""
     if not is_admin(update.effective_user.id):
+        return ConversationHandler.END
+
+    mode_label = " (TEST MODE)" if BROADCAST_TEST_ONLY else ""
+    await update.message.reply_text(
+        f"📢 <b>Рассылка{mode_label}</b>\n\n"
+        "Отправьте сообщение для рассылки (текст, фото, и т.д.):\n"
+        "Или /cancel для отмены.",
+        parse_mode=ParseMode.HTML
+    )
+    return BROADCAST_WAITING_MESSAGE
+
+
+async def broadcast_receive_message(update: Update, context: CallbackContext):
+    """Receives the broadcast message, shows preview with confirm/cancel buttons."""
+    context.user_data["broadcast_message"] = update.message
+
+    mode_label = " (TEST MODE)" if BROADCAST_TEST_ONLY else ""
+
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Отправить", callback_data="broadcast:confirm"),
+            InlineKeyboardButton("❌ Отмена", callback_data="broadcast:cancel"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        f"📢 <b>Предпросмотр рассылки{mode_label}:</b>\n\n"
+        "Ниже показано сообщение, которое будет отправлено:",
+        parse_mode=ParseMode.HTML
+    )
+    await update.message.copy(chat_id=update.effective_chat.id)
+    await update.message.reply_text(
+        "Отправить это сообщение всем пользователям?",
+        reply_markup=reply_markup
+    )
+
+    return ConversationHandler.END
+
+
+async def handle_broadcast_callback(update: Update, context: CallbackContext):
+    """Handles broadcast confirm / cancel callbacks."""
+    query = update.callback_query
+    await query.answer()
+
+    action = query.data.split(":")[1]
+
+    if action == "cancel":
+        await query.edit_message_text("❌ Рассылка отменена.")
+        context.user_data.pop("broadcast_message", None)
         return
 
-    if context.args:
-        message = " ".join(context.args)
-        # ... код рассылки ...
-    else:
-        await update.message.reply_text(
-            "📢 <b>Массовая рассылка</b>\n\n"
-            "Использование: /broadcast Ваше сообщение",
+    if action == "confirm":
+        broadcast_msg = context.user_data.get("broadcast_message")
+        if not broadcast_msg:
+            await query.edit_message_text("❌ Ошибка: сообщение не найдено. Начните заново.")
+            return
+
+        await query.edit_message_text("⏳ Рассылка начата...")
+
+        # Determine recipients with usernames
+        db_settings = DatabaseSettings()
+        all_user_ids = db_settings.get_all_user_ids()
+        # print(f"[BROADCAST DEBUG] all_user_ids from UserSettings: {all_user_ids}")
+        # print(f"[BROADCAST DEBUG] BROADCAST_TEST_ONLY: {BROADCAST_TEST_ONLY}")
+        # print(f"[BROADCAST DEBUG] BROADCAST_TEST_USER_IDS: {BROADCAST_TEST_USER_IDS}")
+
+        # Build user_id → username map from StructuredLog
+        users_with_names = LOGS_REPO.get_all_users_with_names()
+        username_map = {u['user_id']: u['username'] for u in users_with_names}
+        # print(f"[BROADCAST DEBUG] username_map: {username_map}")
+
+        if BROADCAST_TEST_ONLY:
+            recipients = [uid for uid in all_user_ids if uid in BROADCAST_TEST_USER_IDS]
+        else:
+            recipients = all_user_ids
+        # Exclude users from skip list
+        if BROADCAST_SKIP_USER_IDS:
+            recipients = [uid for uid in recipients if uid not in BROADCAST_SKIP_USER_IDS]
+
+        # Log broadcast start
+        structured_logger.log_system(
+            EventType.BROADCAST_STARTED,
+            f"Broadcast started by admin {query.from_user.id}",
+            {
+                "admin_id": query.from_user.id,
+                "total_recipients": len(recipients),
+                "is_test": BROADCAST_TEST_ONLY,
+            }
+        )
+
+        sent = 0
+        failed = 0
+        failed_users = []
+
+        bot = context.bot
+
+        for user_id in recipients:
+            username = username_map.get(user_id)
+            # print(f"[BROADCAST DEBUG] Sending to user_id={user_id}, username={username}")
+            try:
+                await bot.copy_message(
+                    chat_id=user_id,
+                    from_chat_id=broadcast_msg.chat_id,
+                    message_id=broadcast_msg.message_id
+                )
+                sent += 1
+                # print(f"[BROADCAST DEBUG] ✅ Sent successfully to {user_id}")
+                structured_logger.log_broadcast_result(
+                    user_id=user_id,
+                    username=username,
+                    success=True
+                )
+            except Exception as e:
+                failed += 1
+                error_str = str(e)
+                failed_users.append((user_id, username, error_str))
+                # print(f"[BROADCAST DEBUG] ❌ Failed to send to {user_id}: {error_str}")
+                structured_logger.log_broadcast_result(
+                    user_id=user_id,
+                    username=username,
+                    success=False,
+                    error_message=error_str
+                )
+
+        # Summary
+        mode_label = " (TEST)" if BROADCAST_TEST_ONLY else ""
+        summary = (
+            f"📢 <b>Рассылка завершена{mode_label}</b>\n\n"
+            f"✅ Отправлено: <code>{sent}</code>\n"
+            f"❌ Не отправлено: <code>{failed}</code>\n"
+            f"👥 Всего получателей: <code>{len(recipients)}</code>"
+        )
+
+        if failed_users:
+            summary += "\n\n<b>Не удалось отправить:</b>\n"
+            for uid, uname, err in failed_users[:20]:
+                name = uname or f"ID:{uid}"
+                summary += f"• {name} (<code>{uid}</code>): {err[:80]}\n"
+
+        await bot.send_message(
+            chat_id=query.from_user.id,
+            text=summary,
             parse_mode=ParseMode.HTML
         )
+
+        context.user_data.pop("broadcast_message", None)
 
 
 async def admin_backup(update: Update, context: CallbackContext):
@@ -242,7 +403,7 @@ async def admin_backup(update: Update, context: CallbackContext):
 
     try:
         # Создаем временную директорию если не существует
-        from constants import BACKUP_TMP_PATH, BACKUP_DB_FILES, BACKUP_LOG_PATTERN
+        from .constants import BACKUP_TMP_PATH, BACKUP_DB_FILES, BACKUP_LOG_PATTERN
         import glob
 
         tmp_dir = BACKUP_TMP_PATH
@@ -349,10 +510,10 @@ async def admin_system(update: Update, context: CallbackContext):
         return
 
     # Получаем версию бота
-    from VERSION import __version__
+    from .VERSION import __version__
 
     # Получаем системную статистику
-    from health import get_system_stats, get_memory_usage
+    from .health import get_system_stats, get_memory_usage
     stats = get_system_stats()
 
     # Получаем информацию о текущих админских сессиях
@@ -402,13 +563,13 @@ async def admin_user_stats(update: Update, context: CallbackContext, from_callba
         return
 
     # Получаем общую статистику
-    stats = DB_LOGS.get_user_stats_summary()
+    stats = LOGS_REPO.get_user_stats_summary()
 
     # Получаем статистику по дням
-    daily_stats = DB_LOGS.get_daily_user_stats(7)
+    daily_stats = LOGS_REPO.get_daily_user_stats(7)
 
     # Получаем статистику по донатам
-    payment_stats = DB_LOGS.get_payment_stats(30)
+    payment_stats = LOGS_REPO.get_payment_stats(30)
 
     stats_text = f"""
 📈 <b>Статистика пользователей</b>
@@ -469,13 +630,13 @@ async def admin_user_stats(update: Update, context: CallbackContext, from_callba
 
 async def show_top_searches(query, context: CallbackContext):
     """Показывает топ поисковых запросов"""
-    top_searches = DB_LOGS.get_top_searches(15)
+    top_searches = LOGS_REPO.get_top_searches(15)
 
     searches_text = "🔍 <b>Топ поисковых запросов</b>\n\n"
 
     for i, search in enumerate(top_searches, 1):
         # Обрезаем длинные запросы
-        query_text = search['query'][:50] + "..." if len(search['query']) > 50 else search['query']
+        query_text = search['query'][:50] + "..." if search['query'] and len(search['query']) > 50 else (search['query'] or 'N/A')
 
         searches_text += f"{i}. {query_text}\n"
         searches_text += f"   👥 {search['count']} раз ({search['unique_users']} пользователей)\n\n"
@@ -486,6 +647,41 @@ async def show_top_searches(query, context: CallbackContext):
     await query.edit_message_text(searches_text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
 
 
+PAYMENTS_PER_PAGE = 20
+
+
+async def show_payments_list(query, context: CallbackContext, page=0):
+    """Показывает список платежей с пагинацией"""
+    total_payments = LOGS_REPO.get_payments_count()
+    payments = LOGS_REPO.get_payments_list(PAYMENTS_PER_PAGE, page * PAYMENTS_PER_PAGE)
+
+    payments_text = "💰 <b>Список платежей</b>\n\n"
+    payments_text += f"Страница {page + 1} из {((total_payments - 1) // PAYMENTS_PER_PAGE) + 1 if total_payments > 0 else 1}\n\n"
+
+    if not payments:
+        payments_text += "Платежи не найдены."
+    else:
+        for payment in payments:
+            status_emoji = "✅" if payment['payment_status'] == 'completed' else "⏳"
+            payments_text += (
+                f"{status_emoji} <b>{payment['username'] or 'Пользователь #' + str(payment['user_id'])}</b>\n"
+                f"   💵 {payment['amount']} {payment['currency']}\n"
+                f"   📅 {payment['payment_date']}\n"
+                f"   🆔 {payment['payment_id']}\n\n"
+            )
+
+    keyboard = []
+    if page > 0:
+        keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f"payments_list:{page - 1}")])
+    if (page + 1) * PAYMENTS_PER_PAGE < total_payments:
+        keyboard.append([InlineKeyboardButton("Вперёд ➡️", callback_data=f"payments_list:{page + 1}")])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад в статистику", callback_data="back_to_stats")])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_text(payments_text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+
+
 async def admin_recent_activity(update: Update, context: CallbackContext):
     """Последняя активность"""
     if not is_admin(update.effective_user.id):
@@ -494,8 +690,8 @@ async def admin_recent_activity(update: Update, context: CallbackContext):
 
     # Получаем последние действия
     activities = []
-    recent_searches = DB_LOGS.get_recent_searches(10)
-    recent_downloads = DB_LOGS.get_recent_downloads(10)
+    recent_searches = LOGS_REPO.get_recent_searches(10)
+    recent_downloads = LOGS_REPO.get_recent_downloads(10)
 
     activity_text = "🔍 <b>Последняя активность</b>\n\n"
 
@@ -522,8 +718,8 @@ async def admin_recent_activity(update: Update, context: CallbackContext):
 
 async def show_users_list(query, context: CallbackContext, page=0):
     """Показывает список пользователей"""
-    users = DB_LOGS.get_users_list(USERS_PER_PAGE, page * USERS_PER_PAGE)
-    total_users = DB_LOGS.get_user_stats_summary()['total_users']
+    users = LOGS_REPO.get_users_list(USERS_PER_PAGE, page * USERS_PER_PAGE)
+    total_users = LOGS_REPO.get_user_stats_summary()['total_users']
 
     users_text = f"👥 <b>Список пользователей</b>\n\n"
     users_text += f"Страница {page + 1} из {((total_users - 1) // USERS_PER_PAGE) + 1}\n\n"
@@ -560,14 +756,14 @@ async def show_users_list(query, context: CallbackContext, page=0):
 async def show_user_detail(query, context: CallbackContext, user_id):
     """Показывает детальную информацию о пользователе"""
     # Получаем информацию о пользователе напрямую по ID
-    user = DB_LOGS.get_user_by_id(user_id)
+    user = LOGS_REPO.get_user_by_id(user_id)
 
     if not user:
         await query.edit_message_text("❌ Пользователь не найден")
         return
 
     # Получаем историю действий
-    activities = DB_LOGS.get_user_activity(user_id, 10)
+    activities = LOGS_REPO.get_user_activity(user_id, 10)
 
     # Проверяем статус блокировки
     # user_settings = DB_SETTINGS.get_user_settings(user_id)
@@ -585,15 +781,67 @@ async def show_user_detail(query, context: CallbackContext, user_id):
 
     user_text += "📋 <b>Последние действия:</b>\n"
     for activity in activities:
-        action_desc = activity['action']
-        if 'searched for' in activity['action']:
-            # Убираем часть с count из деталей поиска
-            detail = activity['detail'].split(';')[0] if ';' in activity['detail'] else activity['detail']
-            action_desc = f"🔍 Поиск: {detail}"
-        elif 'send file' in activity['action']:
-            action_desc = f"📥 Скачал: {activity['detail']}"
-        elif 'started bot' in activity['action']:
+        event_type = activity.get('event_type', '')
+        data_json = activity.get('data_json', '')
+
+        # Parse data_json if available
+        try:
+            data = json.loads(data_json) if data_json else {}
+        except (json.JSONDecodeError, TypeError):
+            data = {}
+
+        # Map event_type to human-readable description
+        if event_type.startswith('search.'):
+            search_query = data.get('query', '')
+            action_desc = f"🔍 Поиск: {search_query}"
+        elif event_type == 'book.download':
+            book_title = data.get('book_title', '')
+            action_desc = f"📥 Скачал: {book_title}"
+        elif event_type == 'bot.start':
             action_desc = "🚀 Запустил бота"
+        elif event_type == 'book.info.view':
+            book_title = data.get('book_title', '')
+            action_desc = f"📖 Просмотр книги: {book_title}"
+        elif event_type == 'author.info.view':
+            author_name = data.get('author_name', '')
+            action_desc = f"👤 Просмотр автора: {author_name}"
+        elif event_type == 'book.details.view':
+            book_title = data.get('book_title', '')
+            action_desc = f"📋 Детали книги: {book_title}"
+        elif event_type == 'book.reviews.view':
+             action_desc = "💬 Просмотр отзывов"
+        elif event_type == 'settings.change':
+            setting_name = data.get('setting_name', '')
+            action_desc = f"⚙️ Изменение настроек: {setting_name}"
+        elif event_type == 'settings.menu.view':
+            action_desc = "⚙️ Просмотр меню настроек"
+        elif event_type == 'settings.rating.view':
+            action_desc = "⭐ Просмотр рейтингов"
+        elif event_type == 'genres.view':
+            action_desc = "📚 Просмотр жанров"
+        elif event_type == 'csv.download':
+            action_desc = "📥 Скачивание CSV"
+        elif event_type == 'help.view':
+            action_desc = "❓ Просмотр справки"
+        elif event_type == 'about.view':
+            action_desc = "ℹ️ Просмотр информации"
+        elif event_type == 'news.view':
+            action_desc = "📰 Просмотр новостей"
+        elif event_type == 'donate.view':
+            action_desc = "💰 Просмотр донатов"
+        elif event_type == 'payment.received':
+            payment_id = data.get('payment_id', '')
+            amount = data.get('amount', '')
+            currency = data.get('currency', '')
+            action_desc = f"💳 Получен платёж: {amount} {currency} ({payment_id})"
+        elif event_type == 'payment.refund':
+            action_desc = "💸 Возврат платежа"
+        elif event_type.startswith('error.'):
+            action_desc = f"❌ Ошибка: {event_type}"
+        elif event_type.startswith('system.'):
+            action_desc = f"🔧 Системное: {event_type}"
+        else:
+            action_desc = event_type
 
         user_text += f"• {activity['timestamp']}: {action_desc}\n"
 
@@ -639,7 +887,7 @@ async def toggle_user_block(query, context: CallbackContext, user_id):
 
 async def show_recent_searches(query, context: CallbackContext):
     """Показывает последние поисковые запросы"""
-    searches = DB_LOGS.get_recent_searches(20)
+    searches = LOGS_REPO.get_recent_searches(20)
 
     searches_text = "🔍 <b>Последние поисковые запросы</b>\n\n"
 
@@ -654,7 +902,7 @@ async def show_recent_searches(query, context: CallbackContext):
 
 async def show_recent_downloads(query, context: CallbackContext):
     """Показывает последние скачивания"""
-    downloads = DB_LOGS.get_recent_downloads(20)
+    downloads = LOGS_REPO.get_recent_downloads(20)
 
     downloads_text = "📥 <b>Последние скачивания</b>\n\n"
 
@@ -669,7 +917,7 @@ async def show_recent_downloads(query, context: CallbackContext):
 
 async def show_top_downloads(query, context: CallbackContext):
     """Показывает топ скачанных книг"""
-    top_downloads = DB_LOGS.get_top_downloads(20)
+    top_downloads = LOGS_REPO.get_top_downloads(20)
 
     top_text = "🏆 <b>Топ скачанных книг</b>\n\n"
 
@@ -714,6 +962,10 @@ async def handle_admin_callback(update: Update, context: CallbackContext):
 
         elif action == "top_searches":
             await show_top_searches(query, context)
+
+        elif action == "payments_list":
+            page = int(data[1]) if len(data) > 1 else 0
+            await show_payments_list(query, context, page)
 
         elif action == "back_to_stats":
             await admin_user_stats(update, context, from_callback=True)

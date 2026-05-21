@@ -24,26 +24,45 @@
 -- Переименование таблиц
 -- ============================================
 
+SELECT 'Starting migration: lib* tables to cb_lib*' AS OperationStatus;
+
 -- Основные таблицы
-RENAME TABLE libbook TO cb_libbook;
-RENAME TABLE libavtor TO cb_libavtor;
-RENAME TABLE libavtorname TO cb_libavtorname;
-RENAME TABLE libgenre TO cb_libgenre;
-RENAME TABLE libgenrelist TO cb_libgenrelist;
-RENAME TABLE libseq TO cb_libseq;
-RENAME TABLE libseqname TO cb_libseqname;
-RENAME TABLE librate TO cb_librate;
-RENAME TABLE librecs TO cb_librecs;
-RENAME TABLE libreviews TO cb_libreviews;
-RENAME TABLE libapics TO cb_libapics;
-RENAME TABLE libbpics TO cb_libbpics;
+RENAME TABLE IF EXISTS libbook TO cb_libbook;
+SELECT 'Renamed libbook to cb_libbook' AS OperationStatus;
+RENAME TABLE IF EXISTS libavtor TO cb_libavtor;
+SELECT 'Renamed libavtor to cb_libavtor' AS OperationStatus;
+RENAME TABLE IF EXISTS libavtorname TO cb_libavtorname;
+SELECT 'Renamed libavtorname to cb_libavtorname' AS OperationStatus;
+RENAME TABLE IF EXISTS libgenre TO cb_libgenre;
+SELECT 'Renamed libgenre to cb_libgenre' AS OperationStatus;
+RENAME TABLE IF EXISTS libgenrelist TO cb_libgenrelist;
+SELECT 'Renamed libgenrelist to cb_libgenrelist' AS OperationStatus;
+RENAME TABLE IF EXISTS libseq TO cb_libseq;
+SELECT 'Renamed libseq to cb_libseq' AS OperationStatus;
+RENAME TABLE IF EXISTS libseqname TO cb_libseqname;
+SELECT 'Renamed libseqname to cb_libseqname' AS OperationStatus;
+RENAME TABLE IF EXISTS librate TO cb_librate;
+SELECT 'Renamed librate to cb_librate' AS OperationStatus;
+RENAME TABLE IF EXISTS librecs TO cb_librecs;
+SELECT 'Renamed librecs to cb_librecs' AS OperationStatus;
+RENAME TABLE IF EXISTS libreviews TO cb_libreviews;
+SELECT 'Renamed libreviews to cb_libreviews' AS OperationStatus;
+RENAME TABLE IF EXISTS libapics TO cb_libapics;
+SELECT 'Renamed libapics to cb_libapics' AS OperationStatus;
+RENAME TABLE IF EXISTS libbpics TO cb_libbpics;
+SELECT 'Renamed libbpics to cb_libbpics' AS OperationStatus;
 
 -- Аннотации
-RENAME TABLE libbannotations TO cb_libbannotations;
-RENAME TABLE libaannotations TO cb_libaannotations;
+RENAME TABLE IF EXISTS libbannotations TO cb_libbannotations;
+SELECT 'Renamed libbannotations to cb_libbannotations' AS OperationStatus;
+RENAME TABLE IF EXISTS libaannotations TO cb_libaannotations;
+SELECT 'Renamed libaannotations to cb_libaannotations' AS OperationStatus;
 
 -- Полнотекстовый индекс
-RENAME TABLE libbook_fts TO cb_libbook_fts;
+RENAME TABLE IF EXISTS libbook_fts TO cb_libbook_fts;
+SELECT 'Renamed libbook_fts to cb_libbook_fts' AS OperationStatus;
+
+SELECT 'Migration completed: All lib* tables renamed to cb_lib*' AS OperationStatus;
 
 -- ============================================
 -- Проверка результата

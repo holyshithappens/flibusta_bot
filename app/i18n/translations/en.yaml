@@ -1,0 +1,369 @@
+# English translations for Flibusta Bot
+# Language: English
+# Native name: English
+# Version: 1.0.0
+
+_meta:
+  language: "English"
+  native_name: "English"
+  version: "1.0.0"
+
+# Commands descriptions (for bot menu)
+commands:
+  start: "Start the bot"
+  help: "Search help"
+  about: "About the bot"
+  news: "Bot news"
+  genres: "Book genres"
+  pop: "Popular and new"
+  set: "Settings"
+  donate: "Donate"
+
+# Settings menu
+settings:
+  menu:
+    title: "Settings:"
+    max_books: "Items per page"
+    lang_search: "Book language"
+    size_limit: "Book size limit"
+    rating_filter: "Rating filter"
+    book_format: "Download format"
+    search_type: "Results display"
+    search_area: "Search area"
+    locale: "Interface language"
+
+# Search
+search:
+  loading: "⏰ <i>Searching for books, please wait...</i>"
+  loading_book_info: "⏰ <i>Please wait, loading book information...</i>"
+  loading_series: "⏰ <i>Searching for series, please wait...</i>"
+  loading_authors: "⏰ <i>Searching for authors, please wait...</i>"
+
+  results:
+    books:
+      one: "book"
+      other: "books"
+    series:
+      one: "series"
+      other: "series"
+    authors:
+      one: "author"
+      other: "authors"
+    header: "Showing {start} to {end} of {total} found {pop}{object}{filter}{in_str}"
+    filter_series: " in series '{series}'"
+    filter_author: " by author '{author}'"
+
+  error: "❌ An error occurred while processing your request"
+  no_results: "😞 No suitable books found. Try different search criteria."
+  no_results_series: "😞 No suitable series found. Try different search criteria."
+  no_results_authors: "😞 No suitable authors found. Try different search criteria."
+  session_expired: "❌ Search session expired. Please start a new search."
+  results_expired: "❌ Search results expired. Please perform a new search."
+  results_expired_title: "🕒 <b>Search results expired</b>\n\nPlease perform a new search."
+  page_error: "❌ Page number error"
+  page_change_error: "❌ An error occurred while changing page"
+  series_error: "❌ Error processing series: {error}"
+  author_error: "❌ Error processing author: {error}"
+  error_detail: "❌ Search error: {error}"
+
+  pagination:
+    home: "⬆ Home"
+    prev: "⬅️ Prev"
+    next: "Next ➡"
+    end: "End ⬇️️️"
+    series: "⤴️ Back to series"
+    authors: "⤴️ Back to authors"
+
+  download: "📥 Download list in CSV"
+
+  author_about: "👤 About author"
+
+  results_title: "📚 Search results:\n\n"
+  results_title_for_user: "📚 Search results for {user_name}:\n\n"
+
+# Book display
+book:
+  download: "📥 Download"
+  info: "ℹ️ Info"
+  author: "👤 Author"
+#  series: "📖 Series"
+#  genre: "🏷️ Genre"
+#  year: "📅 Year"
+#  size: "📦 Size"
+#  rating: "⭐ Rating"
+#  language: "🌐 Language"
+#  format: "📄 Format"
+  authors: "👤 <b>Author(s):</b>"
+  genres: "📑 <b>Genre(s):</b>"
+  series: "📖 <b>Series:</b>"
+  year: "📅 <b>Year:</b>"
+  language: "🗣️ <b>Language:</b>"
+  pages: "📃 <b>Pages:</b>"
+  size: "📦 <b>Size:</b>"
+  rating: "⭐ <b>Rating:</b>"
+  reviews: "💬 Reviews"
+  annotation_title: "📖 <b>Book annotation:</b>"
+  reviews_title: "💬 <b>Book reviews:</b>"
+  not_specified: "Not specified"
+  unknown: "Unknown"
+
+
+# Genres
+genres:
+  title: "Browse genres:"
+  error: "❌ Error loading genres"
+  not_found: "❌ No genres found for this category"
+
+# Callback
+callback:
+  unknown_action: "❌ Unknown action"
+  restore_error: "❌ Could not restore search results"
+  back_error: "❌ Error returning to search results"
+  popular_error: "❌ Error loading popular books/new releases"
+  results_expired: "❌ Search results expired. Please perform a new search."
+
+
+# Popular and New
+popular:
+  title: "View:"
+  all_time: "All-time popular"
+  days_30: "Popular in 30 days"
+  days_7: "Popular in 7 days"
+  novelty: "New releases"
+  
+  headings:
+    all_time: "all-time popular "
+    days_30: "popular in 30 days "
+    days_7: "popular in 7 days "
+    novelty: "new releases "
+
+# News
+news:
+  title: "📢 <b>Latest bot news:</b>\n\n"
+  empty: "📢 No news yet. Stay tuned for updates!"
+  error: "❌ Could not load news"
+
+# Donate
+donate:
+  crypto_title: "💰 <b>Support the developer with crypto</b>"
+  stars_title: "Support the developer"
+  stars_5: "Just because!"
+  stars_5_label: "5 stars"
+  stars_50: "About a week of current VPS rental"
+  stars_50_label: "50 stars"
+  stars_200: "About a month of current VPS rental"
+  stars_200_label: "200 stars"
+  stars_1200: "About six months of current VPS rental"
+  stars_1200_label: "1200 stars"
+  error: "An error occurred while creating the payment"
+  stars_sent: "You sent {count} stars!\nAll funds will go towards VPS rental! ❤️"
+  vps_expiry: "💡 VPS rental ends in: {days_left} days ({end_date_str}). Support the bot! /donate."
+  vps_appeal: " All funds will go towards VPS rental costs. Even a small contribution will help keep the bot running."
+
+
+# Common UI elements
+common:
+  close: "❌ Close"
+  back: "🔙 Back"
+  reset: "Reset"
+  reset_all: "🔄 Reset all"
+
+  # Language reset option
+  reset_lang: "✔ {lang} - reset"
+
+  # Rating descriptions
+  ratings:
+    "0": "⚪️ No rating (0)"
+    "1": "🔴 Unreadable (1)"
+    "2": "🟠 Bad (2)"
+    "3": "🟡 Decent (3)"
+    "4": "🟢 Good (4)"
+    "5": "🔵 Excellent (5)"
+
+  # Search type options
+  search_types:
+    books: "by books"
+    series: "by series"
+    authors: "by authors"
+
+  # Search area options
+  search_areas:
+    b: "on book's main data"
+    ba: "on book annotations"
+    aa: "on author annotations"
+
+  # Size limit options
+  size_limits:
+    less800: "<800K"
+    more800: ">800K"
+
+  # Format options
+  formats:
+    fb2: "FB2"
+    mobi: "MOBI"
+    epub: "EPUB"
+
+  # Language selection
+  locale_select:
+    title: "Interface language:"
+    ru: "🇷🇺 Русский"
+    en: "🇬🇧 English"
+
+# Errors
+errors:
+  general: "❌ An error occurred. Please try again later."
+  not_found: "❌ Not found."
+
+## Author info
+#author:
+#  title: "👤 Author"
+#  books: "📚 Books"
+#  series: "📖 Series"
+#  biography: "📋 Biography"
+#  photo: "🖼️ Photo"
+#  no_books: "No books"
+
+## Series info
+#series:
+#  title: "📖 Series"
+#  books: "📚 Books in series"
+#  author: "👤 Author"
+#  no_books: "No books in series"
+
+download:
+  waiting: "⏰ <i>Waiting, sending the book</i>"
+  waiting_for_user: "⏰ <i>Waiting, sending the book for {user_name}...</i>"
+  for_user: " for {user_name}"
+  format_failed: "😞 Could not download the book in this format"
+  format_failed_for_user: "😞 Could not download the book in this format for {user_name}"
+  preparation_error: "❌ An error occurred while preparing the book {book_url}. It may be available only in the local database"
+  using_external_service: "⏳ The book is large, using an external service..."
+  download_link: "📥 Download book"
+  link_expires: "⏳ Link valid for 15 minutes"
+  send_failed: "❌ Could not send the book. Please try again later."
+
+csv:
+  generating: "⏳ Generating CSV book list. Please wait..."
+  books_found: "📚 Books found: {count}"
+  error: "❌ Error creating CSV file"
+
+author:
+  about_title: "👤 <b>About author:</b>"
+
+# Welcome message
+welcome:
+  title: |
+    📚 <b>Hi! I'll help you search and download books directly from the Flibusta library.</b> 
+
+    <u>Controls</u>
+    /news - bot news and updates
+    /about - information about the bot and library 
+    /help - help with search queries
+    /genres - browse available genres
+    /pop - popular books and new releases
+    /set - search and display settings
+    /donate - support the developer
+
+# Help
+help:
+  title: |
+    <b>Help with book search.</b>
+
+    <u>Simple search by any words:</u>
+    ✏️ <code>war peace</code>
+    ✏️ <code>science fiction space stars 2025</code>
+    ✏️ <code>Harry Potter</code>
+    ✏️ <code>mathematics physics</code>
+
+    <u>Tips for effective searching:</u>
+    🔍 <b>Multiple words</b> - the bot searches for books containing any of the listed words
+    ➕ <b>Required word</b> - use + before a word: <code>+life +people</code>
+    ➖ <b>Excluding words</b> - use - before a word: <code>+President -Trump</code>
+    ⭐️ <b>Word parts</b> - you can use *: <code>mathemat* problem*</code>
+    🔄 <b>Word grouping</b> - use (): <code>+(elf goblin orc dwarf) +(lonely evil sad huge)</code>
+    📏 <b>Word proximity</b> - use @N after a phrase in double quotes: <code>"currently lives" @3</code>
+    🔎 <b>Annotation search</b> - in settings enable "Search area" → "by book annotations" or "by author annotations"
+
+    <u>Search scope:</u>
+    📖 Main search covers: <b>book title, authors, genres, series, and publication year</b>
+    📚 Annotation search - searches through <b>full book descriptions or author biographies</b>. Words of 3+ letters are indexed
+
+    <u>Language & Original Names:</u>
+    🌐 Book series and author names are displayed in their original form (without translation), predominantly in Russian
+
+    <u>Examples for book annotation search:</u>
+    📘 <code>+(elves dwarves orcs) +(evil lonely big sad)</code> - fantasy worlds with magic
+    📘 <code>+(travel invasions aliens) +(space time other worlds)</code> - space sci-fi
+    📘 <code>+author +created amazing magical +world</code> - books with rich worldbuilding
+    📘 <code>+russian +commander Patriotic war</code> - historical literature
+    📘 <code>+collection +fantastic +(stories novellas)</code> - sci-fi collections
+
+    <u>Examples for author annotation search:</u>
+    👤 <code>+awarded +(medals orders)</code> - authors awarded medals or orders
+    👤 <code>"died 1980" @5</code> - authors who died in 1980 (words within 5 words of each other)
+    👤 <code>+(born lived died) +New-York</code> - authors connected to New-York
+    👤 <code>+translator +journalist</code> - translators and journalists
+    👤 <code>"currently lives" @3</code> - authors currently living
+    
+    <u>Result limits:</u>
+    ⚡️ Search results are temporarily limited to <b>2000 books, 200 authors, and 200 series</b> for performance
+
+    <u>Available display formats (in settings):</u>
+    📚 <b>By books</b> - list of books
+    👥 <b>By authors</b> - grouped by authors
+    📖 <b>By series</b> - grouped by series
+
+# About
+about:
+  title: |
+    <b>Flibusta Bot</b> - a Telegram bot for searching and downloading books directly from the Flibusta library website.
+
+    📊 <b>Bot library database statistics:</b>
+    • 📚 Books: <code>{books_count}</code>
+    • 👥 Authors: <code>{authors_count}</code>
+    • 📖 Series: <code>{series_count}</code>
+    • 🏷️ Genres: <code>{genres_count}</code>
+    • 🌐 Languages: <code>{languages_count}</code>
+    • 📅 Updated: <code>{last_update}</code>
+    • 🔢 Max book file ID: <code>{max_filename}</code>
+
+    ⚡ <b>Bot features:</b>
+    • 🔍 Main book search by title, author, genre, series, and year
+    • 📝 Search through book and author annotations
+    • 📈 Browse new releases and popular books
+    • 📚 Results grouped by series and authors
+    • 👤 Detailed author info with photo and biography
+    • 📖 Book and author annotations and reader reviews
+    • 🖼️ Book covers and author photos from Flibusta
+    • 📥 Download in fb2, epub, mobi formats
+    • ⭐ Filter by rating, size, and language
+    • ⚙️ Flexible search settings
+    
+    {reader_recommendations}
+    📞 <b>Feedback:</b>
+    • 📧 Email: <code>{email}</code>
+    • 🎮 Blog: <a href="{blog}">{blog_name}</a>
+    • 📢 TG channel: <a href="{tg_channel}">{tg_channel_name}</a>
+
+    🛠 <b>Technology:</b>
+    • Python 3.11 + python-telegram-bot
+    • MariaDB + native Flibusta DB
+
+  recommendations: |
+    📱 <b>Recommended e-book readers for all platforms:</b>
+    <u>For Android:</u>
+    • 📖 <a href="https://play.google.com/store/apps/details?id=org.readera  ">ReadEra</a> - best free option
+    • 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader  ">Moon+ Reader</a>
+    • 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle  ">Kindle</a>
+
+    <u>For iOS:</u>
+    • 📖 <a href="https://apps.apple.com/ru/app/readera  -читалка-книг-pdf/id1441824222">ReadEra</a>
+    • 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028  ">KyBook 3</a>
+    • 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613  ">Kindle</a>
+
+    <u>For Computer:</u>
+    • 📚 <a href="https://www.calibre-ebook.com/  ">Calibre</a> (Windows/Mac/Linux)
+    • 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193  ">Apple Books</a> (Mac)
+    • 📖 <a href="https://www.amazon.com/b?node=16571048011  ">Kindle</a> (all platforms)
+
+  error: "❌ Could not retrieve library information"

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from telegram import BotCommand, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, \
@@ -6,15 +7,25 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from telegram.request import HTTPXRequest
 from telegram.error import Forbidden, BadRequest, TimedOut
 
-from handlers_basic import start_cmd, genres_cmd, settings_cmd, donate_cmd, help_cmd, about_cmd, news_cmd, pop_cmd
-from handlers_search import handle_message
-from handlers_callback import button_callback
-from handlers_group import handle_group_message
-from admin import admin_cmd, cancel_auth, auth_password, AUTH_PASSWORD, handle_admin_buttons, ADMIN_BUTTONS
-from constants import CLEANUP_INTERVAL
-from health import cleanup_old_sessions
-from flibusta_client import flibusta_client
-from handlers_payments import pre_checkout, successful_payment
+from .handlers_basic import start_cmd, genres_cmd, settings_cmd, donate_cmd, help_cmd, about_cmd, news_cmd, pop_cmd
+from .handlers_search import handle_message
+from .handlers_callback import button_callback
+from .handlers_group import handle_group_message
+from .admin import (
+    admin_cmd, cancel_auth, cancel_broadcast, auth_password, AUTH_PASSWORD,
+    handle_admin_buttons, ADMIN_BUTTONS,
+    admin_broadcast, broadcast_receive_message,
+    handle_broadcast_callback, BROADCAST_WAITING_MESSAGE,
+)
+from .constants import CLEANUP_INTERVAL
+from .health import cleanup_old_sessions
+from .flibusta_client import flibusta_client
+from .handlers_payments import pre_checkout, successful_payment
+from .VERSION import __version__
+from .core.structured_logger import structured_logger
+from .repositories.logs_repository import LogsRepository
+from .core.logging_schema import EventType
+from .i18n import init_i18n, t
 
 
 async def post_stop(app: Application) -> None:
@@ -49,32 +60,40 @@ async def error_handler(update: Update, context: CallbackContext):
 
 async def set_commands(application: Application):
     """Устанавливает меню команд"""
-    commands = [
-        BotCommand("start", "Запустить бота"),
-        BotCommand("news", "Новости и обновления"),
-        BotCommand("about", "Инфа о боте и библиотеке"),
-        BotCommand("help", "Помощь по запросам"),
-        BotCommand("genres", "Список жанров"),
-        BotCommand("pop", "Популярные и новинки"),
-        # BotCommand("langs", "Доступные языки"),
-        BotCommand("set", "Настройки поиска"),
-        BotCommand("donate", "Поддержать разработчика")
-    ]
-    await application.bot.set_my_commands(commands)
-
-
+    for locale in ['ru','en']:
+        commands = [
+            BotCommand(cmd, t(f"commands.{cmd}", locale=locale))
+            for cmd in ['start','news','about','help','genres','pop','set','donate']
+        ]
+        await application.bot.set_my_commands(commands,language_code=locale)
 
 
 def main():
+
+    # import logging
+    # logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     # Получаем токен из переменной окружения
     TOKEN = os.getenv("BOT_TOKEN")
     if not TOKEN:
         raise ValueError("Токен бота не найден в переменной окружения BOT_TOKEN.")
 
+    # Initialize i18n system
+    translations_dir = Path(__file__).parent / "i18n" / "translations"
+    init_i18n(translations_dir)
+
     request = HTTPXRequest(connect_timeout=60, read_timeout=60)
     #application = Application.builder().token(TOKEN).read_timeout(60).build()
     application = Application.builder().token(TOKEN).request(request).build()
+
+    # Инициализация structured logger
+    logs_repo = LogsRepository()
+    structured_logger.set_db_logger(logs_repo)
+    structured_logger.log_system(
+        EventType.SYSTEM_STARTUP,
+        "Bot started successfully",
+        {"version": __version__}
+    )
 
     application.add_error_handler(error_handler)
 
@@ -87,6 +106,26 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel_auth)]
     )
     application.add_handler(conv_handler)
+
+    # Broadcast conversation handler (must be before admin button handler)
+    broadcast_conv_handler = ConversationHandler(
+        entry_points=[
+            MessageHandler(
+                filters.Regex(r'^📢 Рассылка$') & filters.ChatType.PRIVATE,
+                admin_broadcast
+            )
+        ],
+        states={
+            BROADCAST_WAITING_MESSAGE: [
+                MessageHandler(filters.ALL & ~filters.COMMAND, broadcast_receive_message)
+            ]
+        },
+        fallbacks=[CommandHandler('cancel', cancel_broadcast)],
+    )
+    application.add_handler(broadcast_conv_handler)
+
+    # Broadcast confirm/cancel callback
+    application.add_handler(CallbackQueryHandler(handle_broadcast_callback, pattern=r"^broadcast:"))
 
     # Регулярное выражение для фильтрации админских кнопок
     admin_buttons_regex = r'^(' + '|'.join(ADMIN_BUTTONS.values()) + ')$'

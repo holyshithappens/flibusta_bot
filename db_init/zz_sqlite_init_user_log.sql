@@ -1,0 +1,13 @@
+-- UserLog definition OLD
+
+--CREATE TABLE IF NOT EXISTS UserLog (
+--                    Timestamp VARCHAR(27) NOT NULL,
+--                    UserID INTEGER NOT NULL,
+--                    UserName VARCHAR(50),
+--                    Action VARCHAR(50) COLLATE NOCASE,
+--                    Detail VARCHAR(255) COLLATE NOCASE,
+--                    PRIMARY KEY(Timestamp, UserID)
+--                );
+--
+--CREATE INDEX IF NOT EXISTS IXUserLog_UserID_Timestamp
+--                ON UserLog (UserID, Timestamp);

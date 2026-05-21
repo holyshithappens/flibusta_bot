@@ -1,35 +1,47 @@
+import csv
+from datetime import datetime
+from io import BytesIO, TextIOWrapper
+from typing import Any, List
+
 from telegram import InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.error import TimedOut
+from telegram.ext import CallbackContext
 
-from context import get_user_params
-from constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
+from .context import get_user_params
+from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
-from utils import format_size, upload_to_tmpfiles,  get_short_donation_notice
-from logger import logger
-from flibusta_client import flibusta_client, FlibustaClient
+from .i18n import t, get_or_detect_locale
+from .tools import format_size, upload_to_tmpfiles,  get_short_donation_notice
+from .core.structured_logger import structured_logger
+from .flibusta_client import flibusta_client, FlibustaClient
 
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
-async def handle_send_file(query, context, action, params, for_user = None):
+async def handle_send_file(update, context, action, params, for_user = None):
     """Обрабатывает отправку файла"""
-    book_id = params[0]
+    # query = update.callback_query
+    book_id = int(params[0])
     user_params = get_user_params(context)
     book_format = user_params.BookFormat if user_params else DEFAULT_BOOK_FORMAT
 
-    public_filename = await process_book_download(query, book_id, book_format, for_user)
+    public_filename = await process_book_download(update, context, book_id, book_format, for_user)
 
-    log_detail = f"{book_id}.{book_format}"
-    log_detail += ":" + public_filename if public_filename else ""
-    logger.log_user_action(query.from_user, "send file", log_detail)
+    # log_detail = f"{book_id}.{book_format}"
+    # log_detail += ":" + public_filename if public_filename else ""
+    # logger.log_user_action(query.from_user, "send file", log_detail)
 
 
-async def process_book_download(query, book_id, book_format, for_user=None):
+async def process_book_download(update, context, book_id: int, book_format, for_user=None):
     """Обрабатывает скачивание и отправку книги сначала без авторизации на сайте, потом с авторизацией"""
+    query = update.callback_query
     book_url = FlibustaClient.get_book_url(book_id)
+    # book_title = get_book_title_safe(context, book_id)
+    processing_msg = None
+    book_data = None
 
     try:
         processing_msg = await query.message.reply_text(
-            "⏰ <i>Ожидайте, отправляю книгу" + (f" для {for_user.first_name}" if for_user else "") + "...</i>",
+            t("download.waiting_for_user",context,user_name=for_user.first_name) if for_user else t("download.waiting", context),
             parse_mode=ParseMode.HTML,
             disable_notification=True
         )
@@ -45,7 +57,7 @@ async def process_book_download(query, book_id, book_format, for_user=None):
 
         if book_data:
             # Сообщение об истечении срока аренды vps
-            message = get_short_donation_notice()
+            message = get_short_donation_notice(context)
 
             await query.message.reply_document(
                 document=book_data,
@@ -54,9 +66,25 @@ async def process_book_download(query, book_id, book_format, for_user=None):
                 caption=message,
                 parse_mode=ParseMode.MARKDOWN
             )
+
+            # ✅ ЛОГИРОВАНИЕ УСПЕШНОГО СКАЧИВАНИЯ
+            structured_logger.log_download(
+                user_id=query.from_user.id,
+                username=query.from_user.username or query.from_user.first_name or "Unknown",
+                book_id=book_id,
+                book_title=f"{book_id}.{book_format}", # TODO: substitute with book title
+                format=book_format,
+                file_size=len(book_data) if book_data else 0,
+                success=True,
+                via_tmpfiles=False,
+                chat_type="private",
+                chat_id=query.from_user.id
+            )
+
         else:
             await query.message.reply_text(
-                "😞 Не удалось скачать книгу в этом формате" + (f" для {for_user.first_name}" if for_user else ""),
+                t("download.format_failed_for_user", context, user_name=for_user.first_name)
+                    if for_user else t("download.format_failed"),
                 disable_notification=True
             )
 
@@ -64,22 +92,47 @@ async def process_book_download(query, book_id, book_format, for_user=None):
         return public_filename
 
     except TimedOut:
-        await handle_timeout_error(processing_msg, book_data, book_id, book_format, query)
+        if processing_msg and book_data:
+            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context)
+
+            structured_logger.log_download(
+                user_id=query.from_user.id,
+                username=query.from_user.username or query.from_user.first_name or "Unknown",
+                book_id=book_id,
+                book_title="",  # TODO: substitute with book title
+                format=book_format,
+                file_size=len(book_data),
+                success=True,
+                via_tmpfiles=True,
+                chat_type="private",
+                chat_id=query.from_user.id
+            )
+
     except Exception as e:
         """Обрабатывает ошибку загрузки"""
         print(f"Общая ошибка при отправке книги: {e}")
         await processing_msg.edit_text(
-            f"❌ Произошла ошибка при подготовке книги {book_url}. Возможно она доступна только в локальной базе"
+            t("download.preparation_error",context,book_url=book_url)
         )
-        logger.log_user_action(query.from_user.id, "error sending book direct", book_url)
+        # logger.log_user_action(query.from_user.id, "error sending book direct", book_url)
+        structured_logger.log_error(
+            error_type="download_failed",
+            error_message=str(e),
+            context={
+                "book_id": book_id,
+                "format": format
+            },
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown"
+        )
 
     return None
 
 
-async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query):
+async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query, context):
     """Обрабатывает ошибку таймаута"""
     await processing_msg.edit_text(
-        "⏳ Книга большая, использую внешний сервис...",
+        t("download.using_external_service", context),
         parse_mode=ParseMode.HTML
     )
 
@@ -92,8 +145,8 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
                 1
             )
             message = (
-                f"<a href='{direct_download_url}'>📥 Скачать книгу</a>\n"
-                "⏳ Ссылка действительна 15 минут"
+                f"<a href='{direct_download_url}'>{t('download.download_link',context)}</a>\n" +
+                t("download.link_expires",context)
             )
             await query.message.reply_text(
                 text=message,
@@ -103,8 +156,17 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
             )
     except Exception as upload_error:
         print(f"Ошибка загрузки на tmpfiles: {upload_error}")
-        await processing_msg.edit_text("❌ Не удалось отправить книгу. Попробуйте позже.")
-        logger.log_user_action(query.from_user.id, "error sending book cloud", f"{file_name}{file_ext}")
+        await processing_msg.edit_text(t("download.send_failed", context))
+        structured_logger.log_error(
+            error_type="upload_failed",
+            error_message="Failed to upload book to cloud storage",
+            context={
+                "file_name": file_name,
+                "file_ext": file_ext
+            },
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown"
+        )
 
 
 async def edit_or_reply_message(query, text, reply_markup=None):
@@ -117,36 +179,107 @@ async def edit_or_reply_message(query, text, reply_markup=None):
 
 def get_rating_emoji(rating):
     """Возвращает эмодзи для рейтинга"""
-    return BOOK_RATINGS.get(rating, ("⚪️", ""))[0]
+    # Convert rating to string to match BOOK_RATINGS dictionary keys
+    return BOOK_RATINGS.get(str(rating), ("⚪️", ""))[0]
 
 
-def create_back_button() -> list:
+def create_back_button(context) -> list:
     """Создает кнопку возврата в настройки"""
-    return [[InlineKeyboardButton("⬅ Назад в настройки", callback_data="back_to_settings")]]
+    #TODO: add context parameter to call t('common.back',context) instead of "🔙 Назад"
+    return [[InlineKeyboardButton(t('common.back',context), callback_data="back_to_settings")]]
 
 
-def add_close_button(keyboard):
+def add_close_button(keyboard, context):
     """Добавляем к клавиатуре кнопку закрытия"""
-    return keyboard.append([InlineKeyboardButton("❌ Закрыть", callback_data="close_message")])
+    return keyboard.append([InlineKeyboardButton(t('common.close', context), callback_data="close_message")])
+
+
+# ===== CSV EXPORT =====
+def generate_books_csv(pages_of_books: List[List[Any]]) -> tuple[str, BytesIO]:
+    """
+    Generate CSV content from paginated books.
+
+    The csv.writer automatically quotes fields containing:
+    - Commas (,)
+    - Double quotes (")
+    - Newlines (\\n)
+
+    This ensures proper CSV formatting for all field values.
+
+    Args:
+        pages_of_books: List of pages, each containing Book namedtuples
+
+    Returns:
+        Tuple of (filename, BytesIO buffer with CSV content)
+    """
+    # Flatten pages to single list
+    all_books = []
+    for page in pages_of_books:
+        all_books.extend(page)
+
+    # Create CSV in memory
+    buffer = BytesIO()
+    # Add BOM for Excel UTF-8 compatibility
+    buffer.write(b'\xef\xbb\xbf')
+
+    # Wrap with TextIOWrapper for csv module
+    text_buffer = TextIOWrapper(buffer, encoding='utf-8', newline='')
+
+    # Use default quoting behavior: csv.QUOTE_MINIMAL
+    # This quotes fields only when necessary (containing special characters)
+    writer = csv.writer(text_buffer, quoting=csv.QUOTE_MINIMAL)
+
+    # Write header - book_url first as primary identifier
+    writer.writerow([
+        'book_url', 'title', 'author_name', 'genre', 'series',
+        'year_of_publication', 'size', 'rating'
+    ])
+
+    # Write data rows
+    for book in all_books:
+        # Generate book URL using FlibustaClient
+        book_url = FlibustaClient.get_book_url(book.FileName) or ''
+        author_name = f"{book.LastName or ''} {book.FirstName or ''} {book.MiddleName or ''}".strip()
+        size_formatted = format_size(book.BookSize) if book.BookSize else ''
+
+        writer.writerow([
+            book_url,
+            book.Title or '',
+            author_name,
+            book.Genre or '',          # Auto-quoted if contains commas
+            book.SeriesTitle or '',    # Auto-quoted if contains commas
+            book.SearchYear if book.SearchYear else '',
+            size_formatted,
+            book.LibRate if book.LibRate else ''
+        ])
+
+    # Flush text buffer and detach
+    text_buffer.detach()
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"books_{timestamp}.csv"
+
+    return filename, buffer
 
 
 # ===== КЛАВИАТУРЫ И ИНТЕРФЕЙС =====
-def add_navigation_buttons(keyboard, search_type, page, pages):
+def add_navigation_buttons(keyboard, search_type, page, pages, context):
     navigation_buttons = []
     if page > 0:
-        navigation_buttons.append(InlineKeyboardButton("⬆ В начало", callback_data=f"{search_type}_page_0"))
+        navigation_buttons.append(InlineKeyboardButton(t("search.pagination.home",context), callback_data=f"{search_type}_page_0"))
         navigation_buttons.append(
-            InlineKeyboardButton("⬅️ Назад", callback_data=f"{search_type}_page_{page - 1}"))
+            InlineKeyboardButton(t("search.pagination.prev",context), callback_data=f"{search_type}_page_{page - 1}"))
     if page < len(pages) - 1:
         navigation_buttons.append(
-            InlineKeyboardButton("Вперёд ➡️", callback_data=f"{search_type}_page_{page + 1}"))
+            InlineKeyboardButton(t("search.pagination.next",context), callback_data=f"{search_type}_page_{page + 1}"))
         navigation_buttons.append(
-            InlineKeyboardButton("В конец ⬇️️️", callback_data=f"{search_type}_page_{len(pages) - 1}"))
+            InlineKeyboardButton(t("search.pagination.end",context), callback_data=f"{search_type}_page_{len(pages) - 1}"))
     if navigation_buttons:
         keyboard.append(navigation_buttons)
 
 
-def create_books_keyboard(page, pages_of_books, search_context=SEARCH_TYPE_BOOKS):
+def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_TYPE_BOOKS):
     """Создание клавиатуры с кнопками книг и кнопками навигации"""
     keyboard = []
 
@@ -166,20 +299,23 @@ def create_books_keyboard(page, pages_of_books, search_context=SEARCH_TYPE_BOOKS
                 )])
 
             # Добавляем кнопки для навигации
-            add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books)
+            add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books, context)
+
+            # Добавляем кнопку скачивания CSV
+            keyboard.append([InlineKeyboardButton(t("search.download",context), callback_data="download_books_csv")])
 
             # Добавляем кнопку "Назад к сериям" только при поиске по сериям
             if search_context == SEARCH_TYPE_SERIES:
-                keyboard.append([InlineKeyboardButton("⤴️ Назад к сериям", callback_data="back_to_series")])
+                keyboard.append([InlineKeyboardButton(t("search.pagination.series",context), callback_data="back_to_series")])
 
             # Добавляем кнопку "Назад к авторам" при поиске по авторам
             elif search_context == SEARCH_TYPE_AUTHORS:
-                keyboard.append([InlineKeyboardButton("⤴️ Назад к авторам", callback_data="back_to_authors")])
+                keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
 
     return keyboard
 
 
-def create_series_keyboard(page, pages_of_series):
+def create_series_keyboard(page, pages_of_series, context):
     """ Создание клавиатуры с кнопками из найденных серий книг """
     keyboard = []
 
@@ -195,12 +331,12 @@ def create_series_keyboard(page, pages_of_series):
                 )])
 
             # Добавляем кнопки для навигации
-            add_navigation_buttons(keyboard, SEARCH_TYPE_SERIES, page, pages_of_series)
+            add_navigation_buttons(keyboard, SEARCH_TYPE_SERIES, page, pages_of_series, context)
 
     return keyboard
 
 
-def create_authors_keyboard(page, pages_of_authors):
+def create_authors_keyboard(page, pages_of_authors, context):
     """ создание клавиатуры для авторов """
     keyboard = []
 
@@ -216,6 +352,39 @@ def create_authors_keyboard(page, pages_of_authors):
                 )])
 
             # Добавляем кнопки для навигации
-            add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors)
+            add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors, context)
 
     return keyboard
+
+
+# def get_book_title_safe(context: CallbackContext, book_id: int) -> str:
+#     """
+#     Получает название книги безопасно (кеш → БД → fallback)
+#
+#     Args:
+#         context: Telegram context
+#         book_id: ID книги
+#
+#     Returns:
+#         Название книги или "Book #{book_id}"
+#     """
+#
+#     # 2. Запрашиваем из БД (используем старый DatabaseBooks)
+#     try:
+#         from database import DB_BOOKS
+#
+#         # Используем метод connect() старого класса
+#         with DB_BOOKS.connect() as conn:
+#             cursor = conn.cursor()
+#             cursor.execute("SELECT Title FROM cb_libbook WHERE BookID = %s LIMIT 1", (book_id,))
+#             result = cursor.fetchone()
+#
+#             if result and result[0]:
+#                 title = str(result[0])
+#                 # print(f"DEBUG: get book title from DB")
+#                 return title
+#     except Exception as e:
+#         print(f"Error fetching book title from DB: {e}")
+#
+#     # 3. Fallback - если всё упало
+#     return f"Book #{book_id}"

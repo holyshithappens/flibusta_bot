@@ -10,46 +10,52 @@ skip-character-set-client-handshake
 innodb-buffer-pool-size=512M
 innodb-log-file-size=64M
 innodb-flush-log-at-trx-commit=2
-innodb-file-per-table=ON
-innodb-flush-method=O_DIRECT
+
+# FTS cache — set large enough to hold libbook_fts working set
+# Observed peak need: 148MB. 96M covers most queries without over-allocating.
+# This is allocated on-demand, not permanently held in RAM.
+innodb-ft-cache-size=100M
+# Total FTS cache across all tables (default 640M is too high for your setup)
+innodb-ft-total-cache-size=256M
 
 # Memory tuning (conservative)
-key-buffer-size=16M
-max-heap-table-size=32M
-tmp-table-size=32M
-join-buffer-size=256K
-sort-buffer-size=256K
-read-buffer-size=128K
-read-rnd-buffer-size=256K
+key-buffer-size=128M
+myisam-sort-buffer-size=32M
+max-heap-table-size=64M
+tmp-table-size=64M
+join-buffer-size=512K
+sort-buffer-size=512K
+read-buffer-size=256K
+read-rnd-buffer-size=512K
 
 # Connections
 max-connections=50
-thread-cache-size=10
+thread-cache-size=16
 table-open-cache=1000
 table-definition-cache=500
 
 # Query cache (OFF is correct for modern versions)
-query_cache_type=OFF
-query_cache_size=0
+query-cache-type=OFF
+query-cache-size=0
 
 # Performance schema (OFF saves ~100MB RAM)
 performance-schema=OFF
 
 # Network
 skip-name-resolve
-wait_timeout=300
-interactive_timeout=300
+wait-timeout=300
+interactive-timeout=300
 
 # Full-text
 ft-min-word-len=3
 innodb-ft-min-token-size=3
-
-# Logging
-slow_query_log=OFF
-general_log=OFF
 
 # SSD tweaks (keep as is, safe)
 innodb-io-capacity=2000
 innodb-io-capacity-max=4000
 innodb-read-io-threads=4
 innodb-write-io-threads=4
+
+# Logging
+slow-query-log=OFF
+general-log=OFF

@@ -4,22 +4,24 @@ from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
-from handlers_search import handle_search_books, handle_books_page_change
-from database import DB_BOOKS
-from handlers_info import handle_book_info, handle_book_details, handle_author_info, handle_book_reviews, \
+from .database import DB_BOOKS
+from .handlers_info import handle_book_info, handle_book_details, handle_author_info, handle_book_reviews, \
     handle_close_info
-from handlers_utils import create_books_keyboard, handle_send_file
-from constants import SEARCH_TYPE_BOOKS
-from context import set_last_activity, get_pages_of_books, get_found_books_count, set_last_search_query, \
-    set_last_bot_message_id, get_user_params, update_user_params, set_books, get_last_bot_message_id, set_switch_search
-from utils import is_message_for_bot, extract_clean_query, form_header_books
-from health import log_stats
-from logger import logger
+from .handlers_utils import create_books_keyboard, handle_send_file
+from .constants import SEARCH_TYPE_BOOKS
+from .context import set_last_activity, get_pages_of_books, get_found_books_count, set_last_search_query, \
+    set_last_bot_message_id, get_user_params, update_user_params, set_books, get_last_bot_message_id
+from .tools import is_message_for_bot, extract_clean_query, form_header_books
+from .health import log_stats
+from .core.structured_logger import structured_logger
+from .i18n import t, get_or_detect_locale
 
 # ===== РАБОТА В ГРУППЕ =====
 async def handle_group_message(update: Update, context: CallbackContext):
     """Обрабатывает сообщения из группы"""
     try:
+        # Initialize locale on first access
+        get_or_detect_locale(update, context)
         # Проверяем, обращается ли пользователь к боту
         if not is_message_for_bot(update.effective_message.text, context.bot.username):
             # Сообщение НЕ для бота - пропускаем обработку
@@ -33,7 +35,7 @@ async def handle_group_message(update: Update, context: CallbackContext):
         # Отправляем сообщение об ошибке через context.bot
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="❌ Произошла ошибка при обработке запроса",
+            text=t('errors.general', context),
             reply_to_message_id=update.effective_message.message_id
         )
 
@@ -54,7 +56,7 @@ async def handle_group_search(update: Update, context: CallbackContext):
 
         if not clean_query_text:
             await message.reply_text(
-                "❌ Пожалуйста, укажите поисковый запрос после упоминания бота",
+                t('errors.general', context),
                 reply_to_message_id=message.message_id
             )
             return
@@ -74,21 +76,21 @@ async def handle_group_search(update: Update, context: CallbackContext):
 
         # Отправляем сообщение о начале поиска
         processing_msg = await message.reply_text(
-            f"⏰ <i>Ищу книги по запросу от {user.first_name}...</i>",
+            t('search.loading', context),
             parse_mode=ParseMode.HTML,
-            reply_to_message_id=message.message_id,
-            message_thread_id = message.message_thread_id
+            reply_to_message_id=message.message_id
         )
 
         # Получаем или создаем настройки пользователя
         user_params = get_user_params(context)
 
-        # print(f"DEBUG: clean_query_text = {clean_query_text}")
+        print(f"DEBUG: clean_query_text = {clean_query_text}")
 
         # Выполняем поиск книг
         books = DB_BOOKS.search_books(
             clean_query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
-            search_area=user_params.SearchArea
+            search_area=user_params.SearchArea,
+            locale=user_params.Locale or 'ru'
         )
         found_books_count = len(books)
 
@@ -99,13 +101,18 @@ async def handle_group_search(update: Update, context: CallbackContext):
             pages_of_books = [books[i:i + user_params.MaxBooks] for i in range(0, len(books), user_params.MaxBooks)]
             page = 0
 
-            keyboard = create_books_keyboard(page, pages_of_books)
+            keyboard = create_books_keyboard(page, pages_of_books, context)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             if reply_markup:
                 user_name = (user.first_name if user.first_name else "") #+ (f" @{user.username}" if user.username else "")
-                header_found_text = f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
+                header_found_text = (
+                    t("search.results_title_for_user", context, user_name=user_name) if user_name
+                    else t("search.results_title", context)
+                )
+                    # f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
                 header_found_text += form_header_books(
+                    context,
                     page, user_params.MaxBooks, found_books_count,
                     search_area=user_params.SearchArea
                 )
@@ -114,10 +121,7 @@ async def handle_group_search(update: Update, context: CallbackContext):
                 result_message = await context.bot.send_message(
                     chat_id=chat.id,
                     text=header_found_text,
-                    reply_markup=reply_markup,
-                    # message_thread_id=message.message_thread_id
-                    reply_to_message_id=message.message_id,
-                    allow_sending_without_reply=True
+                    reply_markup=reply_markup
                 )
 
                 # Сохраняем контекст поиска в bot_data (доступно всем пользователям группы)
@@ -134,35 +138,44 @@ async def handle_group_search(update: Update, context: CallbackContext):
             # Отправляем сообщение о том, что книги не найдены
             result_message = await context.bot.send_message(
                 chat_id=chat.id,
-                text=f"😞 Не нашёл подходящих книг для запроса '{clean_query_text}'",
-                reply_to_message_id=message.message_id,
-                # message_thread_id=message.message_thread_id
-                allow_sending_without_reply=True
+                text=t('search.no_results', context),
+                reply_to_message_id=message.message_id
             )
             # Сохраняем контекст поиска в bot_data (доступно всем пользователям группы)
             set_last_bot_message_id(context, result_message.message_id)
 
-        logger.log_user_action(user, "searched for books in group", f"{clean_query_text}; count:{found_books_count}; chat:{chat.title}")
+        structured_logger.log_search(
+            user_id=user.id,
+            username=user.username or user.first_name or "Unknown",
+            query=clean_query_text,
+            search_type="books",
+            search_area=user_params.SearchArea,
+            results_count=found_books_count,
+            duration_ms=0,
+            chat_type="group",
+            chat_id=chat.id
+        )
 
     except Exception as e:
         print(f"Ошибка при обработке поиска из группы: {e}")
         # Используем context.bot вместо update.message
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="❌ Произошла ошибка при поиске книг",
+            text=t('errors.general', context),
             reply_to_message_id=update.effective_message.message_id
-            # message_thread_id=update.effective_message.message_thread_id
         )
 
 
 async def handle_group_callback(update, context, action, params, user):
     """Обрабатывает callback-запросы из групп"""
+    query = update.callback_query
+    # Initialize locale on first access
+    get_or_detect_locale(update, context)
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
-    query = update.callback_query
 
     if not search_context_user_params:
-        await query.edit_message_text("❌ Сессия поиска истекла. Начните поиск заново.")
+        await query.edit_message_text(t('search.session_expired', context))
         return
 
     action_handlers = {
@@ -175,42 +188,39 @@ async def handle_group_callback(update, context, action, params, user):
 
     # Обрабатываем действия
     if action.startswith(f"{SEARCH_TYPE_BOOKS}_page_"):
-        await handle_group_page_change(query, context, action, params, user)
+        await handle_group_page_change(update, context, action, params, user)
     elif action == 'send_file':
         await handle_send_file(query, context, action, params, user)
-    # Обработка просмотра популярных книг и новинок
-    elif action.startswith('show_pop_'):
-        await handle_group_show_pops(update, context, action, params)
-    # Затем проверяем префиксы
-    elif action.startswith(f"{SEARCH_TYPE_BOOKS}_page_"):
-        await handle_books_page_change(query, context, action, params)
     # Прямой поиск обработчика в словаре
     elif action in action_handlers:
         handler = action_handlers[action]
-        await handler(query, context, action, params)
+        await handler(update, context, action, params)
     else:
-        await query.edit_message_text("❌ Это действие недоступно в группе")
+        await query.edit_message_text(t('callback.unknown_action', context))
 
     await log_stats(context)
 
 
-async def handle_group_page_change(query, context, action, params, user):
+async def handle_group_page_change(update, context, action, params, user):
     """Обрабатывает смену страницы в группе"""
+    query = update.callback_query
+    # Initialize locale on first access
+    get_or_detect_locale(update, context)
     # Восстанавливаем контекст поиска пользователя
     search_context_user_params = get_user_params(context)
 
     if not search_context_user_params:
-        await query.edit_message_text("❌ Сессия поиска истекла. Начните поиск заново.")
+        await query.edit_message_text(t('search.session_expired', context))
         return
 
     pages_of_books = get_pages_of_books(context)
     page = int(action.removeprefix(f"{SEARCH_TYPE_BOOKS}_page_"))
 
     if not pages_of_books or page >= len(pages_of_books):
-        await query.edit_message_text("❌ Ошибка при загрузке страницы")
+        await query.edit_message_text(t('search.page_error', context))
         return
 
-    keyboard = create_books_keyboard(page, pages_of_books)
+    keyboard = create_books_keyboard(page, pages_of_books, context)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if reply_markup:
@@ -219,41 +229,15 @@ async def handle_group_page_change(query, context, action, params, user):
         search_area = user_params.SearchArea
 
         user_name = (user.first_name if user.first_name else "")
-        header_text = f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
+        header_text = (
+                    t("search.results_title_for_user", context, user_name=user_name) if user_name
+                    else t("search.results_title", context)
+                )
+            # f"📚 Результаты поиска" + (f" для {user_name}" if user_name else "") + ":\n\n"
         header_text += form_header_books(
+            context,
             page, user_params.MaxBooks, found_books_count,
             search_area=search_area
         )
 
         await query.edit_message_text(header_text, reply_markup=reply_markup)
-
-
-async def handle_group_show_pops(update, context, action, params):
-    """Запуск поиска популярных книг и новинок"""
-    try:
-        set_switch_search(context, action)
-        # await handle_message(update, context)
-        await handle_search_books(update, context)
-
-        logger.log_user_action(update.callback_query.from_user, "show populars from group", action)
-
-    except Exception as e:
-        print(f"Error in handle_show_pops: {e}")
-        await update.callback_query.message.reply_text("❌ Ошибка при загрузке популярных книг/новинок")
-
-    await log_stats(context)
-
-
-# # Временный обработчик для отладки ВСЕХ сообщений
-# async def debug_all_messages(update: Update, context: CallbackContext):
-#     """Отладочный обработчик для всех сообщений"""
-#     print(f"\n{'#'*60}")
-#     print(f"[DEBUG ALL MESSAGES]")
-#     print(f"Chat ID: {update.effective_chat.id}")
-#     print(f"Chat Type: {update.effective_chat.type}")
-#     print(f"Chat Title: {getattr(update.effective_chat, 'title', 'No title')}")
-#     print(f"Message Text: {update.effective_message.text if update.effective_message else 'No text'}")
-#     print(f"From User: {update.effective_user.username if update.effective_user else 'None'}")
-#     print(f"Message ID: {update.effective_message.message_id if update.effective_message else 'No ID'}")
-#     print(f"{'#'*60}\n")
-
