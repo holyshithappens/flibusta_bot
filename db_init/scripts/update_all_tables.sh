@@ -55,12 +55,12 @@ prepare_system() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 🧹 Preparing system for update..."
 
     # 1. Flush and clear InnoDB buffer pool
-    _run_sql_admin "SET GLOBAL innodb_buffer_pool_size = 134217728;"
-    _run_sql_admin "SET GLOBAL innodb_buffer_pool_size = 536870912;"
+#    _run_sql_admin "SET GLOBAL innodb_buffer_pool_size = 134217728;"
+#    _run_sql_admin "SET GLOBAL innodb_buffer_pool_size = 536870912;"
 
     # 2. Drop OS page cache (requires sudo — set up sudoers or run as root)
-    sync
-    echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
+#    sync
+#    echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
 
     # 3. Flush swap if enough free RAM exists
     FREE_MB=$(free -m | awk '/^Mem:/{print $7}')
@@ -72,6 +72,9 @@ prepare_system() {
     else
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Skipping swap flush (free RAM: ${FREE_MB}MB, swap used: ${SWAP_USED}MB)"
     fi
+# Перезапуск контейнера db для освобождения памяти
+    docker restart flibusta-db
+    wait_for_healthy || exit 1
 
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ System prepared"
 }
@@ -333,6 +336,26 @@ restore_sql_files() {
     fi
 
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: SQL files restored from backup"
+}
+
+# Ждём, пока Docker отметит контейнер как здоровый
+wait_for_healthy() {
+  local max_attempts=60
+  local attempt=1
+
+  echo "[$(date '+%F %T')] 🔄 Waiting for Docker healthcheck..."
+
+  while [ $attempt -le $max_attempts ]; do
+    if [ "$(docker inspect -f '{{.State.Health.Status}}' flibusta-db 2>/dev/null)" = "healthy" ]; then
+      echo "[$(date '+%F %T')] ✅ Container is healthy!"
+      return 0
+    fi
+    sleep 2
+    ((attempt++))
+  done
+
+  echo "[$(date '+%F %T')] ❌ Healthcheck timeout"
+  return 1
 }
 
 # === Main Execution ===
