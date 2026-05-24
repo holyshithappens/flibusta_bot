@@ -2,10 +2,12 @@
 Версия проекта
 """
 
-__version__ = "1.3.0"
-__version_info__ = (1, 3, 0)
+__version__ = "1.3.2"
+__version_info__ = (1, 3, 2)
 
 # История версий:
+# 1.3.2 (2026-05-24) - Fix: use real book title from Content-Disposition header in download logging
+# 1.3.1 (2026-05-24) - Fix: correct search query logging in structured_logger
 # 1.3.0 (2026-05-21) - Feat: admin broadcast feature with test mode and structured logging
 # 1.2.0 (2026-05-05) - Feat: add i18n support for ru/en locales
 # 1.1.11 (2026-04-28) - Fix: correct the queries for searching novelties and popular books
