@@ -35,9 +35,9 @@ async def process_book_download(update, context, book_id: int, book_format, for_
     """Обрабатывает скачивание и отправку книги сначала без авторизации на сайте, потом с авторизацией"""
     query = update.callback_query
     book_url = FlibustaClient.get_book_url(book_id)
-    # book_title = get_book_title_safe(context, book_id)
     processing_msg = None
     book_data = None
+    public_filename = f"{book_id}.{book_format}"
 
     try:
         processing_msg = await query.message.reply_text(
@@ -72,7 +72,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown",
                 book_id=book_id,
-                book_title=f"{book_id}.{book_format}", # TODO: substitute with book title
+                book_title=public_filename,
                 format=book_format,
                 file_size=len(book_data) if book_data else 0,
                 success=True,
@@ -99,7 +99,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown",
                 book_id=book_id,
-                book_title="",  # TODO: substitute with book title
+                book_title=public_filename,
                 format=book_format,
                 file_size=len(book_data),
                 success=True,
