@@ -79,7 +79,7 @@ async def handle_book_info(update, context, action, params):
             event_type=EventType.BOOK_INFO_VIEW,
             user_id=user.id,
             username=user.username or user.first_name or "Unknown",
-            data={"book_id": book_id},
+            data={"book_id": book_id, "book_title": book_info['title']},
             chat_type="private",
             chat_id=user.id
         )
