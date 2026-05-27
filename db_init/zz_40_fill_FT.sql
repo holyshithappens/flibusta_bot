@@ -21,6 +21,7 @@ SELECT
              else ''
         end,
         GROUP_CONCAT(DISTINCT CONCAT_WS(' ', an.LastName, an.FirstName, an.MiddleName)),
+        GROUP_CONCAT(DISTINCT CONCAT_WS(' ', tn.LastName, tn.FirstName, tn.MiddleName)),
         GROUP_CONCAT(DISTINCT sn.SeqName),
         GROUP_CONCAT(DISTINCT gl.GenreDesc),
         GROUP_CONCAT(DISTINCT gle.GenreDesc),
@@ -29,6 +30,8 @@ SELECT
 FROM libbook b
 LEFT JOIN libavtor a ON a.BookID = b.BookID
 LEFT JOIN libavtorname an ON a.AvtorID = an.AvtorID
+LEFT JOIN libtranslator t ON t.BookID = b.BookID
+LEFT JOIN libavtorname tn ON t.TranslatorID = tn.AvtorID
 LEFT JOIN libseq s ON s.BookID = b.BookID
 LEFT JOIN libseqname sn ON s.SeqID = sn.SeqID
 LEFT JOIN libgenre g ON g.BookID = b.BookID
