@@ -37,7 +37,7 @@ search:
   loading: "⏰ <i>Searching for books, please wait...</i>"
   loading_book_info: "⏰ <i>Please wait, loading book information...</i>"
   loading_series: "⏰ <i>Searching for series, please wait...</i>"
-  loading_authors: "⏰ <i>Searching for authors, please wait...</i>"
+  loading_authors: "⏰ <i>Searching for authors/translators, please wait...</i>"
 
   results:
     books:
@@ -56,14 +56,14 @@ search:
   error: "❌ An error occurred while processing your request"
   no_results: "😞 No suitable books found. Try different search criteria."
   no_results_series: "😞 No suitable series found. Try different search criteria."
-  no_results_authors: "😞 No suitable authors found. Try different search criteria."
+  no_results_authors: "😞 No suitable authors/translators found. Try different search criteria."
   session_expired: "❌ Search session expired. Please start a new search."
   results_expired: "❌ Search results expired. Please perform a new search."
   results_expired_title: "🕒 <b>Search results expired</b>\n\nPlease perform a new search."
   page_error: "❌ Page number error"
   page_change_error: "❌ An error occurred while changing page"
   series_error: "❌ Error processing series: {error}"
-  author_error: "❌ Error processing author: {error}"
+  author_error: "❌ Error processing author/translator: {error}"
   error_detail: "❌ Search error: {error}"
 
   pagination:
@@ -76,7 +76,7 @@ search:
 
   download: "📥 Download list in CSV"
 
-  author_about: "👤 About author"
+  author_about: "👤 About author/translator"
 
   results_title: "📚 Search results:\n\n"
   results_title_for_user: "📚 Search results for {user_name}:\n\n"
@@ -86,6 +86,7 @@ book:
   download: "📥 Download"
   info: "ℹ️ Info"
   author: "👤 Author"
+  translator: "👤 Translator"
 #  series: "📖 Series"
 #  genre: "🏷️ Genre"
 #  year: "📅 Year"
@@ -94,10 +95,12 @@ book:
 #  language: "🌐 Language"
 #  format: "📄 Format"
   authors: "👤 <b>Author(s):</b>"
+  translators: "👤 <b>Translator(s):</b>"
   genres: "📑 <b>Genre(s):</b>"
   series: "📖 <b>Series:</b>"
   year: "📅 <b>Year:</b>"
   language: "🗣️ <b>Language:</b>"
+  src_language: "🌐 <b>Source language:</b>"
   pages: "📃 <b>Pages:</b>"
   size: "📦 <b>Size:</b>"
   rating: "⭐ <b>Rating:</b>"
@@ -106,7 +109,6 @@ book:
   reviews_title: "💬 <b>Book reviews:</b>"
   not_specified: "Not specified"
   unknown: "Unknown"
-
 
 # Genres
 genres:
@@ -248,7 +250,7 @@ csv:
   error: "❌ Error creating CSV file"
 
 author:
-  about_title: "👤 <b>About author:</b>"
+  about_title: "👤 <b>About author/translator:</b>"
 
 # Welcome message
 welcome:

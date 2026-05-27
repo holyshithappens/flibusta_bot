@@ -36,6 +36,11 @@ class FlibustaClient:
         return f"{cls._base_url}/a/{author_id}" if author_id else None
 
     @classmethod
+    def get_translator_url(cls, translator_id) -> str | None:
+        """Полная ссылка на страницу переводчика"""
+        return f"{cls._base_url}/a/{translator_id}" if translator_id else None
+
+    @classmethod
     def get_genre_url(cls, genre_id) -> str | None:
         """Полная ссылка на страницу книги"""
         return f"{cls._base_url}/g/{genre_id}" if genre_id else None

@@ -243,10 +243,17 @@ def format_book_info(book_info, context):
     # authors = book_info['authors'][:300] + ("..." if len(book_info['authors']) > 300 else "")
     author_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_author_url, book_info["authors"], 20)
     text += f"\n{t('book.authors',context)} {(author_links + (',...' if is_truncated else '')) or t('book.not_specified', context)}"
+    
+    # Translators (new)
+    if book_info.get("translators"):
+        translator_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_translator_url, book_info["translators"], 20)
+        text += f"\n{t('book.translators',context)} {(translator_links + (',...' if is_truncated else '')) or t('book.not_specified', context)}"
+    
     year = book_info["year"]
     series = book_info["series"]
     genre_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_genre_url, book_info["genres"], 10)
     lang = book_info["lang"]
+    src_lang = book_info.get("src_lang")
     pages = book_info["pages"]
     rate = book_info["rate"]
     # book_id = book_info['bookid']
@@ -259,6 +266,8 @@ def format_book_info(book_info, context):
         text += f"\n{t('book.year',context)} {year}"
     if lang:
         text += f"\n{t('book.language',context)} {lang}"
+    if src_lang:
+        text += f"\n{t('book.src_language',context)} {src_lang}"
     if pages:
         text += f"\n{t('book.pages',context)} {pages}"
     size = format_size(book_info["size"])

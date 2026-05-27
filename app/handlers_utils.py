@@ -337,7 +337,7 @@ def create_series_keyboard(page, pages_of_series, context):
 
 
 def create_authors_keyboard(page, pages_of_authors, context):
-    """ создание клавиатуры для авторов """
+    """ создание клавиатуры для авторов/переводчиков """
     keyboard = []
 
     if pages_of_authors:

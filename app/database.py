@@ -14,7 +14,8 @@ from .constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOO
 
 Book = namedtuple('Book',
                    ['FileName', 'Title', 'LastName', 'FirstName', 'MiddleName', 'Genre', 'BookSize',
-                    'SearchYear', 'LibRate', 'SeriesTitle', 'Relevance'])
+                    'SearchYear', 'LibRate', 'SeriesTitle', 'Relevance',
+                    'SrcLang', 'TransLastName', 'TransFirstName', 'TransMiddleName', 'TransID'])
 UserSettingsType = namedtuple('UserSettingsType',
                               ['User_ID', 'MaxBooks', 'Lang',
                                # 'DateSortOrder',
@@ -40,7 +41,12 @@ BASE_FIELDS = """
     gl.GenreDesc AS Genre,
     sn.SeqName as SeriesTitle, 
     sn.SeqId as SeriesID, 
-    ROUND(COALESCE(r.LibRate, 0)) as LibRate
+    ROUND(COALESCE(r.LibRate, 0)) as LibRate,
+    b.SrcLang,
+    tn.LastName as TransLastName,
+    tn.FirstName as TransFirstName,
+    tn.MiddleName as TransMiddleName,
+    tn.AvtorId as TransID
 """
 
 # Базовые JOIN (БЕЗ FROM)
@@ -51,6 +57,8 @@ def get_base_joins(locale: str = 'ru') -> str:
 -- LEFT JOIN (select bookid, min(avtorid) as avtorid from cb_libavtor group by bookid) a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtorname an ON an.AvtorID = a.AvtorID
+LEFT JOIN cb_libtranslator t ON t.BookID = b.BookID
+LEFT JOIN cb_libavtorname tn ON tn.AvtorID = t.TranslatorId
 LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre group by bookid) g ON g.BookID = b.BookID
 -- LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
 LEFT JOIN {genre_table} gl ON gl.GenreID = g.GenreID
@@ -969,14 +977,17 @@ class DatabaseBooks():
         with self.connect() as conn:
             cursor = conn.cursor(buffered=True)
             cursor.execute(f"""
-                SELECT b.Title, b.Year, sn.SeqName,
+                SELECT b.Title, b.Year, b.SrcLang, sn.SeqName,
                        GROUP_CONCAT(DISTINCT CONCAT(gl.GenreID, ',', gl.GenreDesc) SEPARATOR ',') as Genres,
                        GROUP_CONCAT(DISTINCT CONCAT(an.AvtorID, ',', an.LastName, ' ', an.FirstName, ' ', an.MiddleName) SEPARATOR ',') as Authors,
+                       GROUP_CONCAT(DISTINCT CONCAT(tn.AvtorID, ',', tn.LastName, ' ', tn.FirstName, ' ', tn.MiddleName) SEPARATOR ',') as Translators,
                        bp.File, b.FileSize, b.Pages, b.Lang, r.LibRate, b.BookId,
                        sn.SeqID
                 FROM cb_libbook b
                 LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
                 LEFT JOIN cb_libavtorname an ON a.AvtorID = an.AvtorID
+                LEFT JOIN cb_libtranslator t ON t.BookID = b.BookID
+                LEFT JOIN cb_libavtorname tn ON t.TranslatorID = tn.AvtorID
                 LEFT JOIN cb_libseq s ON s.BookID = b.BookID
                 LEFT JOIN cb_libseqname sn ON s.SeqID = sn.SeqID
                 LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
@@ -990,10 +1001,10 @@ class DatabaseBooks():
                     group by r.BookId 
                     ) r on r.BookId = b.BookId
                 WHERE b.BookID = %s
-                GROUP BY b.Title, b.Year, sn.SeqName, bp.File, b.FileSize, b.Pages, b.Lang
+                GROUP BY b.Title, b.Year, b.SrcLang, sn.SeqName, bp.File, b.FileSize, b.Pages, b.Lang
             """, (book_id,))
             result = cursor.fetchone()
-            cover_url = FlibustaClient.get_cover_url_direct(result[5]) if result[5] else None
+            cover_url = FlibustaClient.get_cover_url_direct(result[7]) if result[7] else None
             # print(f"DEBUG: cover_url = {cover_url}")
             # Получение ссылки на обложку со страницы книги, если нет в БД
             if cover_url is None:
@@ -1001,18 +1012,20 @@ class DatabaseBooks():
                 # print(f"DEBUG: cover_url = {cover_url}")
 
             return {
-                'title': result[0],
-                'year': result[1],
-                'series': result[2],
-                'genres': result[3],
-                'authors': result[4],
-                'cover_url': cover_url,
-                'size': result[6],
-                'pages': result[7],
-                'lang': result[8],
-                'rate': result[9],
-                'bookid': result[10],
-                'seqid': result[11],
+                'title': result[0],      # b.Title
+                'year': result[1],       # b.Year
+                'src_lang': result[2],   # b.SrcLang
+                'series': result[3],     # sn.SeqName
+                'genres': result[4],     # Genres
+                'authors': result[5],    # Authors
+                'translators': result[6],# Translators
+                'cover_url': cover_url,  # bp.File (processed above)
+                'size': result[8],       # b.FileSize
+                'pages': result[9],      # b.Pages
+                'lang': result[10],      # b.Lang
+                'rate': result[11],      # r.LibRate
+                'bookid': result[12],    # b.BookId
+                'seqid': result[13],     # sn.SeqID
             } if result else None
 
     async def get_book_details(self, book_id):
@@ -1093,6 +1106,24 @@ class DatabaseBooks():
                 return [author_id[0] for author_id in author_result]
 
 
+    async def get_translators_id(self, book_id: int) -> list[int | None | Any] | None:
+        """Получает ID переводчиков книги"""
+        with self.connect() as conn:
+            cursor = conn.cursor(buffered=True)
+
+            cursor.execute("""
+                SELECT DISTINCT t.TranslatorID 
+                FROM cb_libtranslator t 
+                WHERE t.BookID = %s
+            """, (book_id,))
+            translator_result = cursor.fetchall()
+
+            if not translator_result:
+                return None
+            else:
+                return [translator_id[0] for translator_id in translator_result]
+
+
     async def get_author_info(self, author_id: int) -> dict[str, str | None | Any] | None:
         """Получает информацию об авторе книги"""
         with self.connect() as conn:
@@ -1144,15 +1175,42 @@ class DatabaseBooks():
 
     @classmethod
     def build_sql_query_authors(cls,sql_query_nested, sql_where) -> str:
-        """Собирает SQL запрос поиска авторов"""
+        """Собирает SQL запрос поиска авторов и переводчиков"""
         return f"""
         SELECT 
             CONCAT(COALESCE(LastName, ''), ' ', COALESCE(FirstName, ''), ' ', COALESCE(MiddleName, '')) as AuthorName,
             COUNT(DISTINCT FileName) as book_count,
             AuthorID
-        FROM ({sql_query_nested} ) as subquery
+        FROM (
+            -- Authors
+            SELECT 
+                LastName, 
+                FirstName, 
+                MiddleName,
+                FileName,
+                AuthorID,
+                SearchLang,
+                BookSizeCat,
+                LibRate
+            FROM ({sql_query_nested}) as subquery
+            WHERE (LastName <> '' OR FirstName <> '' OR MiddleName <> '')
+            
+            UNION ALL
+            
+            -- Translators
+            SELECT 
+                TransLastName as LastName, 
+                TransFirstName as FirstName,  
+                TransMiddleName as MiddleName,
+                FileName,
+                TransID as AuthorID,
+                SearchLang,
+                BookSizeCat,
+                LibRate
+            FROM ({sql_query_nested}) as subquery
+            WHERE (TransLastName <> '' OR TransFirstName <> '' OR TransMiddleName <> '')
+        ) combined
         {sql_where}
-          and (LastName <> '' OR FirstName <> '' OR MiddleName <> '')
         GROUP BY AuthorName, AuthorID
         ORDER BY book_count DESC, AuthorName
         LIMIT {MAX_AUTHORS_SEARCH}
@@ -1164,7 +1222,7 @@ class DatabaseBooks():
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
-        params.extend([query] * 2)
+        params.extend([query] * 4)
 
         # Модифицируем запрос для поиска авторов
         sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
