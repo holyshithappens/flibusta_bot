@@ -344,11 +344,11 @@ def create_authors_keyboard(page, pages_of_authors, context):
         authors_in_page = pages_of_authors[page]
 
         if authors_in_page:
-            for idx, (author_name, book_count, author_id) in enumerate(authors_in_page):
+            for idx, (author_name, book_count, author_id, person_type) in enumerate(authors_in_page):
                 text = f"{author_name} ({book_count})"
                 keyboard.append([InlineKeyboardButton(
                     text,
-                    callback_data = f"show_author:{author_id}"
+                    callback_data = f"show_author:{author_id}:{person_type}"
                 )])
 
             # Добавляем кнопки для навигации

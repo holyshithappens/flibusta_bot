@@ -1180,7 +1180,8 @@ class DatabaseBooks():
         SELECT 
             CONCAT(COALESCE(LastName, ''), ' ', COALESCE(FirstName, ''), ' ', COALESCE(MiddleName, '')) as AuthorName,
             COUNT(DISTINCT FileName) as book_count,
-            AuthorID
+            AuthorID,
+            PersonType
         FROM (
             -- Authors
             SELECT 
@@ -1189,6 +1190,7 @@ class DatabaseBooks():
                 MiddleName,
                 FileName,
                 AuthorID,
+                'author' as PersonType,
                 SearchLang,
                 BookSizeCat,
                 LibRate
@@ -1204,6 +1206,7 @@ class DatabaseBooks():
                 TransMiddleName as MiddleName,
                 FileName,
                 TransID as AuthorID,
+                'translator' as PersonType,
                 SearchLang,
                 BookSizeCat,
                 LibRate
@@ -1211,7 +1214,7 @@ class DatabaseBooks():
             WHERE (TransLastName <> '' OR TransFirstName <> '' OR TransMiddleName <> '')
         ) combined
         {sql_where}
-        GROUP BY AuthorName, AuthorID
+        GROUP BY AuthorName, AuthorID, PersonType
         ORDER BY book_count DESC, AuthorName
         LIMIT {MAX_AUTHORS_SEARCH}
         """

@@ -96,7 +96,7 @@ async def handle_search_books(update: Update, context: CallbackContext):
     )
 
 
-async def async_search_books(context: CallbackContext, query_text: str, processing_msg, user, series_id=0, author_id=0):
+async def async_search_books(context: CallbackContext, query_text: str, processing_msg, user, series_id=0, author_id=0, person_type='author'):
     """Асинхронная задача поиска книг"""
     try:
         start_time = time()
@@ -159,7 +159,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
         )
 
         # Обрабатываем результаты
-        await process_search_books(context, books, found_books_count, processing_msg, query_text, user, author_id)
+        await process_search_books(context, books, found_books_count, processing_msg, query_text, user, author_id, person_type)
 
     except Exception as e:
         # Обработка ошибок
@@ -167,7 +167,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
 
 
 async def process_search_books(context: CallbackContext, books, found_books_count: int, processing_msg, query_text: str,
-                               user, author_id=0):
+                               user, author_id=0, person_type='author'):
     """Обработка и отображение результатов поиска"""
     series_name = None
     author_name = None
@@ -192,12 +192,19 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
             series_name = books[0].SeriesTitle
             set_current_series_name(context, series_name)
         elif search_type == SEARCH_TYPE_AUTHORS:
-            # Имя автора из первой книги
-            author_name = f"{books[0].LastName} {books[0].FirstName} {books[0].MiddleName}"
+            # Извлекаем имя автора/переводчика из первой книги в зависимости от типа
+            if person_type == 'translator':
+                # Имя переводчика из первой книги
+                translator_name = f"{books[0].TransLastName} {books[0].TransFirstName} {books[0].TransMiddleName}".strip()
+                author_name = translator_name  # Для совместимости с form_header_books
+            else:
+                # Имя автора из первой книги
+                author_name = f"{books[0].LastName} {books[0].FirstName} {books[0].MiddleName}".strip()
+            # Сохраняем имя для перелистывания страниц
             set_current_author_name(context, author_name)
-            # Сохраняем id автора для перелистывания страниц книг автора
+            # Сохраняем id автора/переводчика для перелистывания страниц
             set_current_author_id(context, author_id)
-            # Добавляем кнопку "Об авторе"
+            # Добавляем кнопку "Об авторе/переводчике"
             keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
 
         # формируем клавиатуру
@@ -500,17 +507,18 @@ async def process_search_authors(context: CallbackContext, authors, found_author
 
 
 async def handle_search_author_books(update, context, action, params):
-    """Показывает книги выбранного автора"""
+    """Показывает книги выбранного автора/переводчика"""
     query = update.callback_query
     try:
         author_id = int(params[0])
+        person_type = params[1] if len(params) > 1 else 'author'
         user = query.from_user
-        # Ищем книги автора в комбинации с предыдущим запросом
+        # Ищем книги автора/переводчика в комбинации с предыдущим запросом
         query_text = get_last_search_query(context)
 
         # Запускаем асинхронный поиск
         asyncio.create_task(
-            async_search_books(context, query_text, query.message if query.message else query, user, author_id=author_id)
+            async_search_books(context, query_text, query.message if query.message else query, user, author_id=author_id, person_type=person_type)
         )
 
         # # user_params = DB_SETTINGS.get_user_settings(user.id)

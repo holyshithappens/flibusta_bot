@@ -69,48 +69,6 @@ def form_header_books(
 
     return t("search.results.header",context,start=start,end=end,total=found_count,pop=pop,object=object,filter=filter,in_str=in_str)
 
-    # text = f"{HEADING_POP.get(show_pop)} " if show_pop else ""
-    #
-    # if search_type == SEARCH_TYPE_BOOKS or show_pop:
-    #     text += "книг"
-    # elif search_type == SEARCH_TYPE_SERIES:
-    #     text += "серий"
-    # elif search_type == SEARCH_TYPE_AUTHORS:
-    #     text += "авторов"
-    #
-    # header = f"Показываю с {start} по {end} из {found_count} найденных {text}"
-    #
-    # header += f" в серии '{series_name}'" if series_name else ""
-    # header += f" автора '{author_name}'" if author_name else ""
-    # header += " по аннотации книги" if search_area == SETTING_SEARCH_AREA_BA and not show_pop else ""
-    # header += " по аннотации автора" if search_area == SETTING_SEARCH_AREA_AA and not show_pop else ""
-    #
-    # return header
-
-
-# def get_platform_recommendations() -> str:
-#     """
-#     Возвращает рекомендации для всех платформ
-#     (универсальный подход, так как определить платформу сложно)
-#     """
-#     return """
-# 📱 <b>Рекомендуемые читалки для всех платформ:</b>
-# <u>Для Android:</u>
-# • 📖 <a href="https://play.google.com/store/apps/details?id=org.readera">ReadEra</a> - лучшая бесплатная
-# • 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader">Moon+ Reader</a>
-# • 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle">Kindle</a>
-#
-# <u>Для iOS:</u>
-# • 📖 <a href="https://apps.apple.com/ru/app/readera-читалка-книг-pdf/id1441824222">ReadEra</a>
-# • 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028">KyBook 3</a>
-# • 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613">Kindle</a>
-#
-# <u>Для компьютера:</u>
-# • 📚 <a href="https://www.calibre-ebook.com/">Calibre</a> (Windows/Mac/Linux)
-# • 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193">Apple Books</a> (Mac)
-# • 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
-# """
-
 
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====
 
