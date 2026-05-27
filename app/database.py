@@ -1493,7 +1493,7 @@ class DatabaseBooks():
 
         # Добавляем условие по автору в поиске книг по авторам
         if author_id != 0:
-            conditions.append(f"AuthorID = {author_id}")
+            conditions.append(f"(AuthorID = {author_id} or TransID = {author_id})")
 
         # в соновном sql вконце уже есть where, поэтому заменяем его на and
         sql_where = "WHERE " + " AND ".join(conditions) if conditions else "WHERE 1=1"

@@ -110,10 +110,15 @@ async def handle_set_search_type(update, context, action, params):
     user_params = get_user_params(context)
     current_value = user_params.SearchType
 
+    # options = [
+    #     (value, t(label, context))
+    #     for value, label in SETTING_OPTIONS[SETTING_SEARCH_TYPE]
+    # ]
     options = [
-        (value, t(label, context))
-        for value, label in SETTING_OPTIONS[SETTING_SEARCH_TYPE]
+        x if x == UI_SEPARATOR else (x[0], t(x[1], context))
+        for x in SETTING_OPTIONS[SETTING_SEARCH_TYPE]
     ]
+
     reply_markup = create_settings_keyboard(SETTING_SEARCH_TYPE, current_value, options, context)
 
     await edit_or_reply_message(query, get_setting_title(SETTING_SEARCH_TYPE, context), reply_markup)

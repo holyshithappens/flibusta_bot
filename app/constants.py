@@ -99,6 +99,7 @@ SETTING_OPTIONS = {
     SETTING_SEARCH_TYPE: [
         (SEARCH_TYPE_BOOKS, 'common.search_types.books'),
         (SEARCH_TYPE_SERIES, 'common.search_types.series'),
+        UI_SEPARATOR,
         (SEARCH_TYPE_AUTHORS, 'common.search_types.authors')
     ],
     SETTING_RATING_FILTER: [
@@ -108,6 +109,7 @@ SETTING_OPTIONS = {
         (SETTING_SEARCH_AREA_B, 'common.search_areas.b'),
         UI_SEPARATOR,
         (SETTING_SEARCH_AREA_BA, 'common.search_areas.ba'),
+        UI_SEPARATOR,
         (SETTING_SEARCH_AREA_AA, 'common.search_areas.aa')
     ],
     SETTING_LOCALE: [

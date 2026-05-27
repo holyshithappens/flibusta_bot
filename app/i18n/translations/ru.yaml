@@ -51,13 +51,13 @@ search:
       many: "серий"  # Used in phrases like "из Z найденных серий"
       other: "серий"
     authors:
-      one: "авторов"  # Used in "из найденных авторов" - genitive plural for all numbers
-      few: "авторов"  # Intentional: same form for all counts
-      many: "авторов"  # Used in phrases like "из Z найденных авторов"
-      other: "авторов"
+      one: "авторов/переводчиков"  # Used in "из найденных авторов" - genitive plural for all numbers
+      few: "авторов/переводчиков"  # Intentional: same form for all counts
+      many: "авторов/переводчиков"  # Used in phrases like "из Z найденных авторов"
+      other: "авторов/переводчиков"
     header: "Показываю с {start} по {end} из {total} найденных {pop}{object}{filter}{in_str}"
     filter_series: " в серии '{series}'"
-    filter_author: " автора '{author}'"
+    filter_author: " автора/переводчика '{author}'"
 
   error: "❌ Произошла ошибка при обработке запроса"
   no_results: "😞 Не нашёл подходящих книг. Попробуйте другие критерии поиска."
@@ -78,7 +78,7 @@ search:
     next: "Вперёд ➡"
     end: "В конец ⬇️️️"
     series: "⤴️ Назад к сериям"
-    authors: "⤴️ Назад к авторам"
+    authors: "⤴️ Назад к авторам/переводчикам"
 
   download: "📥 Скачать список в CSV формате"
 
@@ -196,13 +196,13 @@ common:
   search_types:
     books: "по книгам"
     series: "по сериям"
-    authors: "по авторам"
+    authors: "по авторам/переводчикам"
 
   # Search area options
   search_areas:
     b: "по основным данным книг"
     ba: "по аннотации книг"
-    aa: "по аннотации авторов"
+    aa: "по аннотации авторов/переводчиков"
 
   # Size limit options
   size_limits:
@@ -320,7 +320,7 @@ help:
 
     <u>Доступные форматы выдачи (в настройках):</u>
     📚 <b>По книгам</b> - список книг
-    👥 <b>По авторам</b> - группировка по авторам
+    👥 <b>По авторам/переводчикам</b> - группировка по авторам и переводчикам
     📖 <b>По сериям</b> - группировка по сериям
 
 # About

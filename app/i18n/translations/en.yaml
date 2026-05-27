@@ -47,11 +47,11 @@ search:
       one: "series"
       other: "series"
     authors:
-      one: "author"
-      other: "authors"
+      one: "author/translator"
+      other: "authors/translators"
     header: "Showing {start} to {end} of {total} found {pop}{object}{filter}{in_str}"
     filter_series: " in series '{series}'"
-    filter_author: " by author '{author}'"
+    filter_author: " by author/translator '{author}'"
 
   error: "❌ An error occurred while processing your request"
   no_results: "😞 No suitable books found. Try different search criteria."
@@ -72,7 +72,7 @@ search:
     next: "Next ➡"
     end: "End ⬇️️️"
     series: "⤴️ Back to series"
-    authors: "⤴️ Back to authors"
+    authors: "⤴️ Back to authors/translators"
 
   download: "📥 Download list in CSV"
 
@@ -186,13 +186,13 @@ common:
   search_types:
     books: "by books"
     series: "by series"
-    authors: "by authors"
+    authors: "by authors/translators"
 
   # Search area options
   search_areas:
     b: "on book's main data"
     ba: "on book annotations"
-    aa: "on author annotations"
+    aa: "on author/translator annotations"
 
   # Size limit options
   size_limits:
@@ -312,7 +312,7 @@ help:
 
     <u>Available display formats (in settings):</u>
     📚 <b>By books</b> - list of books
-    👥 <b>By authors</b> - grouped by authors
+    👥 <b>By authors/translators</b> - grouped by authors and translators
     📖 <b>By series</b> - grouped by series
 
 # About
