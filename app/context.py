@@ -116,29 +116,37 @@ class ContextManager:
     @classmethod
     def _get_user_params(cls, context: CallbackContext) -> Optional[UserSettingsType]:
         """Получает настройки пользователя из контекста или БД"""
+        print(f"[DEBUG CTX] _get_user_params called")
         cls._init_db()
         user_id, chat_id = cls._get_ids_from_context(context)
+        print(f"[DEBUG CTX] user_id={user_id}, chat_id={chat_id}")
 
         if not user_id:
+            print(f"[DEBUG CTX] No user_id, returning None")
             return None
 
         # Пытаемся получить из контекста
         data = cls._get_context_data(context)
         if CMConst.CMC_UserParams.USER_PARAMS in data:
             cached = data[CMConst.CMC_UserParams.USER_PARAMS]
+            print(f"[DEBUG CTX] Found in context cache: {cached}")
             # Проверяем что это правильный тип
             if isinstance(cached, tuple):  # UserSettingsType это namedtuple
                 return cached  # type: ignore[return-value]
             return None
 
         # Загружаем из БД
+        print(f"[DEBUG CTX] Not in cache, loading from DB...")
         if cls._db_settings is None:  # ← Проверка
+            print(f"[DEBUG CTX] _db_settings is None, returning None")
             return None
 
         user_settings: UserSettingsType = cls._db_settings.get_user_settings(user_id)
+        print(f"[DEBUG CTX] Loaded from DB: {user_settings}")
 
         # Сохраняем в контекст
         data[CMConst.CMC_UserParams.USER_PARAMS] = user_settings
+        print(f"[DEBUG CTX] Saved to context cache")
 
         return user_settings
 
@@ -167,26 +175,35 @@ class ContextManager:
     @classmethod
     def update_user_params_partial(cls, context: CallbackContext, **kwargs: Any) -> None:
         """Частичное обновление настроек пользователя"""
+        print(f"[DEBUG CTX] update_user_params_partial called with kwargs={kwargs}")
         cls._init_db()
         user_id, chat_id = cls._get_ids_from_context(context)
+        print(f"[DEBUG CTX] user_id={user_id}, chat_id={chat_id}")
 
         if not user_id or cls._db_settings is None:
+            print(f"[DEBUG CTX] Early return: user_id={user_id}, _db_settings={cls._db_settings}")
             return
 
         # Получаем текущие настройки
         current_params = cls._get_user_params(context)
+        print(f"[DEBUG CTX] current_params={current_params}")
         if not current_params:
+            print(f"[DEBUG CTX] No current_params, returning")
             return
 
         # Обновляем в БД
+        print(f"[DEBUG CTX] Calling DB update_user_settings...")
         cls._db_settings.update_user_settings(user_id, **kwargs)
+        print(f"[DEBUG CTX] DB update completed")
 
         # Обновляем в контексте
         if hasattr(current_params, "_asdict"):
             current_dict = current_params._asdict()
             current_dict.update(kwargs)
+            print(f"[DEBUG CTX] Updated dict: {current_dict}")
             data = cls._get_context_data(context)
             data[CMConst.CMC_UserParams.USER_PARAMS] = UserSettingsType(**current_dict)
+            print(f"[DEBUG CTX] Updated context cache with: {UserSettingsType(**current_dict)}")
 
     @classmethod
     def cleanup_inactive_sessions(cls, app: Application, cleanup_interval: int) -> Any:

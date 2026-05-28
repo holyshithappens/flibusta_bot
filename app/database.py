@@ -744,21 +744,31 @@ class DatabaseSettings(Database):
         """
         Получает настройки пользователя из базы данных.
         """
+        print(f"[DEBUG DB] get_user_settings called for user_id={user_id}")
         fields = UserSettingsType._fields
         processed_fields = [field for field in fields]
         select_fields = ', '.join(processed_fields)
+        print(f"[DEBUG DB] select_fields: {select_fields}")
 
         with self.connect() as conn:
             cursor = conn.cursor()
             cursor.execute(f"SELECT {select_fields} FROM UserSettings WHERE user_id = ?", (user_id,))
             settings = cursor.fetchone()
+            print(f"[DEBUG DB] SELECT result: {settings}")
             # Если настроек нет, добавляем значения по умолчанию
             if not settings:
+                print(f"[DEBUG DB] No settings found, INSERTING new row for user_id={user_id}")
                 cursor.execute("INSERT INTO UserSettings (user_id) VALUES (?)", (user_id,))
                 conn.commit()
+                print(f"[DEBUG DB] INSERT committed, rowcount={cursor.rowcount}")
                 cursor.execute(f"SELECT {select_fields} FROM UserSettings WHERE user_id = ?", (user_id,))
                 settings = cursor.fetchone()
-        return UserSettingsType(*settings)
+                print(f"[DEBUG DB] SELECT after INSERT: {settings}")
+            else:
+                print(f"[DEBUG DB] Settings found, returning existing row")
+        result = UserSettingsType(*settings)
+        print(f"[DEBUG DB] Returning UserSettingsType: {result}")
+        return result
 
     def get_all_user_ids(self) -> list[int]:
         """Returns all user_id values from UserSettings."""
@@ -771,12 +781,15 @@ class DatabaseSettings(Database):
         """
         Обновляет настройки пользователя в базе данных.
         """
+        print(f"[DEBUG DB] update_user_settings called for user_id={user_id}, kwargs={kwargs}")
         with self.connect() as conn:
             cursor = conn.cursor()
 
             # Формируем SQL-запрос для обновления настроек
             set_clause = ", ".join([f"{key} = ?" for key in kwargs])
             values = list(kwargs.values()) + [user_id]
+            print(f"[DEBUG DB] UPDATE SQL: SET {set_clause} WHERE user_id=?")
+            print(f"[DEBUG DB] UPDATE values: {values}")
 
             cursor.execute(f"""
                 UPDATE UserSettings
@@ -784,7 +797,18 @@ class DatabaseSettings(Database):
                 WHERE user_id = ?
             """, values)
 
+            print(f"[DEBUG DB] UPDATE rowcount={cursor.rowcount} (0 means no row was updated!)")
             conn.commit()
+            print(f"[DEBUG DB] UPDATE committed")
+
+            # Check if row exists after update
+            if cursor.rowcount == 0:
+                print(f"[DEBUG DB] WARNING: No row was updated! Checking if row exists...")
+                cursor.execute("SELECT user_id FROM UserSettings WHERE user_id = ?", (user_id,))
+                existing = cursor.fetchone()
+                print(f"[DEBUG DB] Row exists check: {existing}")
+                if not existing:
+                    print(f"[DEBUG DB] ERROR: Row for user_id={user_id} does not exist! Settings will not be persisted!")
 
     # def get_user_stats(self):
     #     """Возвращает статистику пользователей"""
