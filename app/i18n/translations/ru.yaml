@@ -331,6 +331,7 @@ about:
     📊 <b>Статистика БД библиотеки бота:</b>
     • 📚 Книг: <code>{books_count}</code>
     • 👥 Авторов: <code>{authors_count}</code>
+    • ✍️ Переводчиков: <code>{translators_count}</code>
     • 📖 Серий: <code>{series_count}</code>
     • 🏷️ Жанров: <code>{genres_count}</code>
     • 🌐 Языков: <code>{languages_count}</code>
@@ -348,6 +349,7 @@ about:
     • 📥 Скачивание в форматах fb2, epub, mobi
     • ⭐ Фильтрация по рейтингу книг, размеру и языку
     • ⚙️ Гибкие настройки поиска
+    • 👥 Всё, что относится к авторам, также относится и к переводчикам: поиск, вывод результатов, аннотации
     
     {reader_recommendations}
     📞 <b>Обратная связь:</b>

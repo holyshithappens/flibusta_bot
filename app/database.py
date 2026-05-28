@@ -871,6 +871,10 @@ class DatabaseBooks():
                     cursor.execute("SELECT COUNT(DISTINCT AvtorID) FROM cb_libavtor")
                     authors_cnt = cursor.fetchone()[0]
 
+                    # Количество переводчиков
+                    cursor.execute("SELECT COUNT(DISTINCT TranslatorID) FROM cb_libtranslator")
+                    translators_cnt = cursor.fetchone()[0]
+
                     # Количество жанров
                     cursor.execute("SELECT COUNT(*) FROM cb_libgenrelist")
                     genres_cnt = cursor.fetchone()[0]
@@ -888,6 +892,7 @@ class DatabaseBooks():
                         'books_count': books_stats[1],
                         'max_filename': books_stats[2],
                         'authors_count': authors_cnt,
+                        'translators_count': translators_cnt,
                         'genres_count': genres_cnt,
                         'series_count': series_cnt,
                         'languages_count': langs_cnt
@@ -902,6 +907,7 @@ class DatabaseBooks():
                 'books_count': 0,
                 'max_filename': 'N/A',
                 'authors_count': 0,
+                'translators_count': 0,
                 'genres_count': 0,
                 'series_count': 0,
                 'languages_count': 0

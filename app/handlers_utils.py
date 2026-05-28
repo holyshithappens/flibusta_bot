@@ -8,7 +8,7 @@ from telegram.constants import ParseMode
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 
-from .context import get_user_params
+from .context import get_user_params, get_current_author_id
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from .i18n import t, get_or_detect_locale
@@ -301,9 +301,6 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books, context)
 
-            # Добавляем кнопку скачивания CSV
-            keyboard.append([InlineKeyboardButton(t("search.download",context), callback_data="download_books_csv")])
-
             # Добавляем кнопку "Назад к сериям" только при поиске по сериям
             if search_context == SEARCH_TYPE_SERIES:
                 keyboard.append([InlineKeyboardButton(t("search.pagination.series",context), callback_data="back_to_series")])
@@ -311,6 +308,12 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
             # Добавляем кнопку "Назад к авторам" при поиске по авторам
             elif search_context == SEARCH_TYPE_AUTHORS:
                 keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
+                # Добавляем кнопку "Об авторе/переводчике" при поиске по авторам
+                author_id = get_current_author_id(context)
+                keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
+
+            # Добавляем кнопку скачивания CSV
+            keyboard.append([InlineKeyboardButton(t("search.download",context), callback_data="download_books_csv")])
 
     return keyboard
 

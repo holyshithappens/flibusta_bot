@@ -221,11 +221,13 @@ async def about_cmd(update: Update, context: CallbackContext):
         # Format numbers with spaces
         books_count = f"{stats['books_count']:,}".replace(",", " ")
         authors_count = f"{stats['authors_count']:,}".replace(",", " ")
+        translators_count = f"{stats['translators_count']:,}".replace(",", " ")
         series_count = f"{stats['series_count']:,}".replace(",", " ")
 
         about_text = t('about.title', context,
             books_count=books_count,
             authors_count=authors_count,
+            translators_count=translators_count,
             series_count=series_count,
             genres_count=stats['genres_count'],
             languages_count=stats['languages_count'],

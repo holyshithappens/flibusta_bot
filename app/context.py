@@ -269,11 +269,13 @@ def set_current_series_name(context: CallbackContext, series: str) -> None:
 
 def get_current_author_id(context: CallbackContext) -> int:
     result = ContextManager.get(context, CMConst.CMC_Proc.CURRENT_AUTHOR_ID, 0)
+    # print(f"DEBUG: get_current_author_id={result}")
     return int(result)  # type: ignore[arg-type]
 
 
 def set_current_author_id(context: CallbackContext, author_id: int) -> None:
     ContextManager.set(context, CMConst.CMC_Proc.CURRENT_AUTHOR_ID, author_id)
+    # print(f"DEBUG: set_current_author_id={author_id}")
 
 
 def get_current_author_name(context: CallbackContext) -> str:

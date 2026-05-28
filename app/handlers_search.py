@@ -184,9 +184,6 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
         pages_of_result = [books[i:i + user_params.MaxBooks] for i in range(0, len(books), user_params.MaxBooks)]
         page = 0
 
-        # Собираем кнопки с книгами для настроенного вывода
-        keyboard = create_books_keyboard(page, pages_of_result, context, search_type)
-
         if search_type == SEARCH_TYPE_SERIES:
             # Извлекаем имя серии из данных первой книги
             series_name = books[0].SeriesTitle
@@ -204,8 +201,9 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
             set_current_author_name(context, author_name)
             # Сохраняем id автора/переводчика для перелистывания страниц
             set_current_author_id(context, author_id)
-            # Добавляем кнопку "Об авторе/переводчике"
-            keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
+
+        # Собираем кнопки с книгами для настроенного вывода
+        keyboard = create_books_keyboard(page, pages_of_result, context, search_type)
 
         # формируем клавиатуру
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -581,9 +579,6 @@ async def handle_books_page_change(update, context, action, params):
         search_context = user_params.SearchType if not show_pop else SEARCH_TYPE_BOOKS
         # print(f"DEBUG: {show_pop}, {search_context}")
         keyboard = create_books_keyboard(page, pages_of_books, context, search_context)
-        if search_context == SEARCH_TYPE_AUTHORS:
-            author_id = get_current_author_id(context)
-            keyboard.append([InlineKeyboardButton(t('search.author_about', context), callback_data=f"author_info:{author_id}")])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
