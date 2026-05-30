@@ -126,6 +126,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                     search_area=user_params.SearchArea,
                     series_id=series_id,
                     author_id=author_id,
+                    person_type=person_type,
                     locale=user_params.Locale or 'ru'
                 )
             )

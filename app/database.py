@@ -954,9 +954,11 @@ class DatabaseBooks():
         return DatabaseBooks._class_cached_langs
 
 
-    def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
+    def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0,
+                     author_id=0, person_type='author',
+                     locale: str = 'ru'):
         """Ищем книги по запросу пользователя"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type)
         # Строим запросы для поиска книг и подсчёта количества найденных книг
         sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale)
 
@@ -1479,7 +1481,7 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0):
+    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author'):
         """Создает SQL-условие WHERE на основе списка слов и их операторов."""
         conditions = []
 
@@ -1502,7 +1504,7 @@ class DatabaseBooks():
 
         # Добавляем условие по автору в поиске книг по авторам
         if author_id != 0:
-            conditions.append(f"(AuthorID = {author_id} or TransID = {author_id})")
+            conditions.append(f"AuthorID = {author_id}" if person_type=='author' else f"TransID = {author_id}")
 
         # в соновном sql вконце уже есть where, поэтому заменяем его на and
         sql_where = "WHERE " + " AND ".join(conditions) if conditions else "WHERE 1=1"

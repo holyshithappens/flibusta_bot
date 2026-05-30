@@ -301,19 +301,19 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_BOOKS, page, pages_of_books, context)
 
+            # Добавляем кнопку скачивания CSV
+            keyboard.append([InlineKeyboardButton(t("search.download",context), callback_data="download_books_csv")])
+
             # Добавляем кнопку "Назад к сериям" только при поиске по сериям
             if search_context == SEARCH_TYPE_SERIES:
                 keyboard.append([InlineKeyboardButton(t("search.pagination.series",context), callback_data="back_to_series")])
 
             # Добавляем кнопку "Назад к авторам" при поиске по авторам
             elif search_context == SEARCH_TYPE_AUTHORS:
-                keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
                 # Добавляем кнопку "Об авторе/переводчике" при поиске по авторам
                 author_id = get_current_author_id(context)
                 keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
-
-            # Добавляем кнопку скачивания CSV
-            keyboard.append([InlineKeyboardButton(t("search.download",context), callback_data="download_books_csv")])
+                keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
 
     return keyboard
 
@@ -348,7 +348,7 @@ def create_authors_keyboard(page, pages_of_authors, context):
 
         if authors_in_page:
             for idx, (author_name, book_count, author_id, person_type) in enumerate(authors_in_page):
-                text = f"{author_name} ({book_count})"
+                text = f"{author_name.strip()} ({book_count}){(' ' + t("author.translator",context)) if person_type != 'author' else ''}"
                 keyboard.append([InlineKeyboardButton(
                     text,
                     callback_data = f"show_author:{author_id}:{person_type}"

@@ -116,6 +116,11 @@ genres:
   error: "❌ Error loading genres"
   not_found: "❌ No genres found for this category"
 
+author:
+  about_title: "👤 <b>About author/translator:</b>"
+  author: "author"
+  translator: "translator"
+
 # Callback
 callback:
   unknown_action: "❌ Unknown action"
@@ -248,9 +253,6 @@ csv:
   generating: "⏳ Generating CSV book list. Please wait..."
   books_found: "📚 Books found: {count}"
   error: "❌ Error creating CSV file"
-
-author:
-  about_title: "👤 <b>About author/translator:</b>"
 
 # Welcome message
 welcome:

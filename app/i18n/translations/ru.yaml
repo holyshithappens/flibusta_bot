@@ -122,6 +122,11 @@ genres:
   error: "❌ Ошибка при загрузке жанров"
   not_found: "❌ Жанры не найдены для этой категории"
 
+author:
+  about_title: "👤 <b>Об авторе/переводчике:</b>"
+  author: "автор"
+  translator: "переводчик"
+
 # Callback
 callback:
   unknown_action: "❌ Неизвестное действие"
@@ -258,9 +263,6 @@ csv:
   generating: "⏳ Формирую CSV-список книг. Пожалуйста, подождите..."
   books_found: "📚 Найдено книг: {count}"
   error: "❌ Ошибка при создании CSV файла"
-
-author:
-  about_title: "👤 <b>Об авторе/переводчике:</b>"
 
 # Welcome message
 welcome:
