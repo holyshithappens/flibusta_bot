@@ -16,11 +16,11 @@ BACKUP_DB_FILES = [
 BACKUP_LOG_PATTERN = f"{FLIBUSTA_LOG_PATH}/*log*"
 
 # Максимальное количество книг для поиска
-MAX_BOOKS_SEARCH = 2000
+MAX_BOOKS_SEARCH = 1000
 # Максимальное количество авторов для поиска
-MAX_AUTHORS_SEARCH = 200
+MAX_AUTHORS_SEARCH = 100
 # Максимальное количество серий для поиска
-MAX_SERIES_SEARCH = 200
+MAX_SERIES_SEARCH = 100
 
 #WEB
 FLIBUSTA_BASE_URL = "https://www.flibusta.is"
