@@ -348,7 +348,7 @@ def create_authors_keyboard(page, pages_of_authors, context):
 
         if authors_in_page:
             for idx, (author_name, book_count, author_id, person_type) in enumerate(authors_in_page):
-                text = f"{author_name.strip()} ({book_count}){(' ' + t("author.translator",context)) if person_type != 'author' else ''}"
+                text = f"{author_name.strip()} ({book_count}){(' ' + t('author.translator',context)) if person_type != 'author' else ''}"
                 keyboard.append([InlineKeyboardButton(
                     text,
                     callback_data = f"show_author:{author_id}:{person_type}"
