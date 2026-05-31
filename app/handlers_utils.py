@@ -8,7 +8,7 @@ from telegram.constants import ParseMode
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 
-from .context import get_user_params
+from .context import get_user_params, get_current_author_id
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from .i18n import t, get_or_detect_locale
@@ -310,6 +310,9 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
 
             # Добавляем кнопку "Назад к авторам" при поиске по авторам
             elif search_context == SEARCH_TYPE_AUTHORS:
+                # Добавляем кнопку "Об авторе/переводчике" при поиске по авторам
+                author_id = get_current_author_id(context)
+                keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
                 keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
 
     return keyboard
@@ -337,18 +340,18 @@ def create_series_keyboard(page, pages_of_series, context):
 
 
 def create_authors_keyboard(page, pages_of_authors, context):
-    """ создание клавиатуры для авторов """
+    """ создание клавиатуры для авторов/переводчиков """
     keyboard = []
 
     if pages_of_authors:
         authors_in_page = pages_of_authors[page]
 
         if authors_in_page:
-            for idx, (author_name, book_count, author_id) in enumerate(authors_in_page):
-                text = f"{author_name} ({book_count})"
+            for idx, (author_name, book_count, author_id, person_type) in enumerate(authors_in_page):
+                text = f"{author_name.strip()} ({book_count}){(' ' + t('author.translator',context)) if person_type != 'author' else ''}"
                 keyboard.append([InlineKeyboardButton(
                     text,
-                    callback_data = f"show_author:{author_id}"
+                    callback_data = f"show_author:{author_id}:{person_type}"
                 )])
 
             # Добавляем кнопки для навигации

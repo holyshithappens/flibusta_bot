@@ -57,17 +57,30 @@ async def handle_book_info(update, context, action, params):
             )
 
         author_ids = await DB_BOOKS.get_authors_id(book_id)
+        translator_ids = await DB_BOOKS.get_translators_id(book_id)
 
         # print(f"DEBUG: authors_ids = {author_ids}")
+        # print(f"DEBUG: translator_ids = {translator_ids}")
 
         # Создаем клавиатуру с дополнительными кнопками
         keyboard = [
             [InlineKeyboardButton(t('book.download', context), callback_data=f"send_file:{file_name}")],
-            [InlineKeyboardButton(t('book.info', context), callback_data=f"book_details:{book_id}"),
-            InlineKeyboardButton(t('book.author', context), callback_data=f"author_info:{author_ids[0]}")],
-            [InlineKeyboardButton(t('book.reviews', context), callback_data=f"book_reviews:{book_id}"),
-            InlineKeyboardButton(t('common.close', context), callback_data=f"close_info:{info_message.message_id}")],
         ]
+        
+        # Author/Translator buttons row - use author_info for both
+        author_translator_row = []
+        if author_ids:
+            author_translator_row.append(InlineKeyboardButton(t('book.author', context), callback_data=f"author_info:{author_ids[0]}"))
+        if translator_ids:
+            author_translator_row.append(InlineKeyboardButton(t('book.translator', context), callback_data=f"author_info:{translator_ids[0]}"))
+        if author_translator_row:
+            keyboard.append(author_translator_row)
+        
+        keyboard.append(
+            [InlineKeyboardButton(t('book.info', context), callback_data=f"book_details:{book_id}"),
+             InlineKeyboardButton(t('book.reviews', context), callback_data=f"book_reviews:{book_id}"),
+             InlineKeyboardButton(t('common.close', context), callback_data=f"close_info:{info_message.message_id}")],
+        )
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -130,26 +143,27 @@ async def handle_book_details(update, context, action, params):
 
 
 async def handle_author_info(update, context: CallbackContext, action, params):
-    """Показывает информацию об авторе"""
+    """Показывает информацию об авторе/переводчике"""
     query = update.callback_query
     try:
-        author_id = int(params[0])
-        # print(f"DEBUG: params = {params}")
-        # Initialize locale on first access
+        person_id = int(params[0])
         get_or_detect_locale(update, context)
-        author_info = await DB_BOOKS.get_author_info(author_id)
-        # print(f"DEBUG: author_info = {author_info}")
-
-        if not author_info:
+        
+        # Try to get as author first, then as translator
+        person_info = await DB_BOOKS.get_author_info(person_id)
+        is_translator = False
+        
+        if not person_info:
             await query.message.reply_text(t('errors.not_found', context))
             return
 
-        message_ids = []  # Храним ID всех сообщений
-        message_text = format_author_info(author_info, context)
+        message_ids = []
+        # Use common format function for both authors and translators
+        message_text = format_author_info(person_info, context)
 
         # Сообщение 1: Фото без подписи (если есть)
-        if author_info.get('photo_url'):
-            photo_message = await query.message.reply_photo(photo=author_info['photo_url'])
+        if person_info.get('photo_url'):
+            photo_message = await query.message.reply_photo(photo=person_info['photo_url'])
             message_ids.append(photo_message.message_id)
 
         # Сообщение 2: Аннотация с заголовком
@@ -157,18 +171,18 @@ async def handle_author_info(update, context: CallbackContext, action, params):
         message_ids.append(bio_message.message_id)
 
         # Кнопка закрытия с передачей всех message_id
-        await add_close_button_to_message(bio_message,message_ids, context)
+        await add_close_button_to_message(bio_message, message_ids, context)
 
     except Exception as e:
         print(f"Error in handle_author_info: {e}")
         await query.answer(t('errors.general', context))
     else:
-        # Логируем успешный просмотр информации об авторе
+        # Логируем успешный просмотр информации об авторе/переводчике
         structured_logger.log_author_info_view(
             user_id=query.from_user.id,
             username=query.from_user.username or query.from_user.first_name or "Unknown",
-            author_id=author_id,
-            author_name=author_info.get('name'),
+            author_id=person_id,
+            author_name=person_info.get('name'),
             chat_type="private",
             chat_id=query.from_user.id
         )

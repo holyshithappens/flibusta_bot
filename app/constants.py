@@ -16,11 +16,11 @@ BACKUP_DB_FILES = [
 BACKUP_LOG_PATTERN = f"{FLIBUSTA_LOG_PATH}/*log*"
 
 # Максимальное количество книг для поиска
-MAX_BOOKS_SEARCH = 2000
+MAX_BOOKS_SEARCH = 1000
 # Максимальное количество авторов для поиска
-MAX_AUTHORS_SEARCH = 200
+MAX_AUTHORS_SEARCH = 100
 # Максимальное количество серий для поиска
-MAX_SERIES_SEARCH = 200
+MAX_SERIES_SEARCH = 100
 
 #WEB
 FLIBUSTA_BASE_URL = "https://www.flibusta.is"
@@ -99,6 +99,7 @@ SETTING_OPTIONS = {
     SETTING_SEARCH_TYPE: [
         (SEARCH_TYPE_BOOKS, 'common.search_types.books'),
         (SEARCH_TYPE_SERIES, 'common.search_types.series'),
+        UI_SEPARATOR,
         (SEARCH_TYPE_AUTHORS, 'common.search_types.authors')
     ],
     SETTING_RATING_FILTER: [
@@ -108,6 +109,7 @@ SETTING_OPTIONS = {
         (SETTING_SEARCH_AREA_B, 'common.search_areas.b'),
         UI_SEPARATOR,
         (SETTING_SEARCH_AREA_BA, 'common.search_areas.ba'),
+        UI_SEPARATOR,
         (SETTING_SEARCH_AREA_AA, 'common.search_areas.aa')
     ],
     SETTING_LOCALE: [

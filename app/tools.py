@@ -69,48 +69,6 @@ def form_header_books(
 
     return t("search.results.header",context,start=start,end=end,total=found_count,pop=pop,object=object,filter=filter,in_str=in_str)
 
-    # text = f"{HEADING_POP.get(show_pop)} " if show_pop else ""
-    #
-    # if search_type == SEARCH_TYPE_BOOKS or show_pop:
-    #     text += "книг"
-    # elif search_type == SEARCH_TYPE_SERIES:
-    #     text += "серий"
-    # elif search_type == SEARCH_TYPE_AUTHORS:
-    #     text += "авторов"
-    #
-    # header = f"Показываю с {start} по {end} из {found_count} найденных {text}"
-    #
-    # header += f" в серии '{series_name}'" if series_name else ""
-    # header += f" автора '{author_name}'" if author_name else ""
-    # header += " по аннотации книги" if search_area == SETTING_SEARCH_AREA_BA and not show_pop else ""
-    # header += " по аннотации автора" if search_area == SETTING_SEARCH_AREA_AA and not show_pop else ""
-    #
-    # return header
-
-
-# def get_platform_recommendations() -> str:
-#     """
-#     Возвращает рекомендации для всех платформ
-#     (универсальный подход, так как определить платформу сложно)
-#     """
-#     return """
-# 📱 <b>Рекомендуемые читалки для всех платформ:</b>
-# <u>Для Android:</u>
-# • 📖 <a href="https://play.google.com/store/apps/details?id=org.readera">ReadEra</a> - лучшая бесплатная
-# • 📚 <a href="https://play.google.com/store/apps/details?id=com.flyersoft.moonreader">Moon+ Reader</a>
-# • 🔥 <a href="https://play.google.com/store/apps/details?id=com.amazon.kindle">Kindle</a>
-#
-# <u>Для iOS:</u>
-# • 📖 <a href="https://apps.apple.com/ru/app/readera-читалка-книг-pdf/id1441824222">ReadEra</a>
-# • 📚 <a href="https://apps.apple.com/ru/app/kybook-3-ebook-reader/id1259787028">KyBook 3</a>
-# • 🔥 <a href="https://apps.apple.com/ru/app/amazon-kindle/id302584613">Kindle</a>
-#
-# <u>Для компьютера:</u>
-# • 📚 <a href="https://www.calibre-ebook.com/">Calibre</a> (Windows/Mac/Linux)
-# • 📘 <a href="https://apps.apple.com/ru/app/apple-books/id364709193">Apple Books</a> (Mac)
-# • 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
-# """
-
 
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====
 
@@ -243,10 +201,17 @@ def format_book_info(book_info, context):
     # authors = book_info['authors'][:300] + ("..." if len(book_info['authors']) > 300 else "")
     author_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_author_url, book_info["authors"], 20)
     text += f"\n{t('book.authors',context)} {(author_links + (',...' if is_truncated else '')) or t('book.not_specified', context)}"
+    
+    # Translators (new)
+    if book_info.get("translators"):
+        translator_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_translator_url, book_info["translators"], 20)
+        text += f"\n{t('book.translators',context)} {(translator_links + (',...' if is_truncated else '')) or t('book.not_specified', context)}"
+    
     year = book_info["year"]
     series = book_info["series"]
     genre_links, is_truncated = format_links_from_flat_string(FlibustaClient.get_genre_url, book_info["genres"], 10)
     lang = book_info["lang"]
+    src_lang = book_info.get("src_lang")
     pages = book_info["pages"]
     rate = book_info["rate"]
     # book_id = book_info['bookid']
@@ -259,6 +224,8 @@ def format_book_info(book_info, context):
         text += f"\n{t('book.year',context)} {year}"
     if lang:
         text += f"\n{t('book.language',context)} {lang}"
+    if src_lang:
+        text += f"\n{t('book.src_language',context)} {src_lang}"
     if pages:
         text += f"\n{t('book.pages',context)} {pages}"
     size = format_size(book_info["size"])

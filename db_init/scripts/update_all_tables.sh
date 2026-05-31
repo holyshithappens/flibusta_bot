@@ -43,6 +43,16 @@ _run_sql_file() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Completed SQL script: $script_name"
 }
 
+_run_sql_file_tolerant() {
+    local script_name=$(basename "$1")
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Executing SQL script: $script_name"
+    docker exec -i "$FLIBUSTA_DB_CONTAINER" mariadb \
+        --force \
+        -u "$FLIBUSTA_DB_USER" -p"$FLIBUSTA_DB_PASS" \
+        "$FLIBUSTA_DB_NAME" < "$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Completed SQL script: $script_name"
+}
+
 # === Task Functions ===
 prepare_system() {
 #```
@@ -216,28 +226,29 @@ drop_old_cb_tables() {
 apply_preparation_scripts() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 🔧 Starting task: Apply preparation scripts..."
 
-    local scripts=()
-    scripts+=("zz_10_convert_charset.sql")
-    scripts+=("zz_20_create_indexes.sql")
-    scripts+=("zz_30_create_FT_indexes.sql")
-    scripts+=("zz_40_fill_FT.sql")
-#    scripts+=("zz_50_repair_FT.sql")
-
-#    _run_sql "SET GLOBAL innodb_buffer_pool_size = 268435456;"  -- 256M
-
     local success_count=0
-    for script in "${scripts[@]}"; do
-        if [ -f "$DB_DIR/$script" ]; then
-            _run_sql_file "$DB_DIR/$script"
+    local total_count=0
+
+    while read -r script_name; do
+        [[ "$script_name" =~ ^#.*$ ]] && continue
+        [[ -z "$script_name" ]] && continue
+
+        total_count=$((total_count + 1))
+
+        if [ -f "$DB_DIR/$script_name" ]; then
+#            if ! _run_sql_file_tolerant "$DB_DIR/$script_name"; then
+            if ! _run_sql_file "$DB_DIR/$script_name"; then
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Aborting: $script_name failed"
+                exit 1
+            fi
             success_count=$((success_count + 1))
         else
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Script not found: $script"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Script not found: $script_name"
+            exit 1
         fi
-    done
+    done < "$DB_DIR/scripts/scripts.conf"
 
-#    _run_sql "SET GLOBAL innodb_buffer_pool_size = 536870912;"  -- restore 512M
-
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: Applied $success_count preparation scripts"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Task completed: Applied $success_count/$total_count preparation scripts"
 }
 
 process_libbook_fts() {

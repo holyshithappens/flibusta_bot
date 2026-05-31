@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.3.3"
-__version_info__ = (1, 3, 3)
+__version__ = "1.4.0"
+__version_info__ = (1, 4, 0)
 
 # История версий:
+# 1.4.0 (2026-05-31) - Feat: add translator search, DB update scripts config, reduce resource consumption
 # 1.3.3 (2026-05-25) - Fix: add book_title to BOOK_INFO_VIEW log event for admin panel display
 # 1.3.2 (2026-05-24) - Fix: use real book title from Content-Disposition header in download logging
 # 1.3.1 (2026-05-24) - Fix: correct search query logging in structured_logger

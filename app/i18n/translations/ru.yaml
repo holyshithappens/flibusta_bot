@@ -37,7 +37,7 @@ search:
   loading: "⏰ <i>Ищу книги, ожидайте...</i>"
   loading_book_info: "⏰ <i>Ожидайте, загружаю информацию о книге...</i>"
   loading_series: "⏰ <i>Ищу серии, ожидайте...</i>"
-  loading_authors: "⏰ <i>Ищу авторов, ожидайте...</i>"
+  loading_authors: "⏰ <i>Ищу авторов/переводчиков, ожидайте...</i>"
   
   results:
     books:
@@ -51,25 +51,25 @@ search:
       many: "серий"  # Used in phrases like "из Z найденных серий"
       other: "серий"
     authors:
-      one: "авторов"  # Used in "из найденных авторов" - genitive plural for all numbers
-      few: "авторов"  # Intentional: same form for all counts
-      many: "авторов"  # Used in phrases like "из Z найденных авторов"
-      other: "авторов"
+      one: "авторов/переводчиков"  # Used in "из найденных авторов" - genitive plural for all numbers
+      few: "авторов/переводчиков"  # Intentional: same form for all counts
+      many: "авторов/переводчиков"  # Used in phrases like "из Z найденных авторов"
+      other: "авторов/переводчиков"
     header: "Показываю с {start} по {end} из {total} найденных {pop}{object}{filter}{in_str}"
     filter_series: " в серии '{series}'"
-    filter_author: " автора '{author}'"
+    filter_author: " автора/переводчика '{author}'"
 
   error: "❌ Произошла ошибка при обработке запроса"
   no_results: "😞 Не нашёл подходящих книг. Попробуйте другие критерии поиска."
   no_results_series: "😞 Не нашёл подходящих книжных серий. Попробуйте другие критерии поиска."
-  no_results_authors: "😞 Не нашёл подходящих авторов. Попробуйте другие критерии поиска."
+  no_results_authors: "😞 Не нашёл подходящих авторов/переводчиков. Попробуйте другие критерии поиска."
   session_expired: "❌ Сессия поиска истекла. Начните поиск заново."
   results_expired: "❌ Результаты поиска устарели. Выполните новый поиск."
   results_expired_title: "🕒 <b>Результаты поиска устарели</b>\n\nПожалуйста, выполните новый поиск."
   page_error: "❌ Ошибка в номере страницы"
   page_change_error: "❌ Произошла ошибка при смене страницы"
   series_error: "❌ Ошибка при обработке серии: {error}"
-  author_error: "❌ Ошибка при обработке автора: {error}"
+  author_error: "❌ Ошибка при обработке автора/переводчика: {error}"
   error_detail: "❌ Ошибка при поиске: {error}"
 
   pagination:
@@ -78,11 +78,11 @@ search:
     next: "Вперёд ➡"
     end: "В конец ⬇️️️"
     series: "⤴️ Назад к сериям"
-    authors: "⤴️ Назад к авторам"
+    authors: "⤴️ Назад к авторам/переводчикам"
 
   download: "📥 Скачать список в CSV формате"
 
-  author_about: "👤 Об авторе"
+  author_about: "👤 Об авторе/переводчике"
 
   results_title: "📚 Результаты поиска:\n\n"
   results_title_for_user: "📚 Результаты поиска для {user_name}:\n\n"
@@ -92,6 +92,7 @@ book:
   download: "📥 Скачать"
   info: "ℹ️ Информация"
   author: "👤 Автор"
+  translator: "👤 Переводчик"
 #  series: "📖 Серия"
 #  genre: "🏷️ Жанр"
 #  year: "📅 Год"
@@ -100,10 +101,12 @@ book:
 #  language: "🌐 Язык"
 #  format: "📄 Формат"
   authors: "👤 <b>Автор(ы):</b>"
+  translators: "👤 <b>Переводчик(и):</b>"
   genres: "📑 <b>Жанр(ы):</b>"
   series: "📖 <b>Серия:</b>"
   year: "📅 <b>Год:</b>"
   language: "🗣️ <b>Язык:</b>"
+  src_language: "🌐 <b>Язык оригинала:</b>"
   pages: "📃 <b>Страниц:</b>"
   size: "📦 <b>Размер:</b>"
   rating: "⭐ <b>Рейтинг:</b>"
@@ -118,6 +121,11 @@ genres:
   title: "Посмотреть жанры:"
   error: "❌ Ошибка при загрузке жанров"
   not_found: "❌ Жанры не найдены для этой категории"
+
+author:
+  about_title: "👤 <b>Об авторе/переводчике:</b>"
+  author: "автор"
+  translator: "переводчик"
 
 # Callback
 callback:
@@ -193,13 +201,13 @@ common:
   search_types:
     books: "по книгам"
     series: "по сериям"
-    authors: "по авторам"
+    authors: "по авторам/переводчикам"
 
   # Search area options
   search_areas:
     b: "по основным данным книг"
     ba: "по аннотации книг"
-    aa: "по аннотации авторов"
+    aa: "по аннотации авторов/переводчиков"
 
   # Size limit options
   size_limits:
@@ -255,9 +263,6 @@ csv:
   generating: "⏳ Формирую CSV-список книг. Пожалуйста, подождите..."
   books_found: "📚 Найдено книг: {count}"
   error: "❌ Ошибка при создании CSV файла"
-
-author:
-  about_title: "👤 <b>Об авторе:</b>"
 
 # Welcome message
 welcome:
@@ -317,7 +322,7 @@ help:
 
     <u>Доступные форматы выдачи (в настройках):</u>
     📚 <b>По книгам</b> - список книг
-    👥 <b>По авторам</b> - группировка по авторам
+    👥 <b>По авторам/переводчикам</b> - группировка по авторам и переводчикам
     📖 <b>По сериям</b> - группировка по сериям
 
 # About
@@ -328,6 +333,7 @@ about:
     📊 <b>Статистика БД библиотеки бота:</b>
     • 📚 Книг: <code>{books_count}</code>
     • 👥 Авторов: <code>{authors_count}</code>
+    • ✍️ Переводчиков: <code>{translators_count}</code>
     • 📖 Серий: <code>{series_count}</code>
     • 🏷️ Жанров: <code>{genres_count}</code>
     • 🌐 Языков: <code>{languages_count}</code>
@@ -345,6 +351,7 @@ about:
     • 📥 Скачивание в форматах fb2, epub, mobi
     • ⭐ Фильтрация по рейтингу книг, размеру и языку
     • ⚙️ Гибкие настройки поиска
+    • 👥 Всё, что относится к авторам, также относится и к переводчикам: поиск, вывод результатов, аннотации
     
     {reader_recommendations}
     📞 <b>Обратная связь:</b>
