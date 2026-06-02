@@ -5,6 +5,11 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.5.1] - 2026-06-02
+
+### Added
+- Логирование даты получения рассылки: при успешной отправке сообщения пользователю обновляется поле `LastNewsDate` в таблице `UserSettings`
+
 ## [1.5.0] - 2026-06-02
 
 ### Added
