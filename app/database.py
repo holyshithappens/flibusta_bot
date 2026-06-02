@@ -786,6 +786,16 @@ class DatabaseSettings(Database):
 
             conn.commit()
 
+    def update_last_news_date(self, user_id: int, date: str) -> None:
+        """
+        Updates the LastNewsDate for a specific user.
+
+        Args:
+            user_id: The ID of the user.
+            date: The date string (YYYY-MM-DD).
+        """
+        self.update_user_settings(user_id, LastNewsDate=date)
+
     # def get_user_stats(self):
     #     """Возвращает статистику пользователей"""
     #     with self.connect() as conn:
