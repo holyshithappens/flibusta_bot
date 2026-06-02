@@ -54,6 +54,7 @@ def form_header_books(
     search_type=SEARCH_TYPE_BOOKS,
     series_name=None,
     author_name=None,
+    person_type='author',
     search_area=SETTING_SEARCH_AREA_B,
     show_pop=None,
 ):
@@ -64,7 +65,12 @@ def form_header_books(
     pop = t(HEADING_POP.get(show_pop), context) if show_pop else ""
     object = tp(f"search.results.{search_type}",context,found_count)
     filter = t("search.results.filter_series",context,series=series_name) if series_name else ""
-    filter += t("search.results.filter_author",context,author=author_name) if author_name else ""
+    # Используем специфичный фильтр для автора или переводчика
+    if author_name:
+        if person_type == 'translator':
+            filter += t("search.results.filter_translator", context, author=author_name)
+        else:
+            filter += t("search.results.filter_author", context, author=author_name)
     in_str = f" {t('common.search_areas.'+search_area,context)}" if search_area != SETTING_SEARCH_AREA_B and not show_pop else ""
 
     return t("search.results.header",context,start=start,end=end,total=found_count,pop=pop,object=object,filter=filter,in_str=in_str)
@@ -249,9 +255,14 @@ def format_book_details(book_details, context):
     return truncate_text(text, 4000, ".")
 
 
-def format_author_info(author_info, context):
-    """Форматирует информацию об авторе"""
-    text = f"{t('author.about_title',context)} <a href='{FlibustaClient.get_author_url(author_info['author_id'])}'>{author_info['name']}</a>\n\n"
+def format_author_info(author_info, context, person_type='author'):
+    """Форматирует информацию об авторе/переводчике"""
+    # Используем специфичный заголовок для автора или переводчика
+    if person_type == 'translator':
+        title_key = 'author.about_title_translator'
+    else:
+        title_key = 'author.about_title_author'
+    text = f"{t(title_key,context)} <a href='{FlibustaClient.get_author_url(author_info['author_id'])}'>{author_info['name']}</a>\n\n"
     if author_info.get("biography"):
         clean_bio = clean_html_tags(author_info["biography"])
         # text += f"{clean_bio[:4000]}" + ("..." if len(clean_bio) > 4000 else "")

@@ -9,6 +9,7 @@ from .tools import format_book_reviews, format_author_info, format_book_details,
 from .core.logging_schema import EventType
 from .core.structured_logger import structured_logger
 from .i18n import t, get_or_detect_locale
+from .context import get_current_person_type
 
 # ===== ИНФОРМАЦИЯ О КНИГАХ И АВТОРАХ =====
 async def handle_book_info(update, context, action, params):
@@ -70,9 +71,9 @@ async def handle_book_info(update, context, action, params):
         # Author/Translator buttons row - use author_info for both
         author_translator_row = []
         if author_ids:
-            author_translator_row.append(InlineKeyboardButton(t('book.author', context), callback_data=f"author_info:{author_ids[0]}"))
+            author_translator_row.append(InlineKeyboardButton(t('book.author', context), callback_data=f"author_info:{author_ids[0]}:author"))
         if translator_ids:
-            author_translator_row.append(InlineKeyboardButton(t('book.translator', context), callback_data=f"author_info:{translator_ids[0]}"))
+            author_translator_row.append(InlineKeyboardButton(t('book.translator', context), callback_data=f"author_info:{translator_ids[0]}:translator"))
         if author_translator_row:
             keyboard.append(author_translator_row)
         
@@ -147,6 +148,8 @@ async def handle_author_info(update, context: CallbackContext, action, params):
     query = update.callback_query
     try:
         person_id = int(params[0])
+        # Получаем тип персоны из callback_data или контекста
+        person_type = params[1] if len(params) > 1 else get_current_person_type(context)
         get_or_detect_locale(update, context)
         
         # Try to get as author first, then as translator
@@ -159,7 +162,7 @@ async def handle_author_info(update, context: CallbackContext, action, params):
 
         message_ids = []
         # Use common format function for both authors and translators
-        message_text = format_author_info(person_info, context)
+        message_text = format_author_info(person_info, context, person_type)
 
         # Сообщение 1: Фото без подписи (если есть)
         if person_info.get('photo_url'):

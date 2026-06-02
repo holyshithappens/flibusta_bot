@@ -57,7 +57,8 @@ search:
       other: "авторов/переводчиков"
     header: "Показываю с {start} по {end} из {total} найденных {pop}{object}{filter}{in_str}"
     filter_series: " в серии '{series}'"
-    filter_author: " автора/переводчика '{author}'"
+    filter_author: " автора '{author}'"
+    filter_translator: " переводчика '{author}'"
 
   error: "❌ Произошла ошибка при обработке запроса"
   no_results: "😞 Не нашёл подходящих книг. Попробуйте другие критерии поиска."
@@ -83,6 +84,8 @@ search:
   download: "📥 Скачать список в CSV формате"
 
   author_about: "👤 Об авторе/переводчике"
+  author_about_author: "👤 Об авторе"
+  author_about_translator: "👤 О переводчике"
 
   results_title: "📚 Результаты поиска:\n\n"
   results_title_for_user: "📚 Результаты поиска для {user_name}:\n\n"
@@ -124,6 +127,8 @@ genres:
 
 author:
   about_title: "👤 <b>Об авторе/переводчике:</b>"
+  about_title_author: "👤 <b>Об авторе:</b>"
+  about_title_translator: "👤 <b>О переводчике:</b>"
   translator: "✍️"
 
 # Callback

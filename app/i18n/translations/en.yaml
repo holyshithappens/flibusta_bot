@@ -51,7 +51,8 @@ search:
       other: "authors/translators"
     header: "Showing {start} to {end} of {total} found {pop}{object}{filter}{in_str}"
     filter_series: " in series '{series}'"
-    filter_author: " by author/translator '{author}'"
+    filter_author: " by author '{author}'"
+    filter_translator: " by translator '{author}'"
 
   error: "❌ An error occurred while processing your request"
   no_results: "😞 No suitable books found. Try different search criteria."
@@ -77,6 +78,8 @@ search:
   download: "📥 Download list in CSV"
 
   author_about: "👤 About author/translator"
+  author_about_author: "👤 About author"
+  author_about_translator: "👤 About translator"
 
   results_title: "📚 Search results:\n\n"
   results_title_for_user: "📚 Search results for {user_name}:\n\n"
@@ -118,6 +121,8 @@ genres:
 
 author:
   about_title: "👤 <b>About author/translator:</b>"
+  about_title_author: "👤 <b>About author:</b>"
+  about_title_translator: "👤 <b>About translator:</b>"
   translator: "✍️"
 
 # Callback

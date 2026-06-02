@@ -8,7 +8,7 @@ from telegram.constants import ParseMode
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 
-from .context import get_user_params, get_current_author_id
+from .context import get_user_params, get_current_author_id, get_current_person_type
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from .i18n import t, get_or_detect_locale
@@ -312,7 +312,13 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
             elif search_context == SEARCH_TYPE_AUTHORS:
                 # Добавляем кнопку "Об авторе/переводчике" при поиске по авторам
                 author_id = get_current_author_id(context)
-                keyboard.append([InlineKeyboardButton(t("search.author_about",context), callback_data=f"author_info:{author_id}")])
+                person_type = get_current_person_type(context)
+                # Используем специфичный текст для автора или переводчика
+                if person_type == 'translator':
+                    about_button_text = t("search.author_about_translator", context)
+                else:
+                    about_button_text = t("search.author_about_author", context)
+                keyboard.append([InlineKeyboardButton(about_button_text, callback_data=f"author_info:{author_id}")])
                 keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
 
     return keyboard

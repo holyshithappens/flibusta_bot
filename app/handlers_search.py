@@ -17,7 +17,8 @@ from .constants import SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHOR
 from .context import get_user_params, get_last_bot_message_id, set_books, set_last_activity, set_last_bot_message_id, \
     set_last_search_query, set_series, set_last_series_page, get_last_search_query, set_current_series_name, \
     set_authors, set_last_authors_page, set_current_author_id, set_current_author_name, get_pages_of_books, \
-    get_current_author_id, get_found_books_count, get_current_series_name, get_current_author_name, get_pages_of_series, \
+    get_current_author_id, get_current_person_type, set_current_person_type, get_found_books_count, \
+    get_current_series_name, get_current_author_name, get_pages_of_series, \
     get_found_series_count, get_pages_of_authors, get_found_authors_count, get_switch_search, set_switch_search
 from .health import log_stats
 from .core.structured_logger import structured_logger
@@ -202,6 +203,8 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
             set_current_author_name(context, author_name)
             # Сохраняем id автора/переводчика для перелистывания страниц
             set_current_author_id(context, author_id)
+            # Сохраняем тип персоны (автор/переводчик) для отображения
+            set_current_person_type(context, person_type)
 
         # Собираем кнопки с книгами для настроенного вывода
         keyboard = create_books_keyboard(page, pages_of_result, context, search_type)
@@ -217,6 +220,7 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
                 search_type=SEARCH_TYPE_BOOKS,  # Здесь всегда найденных книг
                 series_name=series_name,
                 author_name=author_name,
+                person_type=person_type,
                 search_area=search_area,
                 show_pop=show_pop
             )
@@ -593,11 +597,13 @@ async def handle_books_page_change(update, context, action, params):
             elif search_context == SEARCH_TYPE_AUTHORS:
                 author_name = get_current_author_name(context)
             show_pop = get_switch_search(context)
+            person_type = get_current_person_type(context)
             header_text = form_header_books(
                 context,
                 page, user_params.MaxBooks, found_books_count, SEARCH_TYPE_BOOKS,
                 series_name=series_name,
                 author_name=author_name,
+                person_type=person_type,
                 search_area=user_params.SearchArea,
                 show_pop=show_pop
             )

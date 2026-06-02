@@ -17,6 +17,7 @@ class CMConst:
         LAST_SERIES_PAGE = "last_series_page"
         LAST_AUTHORS_PAGE = "last_authors_page"
         CURRENT_AUTHOR_ID = "author_id"
+        CURRENT_PERSON_TYPE = "person_type"
         CURRENT_SERIES_NAME = "current_series_name"
         CURRENT_AUTHOR_NAME = "current_author_name"
         LAST_BOT_MESSAGE_ID = "last_bot_message_id"
@@ -276,6 +277,15 @@ def get_current_author_id(context: CallbackContext) -> int:
 def set_current_author_id(context: CallbackContext, author_id: int) -> None:
     ContextManager.set(context, CMConst.CMC_Proc.CURRENT_AUTHOR_ID, author_id)
     # print(f"DEBUG: set_current_author_id={author_id}")
+
+
+def get_current_person_type(context: CallbackContext) -> str:
+    result = ContextManager.get(context, CMConst.CMC_Proc.CURRENT_PERSON_TYPE, "author")
+    return str(result)
+
+
+def set_current_person_type(context: CallbackContext, person_type: str) -> None:
+    ContextManager.set(context, CMConst.CMC_Proc.CURRENT_PERSON_TYPE, person_type)
 
 
 def get_current_author_name(context: CallbackContext) -> str:
