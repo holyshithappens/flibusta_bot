@@ -124,8 +124,7 @@ genres:
 
 author:
   about_title: "👤 <b>Об авторе/переводчике:</b>"
-  author: "автор"
-  translator: "переводчик"
+  translator: "✍️"
 
 # Callback
 callback:
