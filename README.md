@@ -6,7 +6,7 @@ Telegram bot for searching and downloading books from the Flibusta digital libra
 - **Framework**: python-telegram-bot (async)
 - **Databases**: MariaDB (books), SQLite (users/logs)
 - **Deployment**: Docker + docker-compose
-- **Version**: 1.5.1
+- **Version**: 1.6.0
 
 ## Features
 
