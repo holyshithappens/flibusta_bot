@@ -515,13 +515,25 @@ async def handle_search_author_books(update, context, action, params):
     try:
         author_id = int(params[0])
         person_type = params[1] if len(params) > 1 else 'author'
+        show_loading = len(params) > 2 and params[2] == 'msg'  # Check for loading flag
         user = query.from_user
+        # Show loading message if requested
+        if show_loading:
+            # Send a NEW message with loading text (author info stays intact)
+            processing_msg = await query.message.reply_text(
+                t('search.loading', context),
+                parse_mode=ParseMode.HTML
+            )
+        else:
+            # Use the current message (from authors list)
+            processing_msg = query.message if query.message else query
+
         # Ищем книги автора/переводчика в комбинации с предыдущим запросом
         query_text = get_last_search_query(context)
 
         # Запускаем асинхронный поиск
         asyncio.create_task(
-            async_search_books(context, query_text, query.message if query.message else query, user, author_id=author_id, person_type=person_type)
+            async_search_books(context, query_text, processing_msg, user, author_id=author_id, person_type=person_type)
         )
 
         # # user_params = DB_SETTINGS.get_user_settings(user.id)

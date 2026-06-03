@@ -18,6 +18,8 @@ commands:
   pop: "Popular and new"
   set: "Settings"
   donate: "Donate"
+  book: "View book by ID"
+  author: "View author by ID"
 
 # Settings menu
 settings:
@@ -120,6 +122,7 @@ genres:
   not_found: "❌ No genres found for this category"
 
 author:
+  books: "📚 Author's books"
   about_title: "👤 <b>About author/translator:</b>"
   about_title_author: "👤 <b>About author:</b>"
   about_title_translator: "👤 <b>About translator:</b>"
@@ -377,3 +380,9 @@ about:
     • 📖 <a href="https://www.amazon.com/b?node=16571048011  ">Kindle</a> (all platforms)
 
   error: "❌ Could not retrieve library information"
+
+# Direct ID lookup
+direct_id:
+  book_usage: "📖 <b>Usage:</b> /b <book_id>\n\nExample: <code>/b 12345</code>"
+  author_usage: "👤 <b>Usage:</b> /a <author_id>\n\nExample: <code>/a 678</code>"
+  invalid_id: "❌ <b>Invalid ID</b>\n\nPlease provide a numeric ID.\n\nExamples:\n<code>/b 12345</code> - View book info\n<code>/a 678</code> - View author info"
