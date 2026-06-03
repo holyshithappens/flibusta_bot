@@ -129,6 +129,7 @@ genres:
 
 author:
   books: "📚 Книги автора"
+  books_translator: "📚 Книги переводчика"
   about_title: "👤 <b>Об авторе/переводчике:</b>"
   about_title_author: "👤 <b>Об авторе:</b>"
   about_title_translator: "👤 <b>О переводчике:</b>"

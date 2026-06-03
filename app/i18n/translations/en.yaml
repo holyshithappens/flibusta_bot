@@ -123,6 +123,7 @@ genres:
 
 author:
   books: "📚 Author's books"
+  books_translator: "📚 Translator's books"
   about_title: "👤 <b>About author/translator:</b>"
   about_title_author: "👤 <b>About author:</b>"
   about_title_translator: "👤 <b>About translator:</b>"

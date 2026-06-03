@@ -192,7 +192,7 @@ async def handle_author_info(update, context: CallbackContext, action, params):
         message_ids.append(bio_message.message_id)
 
         # Кнопка "Книги автора" и кнопка закрытия
-        await add_author_buttons(bio_message, message_ids, person_id, context)
+        await add_author_buttons(bio_message, message_ids, person_id, person_type, context)
 
     except Exception as e:
         print(f"Error in handle_author_info: {e}")
@@ -321,7 +321,7 @@ async def add_close_button_to_message(to_message, close_message_ids: List[Any], 
     await to_message.edit_reply_markup(reply_markup)
 
 
-async def add_author_buttons(to_message, close_message_ids: List[Any], author_id: int, context: CallbackContext):
+async def add_author_buttons(to_message, close_message_ids: List[Any], author_id: int, person_type: str, context: CallbackContext):
     """Add 'Author's books' and close buttons to author info message.
     
     Args:
@@ -332,10 +332,10 @@ async def add_author_buttons(to_message, close_message_ids: List[Any], author_id
     """
     close_data = ':'.join(map(str, close_message_ids))
     close_text = t('common.close', context)
-    author_books_text = t('author.books', context)
+    author_books_text = t('author.books_translator' if person_type == 'translator' else 'author.books', context)
 
     keyboard = [
-        [InlineKeyboardButton(author_books_text, callback_data=f"show_author:{author_id}:author:msg")],
+        [InlineKeyboardButton(author_books_text, callback_data=f"show_author:{author_id}:{person_type}:msg")],
         [InlineKeyboardButton(close_text, callback_data=f"close_info:{close_data}")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
