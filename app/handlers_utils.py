@@ -321,6 +321,8 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
                 keyboard.append([InlineKeyboardButton(about_button_text, callback_data=f"author_info:{author_id}")])
                 keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
 
+            add_close_button(keyboard, context)
+
     return keyboard
 
 
@@ -342,6 +344,8 @@ def create_series_keyboard(page, pages_of_series, context):
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_SERIES, page, pages_of_series, context)
 
+            add_close_button(keyboard, context)
+
     return keyboard
 
 
@@ -362,6 +366,8 @@ def create_authors_keyboard(page, pages_of_authors, context):
 
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors, context)
+
+            add_close_button(keyboard, context)
 
     return keyboard
 
