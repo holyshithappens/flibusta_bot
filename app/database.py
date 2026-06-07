@@ -20,7 +20,7 @@ UserSettingsType = namedtuple('UserSettingsType',
                               ['User_ID', 'MaxBooks', 'Lang',
                                # 'DateSortOrder',
                                'BookFormat', 'LastNewsDate', 'IsBlocked', 'BookSize', 'SearchType', 'Rating', 'SearchArea',
-                               'Locale'])  # User's preferred UI language (empty = auto-detect)
+                               'Locale', 'GenreFilter'])  # User's preferred UI language (empty = auto-detect); GenreFilter = comma-separated genre IDs
 
 # SQL-запросы
 # Базовые поля для SELECT
@@ -42,6 +42,7 @@ BASE_FIELDS = """
     sn.SeqName as SeriesTitle, 
     sn.SeqId as SeriesID, 
     ROUND(COALESCE(r.LibRate, 0)) as LibRate,
+    g.GenreID as GenreID,
     b.SrcLang,
     tn.LastName as TransLastName,
     tn.FirstName as TransFirstName,
@@ -966,10 +967,11 @@ class DatabaseBooks():
 
     def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0,
                      author_id=0, person_type='author',
-                     locale: str = 'ru'):
+                     locale: str = 'ru', genre_filter=None):
         """Ищем книги по запросу пользователя"""
         is_empty = not query
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type,
+                                            genre_filter)
         # Строим запросы для поиска книг и подсчёта количества найденных книг
         sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale, is_empty)
 
@@ -1260,7 +1262,8 @@ class DatabaseBooks():
 
         return authors
 
-    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0, locale: str = 'ru'):
+    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0, locale: str = 'ru',
+                         genre_filter=None):
         """Поиск популярных книг за период"""
         # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
 
@@ -1281,6 +1284,11 @@ class DatabaseBooks():
         # Rating filter uses actual LibRate from joined table, not alias
         if rating_filter and rating_filter != '':
             conditions.append(f"ROUND(COALESCE(r.LibRate, 0)) IN ({rating_filter})")
+
+        # Genre filter — uses GenreID from BASE_FIELDS (same pattern as LibRate for rating)
+        if genre_filter and genre_filter.strip():
+            if all(c.isdigit() or c == ',' for c in genre_filter):
+                conditions.append(f"GenreID IN ({genre_filter})")
 
         sql_where = " AND ".join(conditions)
 
@@ -1493,7 +1501,8 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author'):
+    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author',
+                           genre_filter=None):
         """Создает SQL-условие WHERE на основе списка слов и их операторов."""
         conditions = []
 
@@ -1517,6 +1526,11 @@ class DatabaseBooks():
         # Добавляем условие по автору в поиске книг по авторам
         if author_id != 0:
             conditions.append(f"AuthorID = {author_id}" if person_type=='author' else f"TransID = {author_id}")
+
+        # Фильтрация по жанрам — используем поле GenreID из BASE_FIELDS (как LibRate для рейтинга)
+        if genre_filter and genre_filter.strip():
+            if all(c.isdigit() or c == ',' for c in genre_filter):
+                conditions.append(f"GenreID IN ({genre_filter})")
 
         # в соновном sql вконце уже есть where, поэтому заменяем его на and
         sql_where = "WHERE " + " AND ".join(conditions) if conditions else "WHERE 1=1"

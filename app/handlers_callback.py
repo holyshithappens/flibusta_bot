@@ -13,15 +13,17 @@ from .handlers_search import handle_authors_page_change, handle_series_page_chan
     handle_search_series_books, handle_search_author_books, handle_search_books
 from .handlers_settings import create_rating_filter_keyboard, show_settings_menu, handle_set_actions, \
     handle_set_max_books, handle_set_lang_search, handle_set_size_limit, handle_set_book_format, \
-    handle_set_search_type, handle_set_rating_filter, handle_set_search_area, handle_set_locale
-from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file, generate_books_csv
+    handle_set_search_type, handle_set_rating_filter, handle_set_search_area, handle_set_locale, \
+    handle_set_genre_filter, create_genre_filter_parent_keyboard
+from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file, generate_books_csv, \
+    create_genre_filter_keyboard
 from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, \
     SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT, \
-    SETTING_LOCALE
+    SETTING_LOCALE, SETTING_GENRE_FILTER
 from .context import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
-    get_pages_of_books, get_user_params, update_user_params, get_last_series_page, get_last_authors_page, \
-    set_switch_search, get_switch_search
+    get_pages_of_books, get_user_params, update_user_params, get_last_series_page, \
+    get_last_authors_page, set_switch_search, get_switch_search
 from .flibusta_client import FlibustaClient
 from .tools import form_header_books
 from .health import log_stats
@@ -88,6 +90,7 @@ async def handle_private_callback(update, context, action, params):
         f'set_{SETTING_RATING_FILTER}': handle_set_rating_filter,
         f'set_{SETTING_SEARCH_AREA}': handle_set_search_area,
         f'set_{SETTING_LOCALE}': handle_set_locale,
+        f'set_{SETTING_GENRE_FILTER}': handle_set_genre_filter,
         'show_series': handle_search_series_books,
         'back_to_series': handle_back_to_series,
         'show_author': handle_search_author_books,  # Добавляем обработчик для авторов
@@ -105,6 +108,27 @@ async def handle_private_callback(update, context, action, params):
     # Добавим обработку toggle рейтингов
     if action.startswith('toggle_rating_'):
         await handle_toggle_rating(update, context, action, params)
+        return
+
+    # Genre filter handlers
+    if action.startswith('toggle_genre_'):
+        await handle_toggle_genre(update, context, action, params)
+        return
+
+    if action.startswith('switch_genre_group_'):
+        await handle_switch_genre_group(update, context, action, params)
+        return
+
+    if action == 'clear_all_genres':
+        await handle_clear_all_genres(update, context, action, params)
+        return
+
+    if action == 'show_genre_filter':
+        await handle_show_genre_filter_children(update, context, action, params)
+        return
+
+    if action == 'back_to_genre_filter':
+        await handle_back_to_genre_filter(update, context, action, params)
         return
 
     # Прямой поиск обработчика в словаре
@@ -411,3 +435,240 @@ async def handle_download_books_csv(update, context, action, params):
             user_id=query.from_user.id,
             username=query.from_user.username or query.from_user.first_name or "Unknown"
         )
+
+
+async def handle_show_genre_filter_children(update, context, action, params):
+    """
+    Shows child genres for a parent category in the filter context.
+
+    Pattern: show_genre_filter:{parent_genre_index}
+    """
+    query = update.callback_query
+    try:
+        locale = get_or_detect_locale(update, context)
+        genre_index = int(params[0])
+
+        results = DB_BOOKS.get_parent_genres_count(locale)
+        parent_genre = results[genre_index][0]
+
+        genres = DB_BOOKS.get_genres_with_counts(parent_genre, locale)
+
+        if genres:
+            user_params = get_user_params(context)
+            current_filter = user_params.GenreFilter if user_params else ''
+            # Filter out empty strings: ''.split(',') returns ['']
+            current_genre_ids = [g for g in current_filter.split(',') if g] if current_filter else []
+
+            reply_markup = create_genre_filter_keyboard(parent_genre, current_genre_ids, genres, context,
+                                                         back_callback="back_to_genre_filter")
+
+            await query.edit_message_text(
+                f"<b>{parent_genre}</b>\n\n{t('genres.select_genres', context)}",
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML
+            )
+    except Exception as e:
+        import traceback
+        print(f"Error in handle_show_genre_filter_children: {e}")
+        traceback.print_exc()
+        await query.message.reply_text(t('genres.error', context))
+
+
+async def handle_back_to_genre_filter(update, context, action, params):
+    """
+    Returns to parent genres filter keyboard from child genres.
+    Pattern: back_to_genre_filter
+    """
+    query = update.callback_query
+    user_params = get_user_params(context)
+    locale = user_params.Locale or 'ru'
+
+    # Get parent genres
+    parent_genres = DB_BOOKS.get_parent_genres_count(locale)
+
+    # Get current active genre IDs
+    current_filter = user_params.GenreFilter
+    active_genre_ids = set(g for g in current_filter.split(',') if g) if current_filter else set()
+
+    # Pre-fetch child genres for 3-state indicators
+    all_child_genres = {}
+    for genre_name, _ in parent_genres:
+        all_child_genres[genre_name] = DB_BOOKS.get_genres_with_counts(genre_name, locale)
+
+    keyboard = create_genre_filter_parent_keyboard(
+        context, parent_genres, active_genre_ids, locale, all_child_genres
+    )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    try:
+        await query.edit_message_text(
+            t('settings.menu.genre_filter', context),
+            reply_markup=reply_markup
+        )
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise e
+
+
+async def handle_toggle_genre(update, context, action, params):
+    """
+    Handles toggling individual genre selection.
+
+    Pattern: toggle_genre_{genre_id}
+    """
+    query = update.callback_query
+    genre_id = action.removeprefix('toggle_genre_')
+
+    # Get current filter
+    current_filter = get_user_params(context).GenreFilter
+    # Filter out empty strings: ''.split(',') returns ['']
+    current_genres = [g for g in current_filter.split(',') if g] if current_filter else []
+
+    # Toggle genre
+    if genre_id in current_genres:
+        current_genres.remove(genre_id)
+    else:
+        current_genres.append(genre_id)
+
+    # Update filter using partial update (same pattern as rating toggle)
+    new_filter = ','.join(current_genres)
+    update_user_params(context, GenreFilter=new_filter)
+
+    # Refresh keyboard — rebuild and show genre keyboard
+    locale = get_or_detect_locale(update, context)
+    # Find the parent genre from the current genres list
+    # We need to re-fetch the parent genre name from the callback data context
+    # Since we don't have parent_genre directly, we need to find it
+    parent_genre = None
+    for pg_name in DB_BOOKS.get_parent_genres_count(locale):
+        pg_name_str = pg_name[0]
+        child_genres = DB_BOOKS.get_genres_with_counts(pg_name_str, locale)
+        if any(str(g[2]) == genre_id for g in child_genres):
+            parent_genres = child_genres
+            parent_genre = pg_name_str
+            break
+
+    if parent_genre:
+        current_genre_ids = [g for g in new_filter.split(',') if g] if new_filter else []
+        reply_markup = create_genre_filter_keyboard(parent_genre, current_genre_ids, parent_genres, context,
+                                                     back_callback="back_to_genre_filter")
+        try:
+            await query.edit_message_text(
+                f"<b>{parent_genre}</b>\n\n{t('genres.select_genres', context)}",
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML
+            )
+        except BadRequest as e:
+            if "Message is not modified" not in str(e):
+                raise e
+
+    # Log the change (same pattern as rating toggle)
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="genre_filter",
+        old_value=current_filter,
+        new_value=new_filter,
+        chat_type=query.message.chat.type,
+        chat_id=query.message.chat.id
+    )
+
+
+async def handle_switch_genre_group(update, context, action, params):
+    """
+    Handles Select All / Clear All for a genre group.
+
+    Pattern: switch_genre_group_{parent_genre}
+    """
+    query = update.callback_query
+    parent_genre = action.removeprefix('switch_genre_group_')
+
+    # Get all child genre IDs for this parent
+    locale = get_or_detect_locale(update, context)
+    child_genres = DB_BOOKS.get_genres_with_counts(parent_genre, locale)
+    child_ids = [str(g[2]) for g in child_genres]
+
+    # Get current filter (filter out empty strings)
+    current_filter = get_user_params(context).GenreFilter
+    current_genres = set(g for g in current_filter.split(',') if g) if current_filter else set()
+
+    # Check if all are selected
+    all_selected = all(gid in current_genres for gid in child_ids)
+
+    if all_selected:
+        # Clear all in this group
+        new_genres = current_genres - set(child_ids)
+    else:
+        # Select all in this group
+        new_genres = current_genres | set(child_ids)
+
+    # Update filter using partial update
+    new_filter = ','.join(new_genres)
+    update_user_params(context, GenreFilter=new_filter)
+
+    # Refresh keyboard — rebuild and show genre keyboard
+    current_genre_ids = [g for g in new_filter.split(',') if g] if new_filter else []
+    reply_markup = create_genre_filter_keyboard(parent_genre, current_genre_ids, child_genres, context,
+                                                 back_callback="back_to_genre_filter")
+    try:
+        await query.edit_message_text(
+            f"<b>{parent_genre}</b>\n\n{t('genres.select_genres', context)}",
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.HTML
+        )
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise e
+
+    # Log the change
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="genre_filter",
+        old_value=current_filter,
+        new_value=new_filter,
+        chat_type=query.message.chat.type,
+        chat_id=query.message.chat.id
+    )
+
+
+async def handle_clear_all_genres(update, context, action, params):
+    """
+    Clears all genre filters.
+
+    Pattern: clear_all_genres
+    """
+    query = update.callback_query
+    old_filter = get_user_params(context).GenreFilter
+    update_user_params(context, GenreFilter='')
+
+    # Refresh parent keyboard
+    user_params = get_user_params(context)
+    locale = user_params.Locale or 'ru'
+    parent_genres = DB_BOOKS.get_parent_genres_count(locale)
+
+    # Pre-fetch child genres for 3-state indicators
+    all_child_genres = {}
+    for genre_name, _ in parent_genres:
+        all_child_genres[genre_name] = DB_BOOKS.get_genres_with_counts(genre_name, locale)
+
+    keyboard = create_genre_filter_parent_keyboard(
+        context, parent_genres, set(), locale, all_child_genres
+    )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_text(
+        t('settings.menu.genre_filter', context),
+        reply_markup=reply_markup
+    )
+
+    # Log the change
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="genre_filter",
+        old_value=old_filter,
+        new_value="",
+        chat_type=query.message.chat.type,
+        chat_id=query.message.chat.id
+    )

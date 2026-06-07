@@ -116,7 +116,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                 lambda: DB_BOOKS.search_pop_books(
                     user_params.Lang, user_params.BookSize, user_params.Rating,
                     days,
-                    locale=user_params.Locale or 'ru'
+                    locale=user_params.Locale or 'ru',
+                    genre_filter=user_params.GenreFilter
                 )
             )
         else:
@@ -128,7 +129,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                     series_id=series_id,
                     author_id=author_id,
                     person_type=person_type,
-                    locale=user_params.Locale or 'ru'
+                    locale=user_params.Locale or 'ru',
+                    genre_filter=user_params.GenreFilter
                 )
             )
         found_books_count = len(books)

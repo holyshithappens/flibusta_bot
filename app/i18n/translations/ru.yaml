@@ -33,6 +33,7 @@ settings:
     search_type: "Вывод результатов"
     search_area: "Область поиска"
     locale: "Язык интерфейса"
+    genre_filter: "Фильтр по жанрам"
 
 # Search
 search:
@@ -126,6 +127,7 @@ genres:
   title: "Посмотреть жанры:"
   error: "❌ Ошибка при загрузке жанров"
   not_found: "❌ Жанры не найдены для этой категории"
+  select_genres: "Выберите жанры для фильтрации:"
 
 author:
   books: "📚 Книги автора"
@@ -192,6 +194,9 @@ common:
   back: "🔙 Назад"
   reset: "Сбросить"
   reset_all: "🔄 Сбросить все"
+  select_all: "Выбрать все"
+  clear_all: "Очистить все"
+  clear_all_genres: "🗑️ Очистить все жанры"
 
   # Language reset option
   reset_lang: "✔ {lang} - сбросить"
