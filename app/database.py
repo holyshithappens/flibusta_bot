@@ -1085,9 +1085,9 @@ class DatabaseBooks():
         LIMIT {MAX_SERIES_SEARCH}
         """
 
-    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
+    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None):
         """Ищет серии по запросу"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, genre_filter=genre_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
@@ -1199,39 +1199,41 @@ class DatabaseBooks():
     def build_sql_query_authors(cls,sql_query_nested, sql_where) -> str:
         """Собирает SQL запрос поиска авторов и переводчиков"""
         return f"""
-        SELECT 
+        SELECT
             CONCAT(COALESCE(LastName, ''), ' ', COALESCE(FirstName, ''), ' ', COALESCE(MiddleName, '')) as AuthorName,
             COUNT(DISTINCT FileName) as book_count,
             AuthorID,
             PersonType
         FROM (
             -- Authors
-            SELECT 
-                LastName, 
-                FirstName, 
+            SELECT
+                LastName,
+                FirstName,
                 MiddleName,
                 FileName,
                 AuthorID,
                 'author' as PersonType,
                 SearchLang,
                 BookSizeCat,
-                LibRate
+                LibRate,
+                GenreID
             FROM ({sql_query_nested}) as subquery
             WHERE (LastName <> '' OR FirstName <> '' OR MiddleName <> '')
             
             UNION ALL
             
             -- Translators
-            SELECT 
-                TransLastName as LastName, 
-                TransFirstName as FirstName,  
+            SELECT
+                TransLastName as LastName,
+                TransFirstName as FirstName,
                 TransMiddleName as MiddleName,
                 FileName,
                 TransID as AuthorID,
                 'translator' as PersonType,
                 SearchLang,
                 BookSizeCat,
-                LibRate
+                LibRate,
+                GenreID
             FROM ({sql_query_nested}) as subquery
             WHERE (TransLastName <> '' OR TransFirstName <> '' OR TransMiddleName <> '')
         ) combined
@@ -1241,9 +1243,9 @@ class DatabaseBooks():
         LIMIT {MAX_AUTHORS_SEARCH}
         """
 
-    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
+    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None):
         """Ищет авторов по запросу"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, genre_filter=genre_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
