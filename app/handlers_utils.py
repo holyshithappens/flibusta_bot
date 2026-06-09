@@ -308,8 +308,8 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
             if search_context == SEARCH_TYPE_SERIES:
                 keyboard.append([InlineKeyboardButton(t("search.pagination.series",context), callback_data="back_to_series")])
 
-            # Добавляем кнопку "Назад к авторам" при поиске по авторам
-            elif search_context == SEARCH_TYPE_AUTHORS:
+            # Добавляем кнопку "Назад к авторам" только если пользователь в режиме поиска по авторам (не из аннотации)
+            elif search_context == SEARCH_TYPE_AUTHORS and get_user_params(context).SearchType == SEARCH_TYPE_AUTHORS:
                 # Добавляем кнопку "Об авторе/переводчике" при поиске по авторам
                 author_id = get_current_author_id(context)
                 person_type = get_current_person_type(context)
