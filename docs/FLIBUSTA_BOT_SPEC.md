@@ -8,7 +8,7 @@ Telegram bot for searching and downloading books from the Flibusta digital libra
 - **Framework**: python-telegram-bot v20+ (async)
 - **Databases**: MariaDB 12.0 (books) + SQLite (users, logs, settings)
 - **Deployment**: Docker + docker-compose
-- **Version**: 1.3.0
+- **Version**: 1.6.0
 
 ---
 
@@ -45,6 +45,7 @@ Telegram Bot API
 | **Repositories** | SQLite data access | `repositories/base_sqlite.py`, `repositories/logs_repository.py` |
 | **Client** | Flibusta HTTP client | `flibusta_client.py` |
 | **Health** | Monitoring & cleanup | `health.py` |
+| **Tools** | Utility functions (formatting, FB2 parsing) | `tools.py` |
 
 ---
 
@@ -61,11 +62,12 @@ Telegram Bot API
 - `/donate` — Support via Telegram Stars
 
 ### Search
-- Full-text search across title, author, genre, series, year
+- Full-text search across title, author, **translator**, genre, series, year
 - Annotation search (books and authors)
 - Series/author grouping
 - Pagination, rating filtering
 - Popular books and novelties
+- **Translator search** — dedicated search mode for finding books by translator name
 
 ### Internationalization (i18n)
 - RU/EN locale support via YAML translation files
@@ -81,7 +83,9 @@ Telegram Bot API
 - **Broadcast** — mass message to all users with:
   - ConversationHandler flow (entry → receive message → confirm/cancel)
   - Test mode via `BROADCAST_TEST_ONLY` / `BROADCAST_TEST_USER_IDS` env vars
+  - Skip list via `BROADCAST_SKIP_USER_IDS` env var
   - Per-user delivery logging via structured log
+  - `LastNewsDate` update in UserSettings upon successful delivery
 
 ### Structured Logging
 - JSON format logs in `StructuredLog` SQLite table
@@ -194,9 +198,9 @@ app/core/
 
 ### Key Event Types
 ```
-search.books, search.series, search.authors, search.popular
+search.books, search.series, search.authors, search.translators, search.popular
 book.info.view, book.details.view, book.download, book.reviews.view
-author.info.view, genres.view, settings.change
+author.info.view, translator.info.view, genres.view, settings.change
 broadcast.started, broadcast.sent, broadcast.failed
 payment.received, payment.refund
 system.startup, system.shutdown
@@ -247,6 +251,7 @@ handle_broadcast_callback()
 |----------|-------------|
 | `BROADCAST_TEST_ONLY` | If `"true"`, only send to test users |
 | `BROADCAST_TEST_USER_IDS` | Comma-separated tester user IDs |
+| `BROADCAST_SKIP_USER_IDS` | Comma-separated user IDs to skip in broadcast |
 
 ### Logging Queries
 ```sql
@@ -284,7 +289,7 @@ WHERE EventType = 'broadcast.failed';
 | MaxBooks | 20 / 40 |
 | Lang | ru / en / etc. |
 | BookFormat | fb2 / epub / mobi |
-| SearchType | books / series / authors |
+| SearchType | books / series / authors / translators |
 | Rating | 0–5 |
 | BookSize | less800 / more800 |
 | SearchArea | b / ba / aa |
@@ -313,15 +318,25 @@ ADMIN_PASSWORD=<password>
 # Broadcast
 BROADCAST_TEST_ONLY=true
 BROADCAST_TEST_USER_IDS=123456789,987654321
+BROADCAST_SKIP_USER_IDS=543210987
 
 # Feedback
 FEEDBACK_EMAIL=<email>
 FEEDBACK_TELEGRAM=<link>
+FEEDBACK_PIKABU=<link>
+FEEDBACK_PIKABU_USERNAME=<username>
 
-# Donations
+# Donations (Crypto)
+DONATE_SOL=<address>
 DONATE_BTC=<address>
 DONATE_ETH=<address>
-# ... etc
+DONATE_POL=<address>
+DONATE_SUI=<address>
+DONATE_TON=<address>
+DONATE_TRX=<address>
+
+# VPS
+VPS_EXPIRY_DATE=2026-07-25
 ```
 
 ---

@@ -5,6 +5,7 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
 from .handlers_settings import show_settings_menu
+from .handlers_utils import add_close_button
 from .tools import get_latest_news #, get_platform_recommendations
 from .constants import SHOW_POPULAR_ALL_TIME, SHOW_POPULAR_30_DAYS, SHOW_POPULAR_7_DAYS, SHOW_NOVELTY
 from .database import DB_BOOKS
@@ -62,6 +63,7 @@ async def genres_cmd(update: Update, context: CallbackContext):
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"show_genres:{genre_index}")])
 
         # print(f"DEBUG: Keyboard has {len(keyboard)} rows")
+        add_close_button(keyboard, context)
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         # print(f"DEBUG: Reply markup created")
@@ -94,7 +96,8 @@ async def pop_cmd(update: Update, context: CallbackContext):
     keyboard.append([InlineKeyboardButton(t('popular.days_30', context), callback_data=f"{SHOW_POPULAR_30_DAYS}")])
     keyboard.append([InlineKeyboardButton(t('popular.days_7', context), callback_data=f"{SHOW_POPULAR_7_DAYS}")])
     keyboard.append([InlineKeyboardButton(t('popular.novelty', context), callback_data=f"{SHOW_NOVELTY}")])
-    # add_close_button(keyboard)
+
+    add_close_button(keyboard, context)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 

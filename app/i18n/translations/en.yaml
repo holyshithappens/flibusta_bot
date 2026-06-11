@@ -18,6 +18,8 @@ commands:
   pop: "Popular and new"
   set: "Settings"
   donate: "Donate"
+  book: "View book by ID"
+  author: "View author by ID"
 
 # Settings menu
 settings:
@@ -31,6 +33,7 @@ settings:
     search_type: "Results display"
     search_area: "Search area"
     locale: "Interface language"
+    genre_filter: "Genre filter"
 
 # Search
 search:
@@ -118,8 +121,11 @@ genres:
   title: "Browse genres:"
   error: "❌ Error loading genres"
   not_found: "❌ No genres found for this category"
+  select_genres: "Select genres to filter:"
 
 author:
+  books: "📚 Author's books"
+  books_translator: "📚 Translator's books"
   about_title: "👤 <b>About author/translator:</b>"
   about_title_author: "👤 <b>About author:</b>"
   about_title_translator: "👤 <b>About translator:</b>"
@@ -178,6 +184,9 @@ common:
   back: "🔙 Back"
   reset: "Reset"
   reset_all: "🔄 Reset all"
+  select_all: "Select all"
+  clear_all: "Clear all"
+  clear_all_genres: "🗑️ Clear all genres"
 
   # Language reset option
   reset_lang: "✔ {lang} - reset"
@@ -377,3 +386,9 @@ about:
     • 📖 <a href="https://www.amazon.com/b?node=16571048011  ">Kindle</a> (all platforms)
 
   error: "❌ Could not retrieve library information"
+
+# Direct ID lookup
+direct_id:
+  book_usage: "📖 <b>Usage:</b> /b <book_id>\n\nExample: <code>/b 12345</code>"
+  author_usage: "👤 <b>Usage:</b> /a <author_id>\n\nExample: <code>/a 678</code>"
+  invalid_id: "❌ <b>Invalid ID</b>\n\nPlease provide a numeric ID.\n\nExamples:\n<code>/b 12345</code> - View book info\n<code>/a 678</code> - View author info"

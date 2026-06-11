@@ -20,7 +20,7 @@ UserSettingsType = namedtuple('UserSettingsType',
                               ['User_ID', 'MaxBooks', 'Lang',
                                # 'DateSortOrder',
                                'BookFormat', 'LastNewsDate', 'IsBlocked', 'BookSize', 'SearchType', 'Rating', 'SearchArea',
-                               'Locale'])  # User's preferred UI language (empty = auto-detect)
+                               'Locale', 'GenreFilter'])  # User's preferred UI language (empty = auto-detect); GenreFilter = comma-separated genre IDs
 
 # SQL-запросы
 # Базовые поля для SELECT
@@ -73,45 +73,48 @@ LEFT JOIN (
 """
 
 # Основной полнотекстовый поиск
-SQL_QUERY_BOOKS = lambda locale: f"""
+SQL_QUERY_BOOKS = lambda locale, is_empty=False, genre_filter=None: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
-    MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE) as Relevance
+    {'1' if is_empty else 'MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)'} as Relevance
 FROM cb_libbook_fts fts
 JOIN cb_libbook b ON b.BookID = fts.BookID
 {get_base_joins(locale)}
 WHERE b.Deleted = '0'
-  AND MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)
+  {'' if is_empty else 'AND MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)'}
+  {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
 ) as subq 
 """
 
 # Поиск по аннотациям книг
-SQL_QUERY_ABOOKS = lambda locale: f"""
+SQL_QUERY_ABOOKS = lambda locale, is_empty=False, genre_filter=None: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
-    MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE) as Relevance
+    {'1' if is_empty else 'MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)'} as Relevance
 FROM cb_libbannotations ba
 JOIN cb_libbook b ON b.BookID = ba.BookID
 {get_base_joins(locale)}
 WHERE b.Deleted = '0'
-  AND MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)
+  {'' if is_empty else 'AND MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)'}
+  {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
 ) as subq2
 """
 
-# Поиск по аннотациям книг
-SQL_QUERY_AAUTHORS = lambda locale: f"""
+# Поиск по аннотациям авторов
+SQL_QUERY_AAUTHORS = lambda locale, is_empty=False, genre_filter=None: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
-    MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE) as Relevance
+    {'1' if is_empty else 'MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE)'} as Relevance
 FROM cb_libaannotations aa
 JOIN cb_libavtor ab ON ab.AvtorId = aa.AvtorId
 JOIN cb_libbook b ON b.BookID = ab.BookID
 {get_base_joins(locale)}
 WHERE b.Deleted = '0'
   AND MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE)
+  {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
 ) as subq2
 """
 
@@ -127,13 +130,13 @@ def _get_genre_table(locale: str) -> str:
 
 
 SQL_QUERY_PARENT_GENRES_COUNT = lambda locale: f"""
-	select coalesce(gl.GenreMeta,'{'Unsorted' if locale == 'en' else 'Неотсортированное'}'), count(b.BookId)
+	select coalesce(gl.GenreMeta,'{'-- Without genres --' if locale == 'en' else '-- Без жанров --'}'), count(b.BookId)
       from cb_libbook b
         left outer join cb_libgenre g on g.BookId = b.BookId
         left outer join {_get_genre_table(locale)} gl on gl.GenreId = g.GenreId
     where b.Deleted = '0'
       -- AND (#s = '' OR b.Lang = #s)
-    group by coalesce(gl.GenreMeta, '{'Unsorted' if locale == 'en' else 'Неотсортированное'}')
+    group by coalesce(gl.GenreMeta, '{'-- Without genres --' if locale == 'en' else '-- Без жанров --'}')
     order by 1
 """
 
@@ -786,6 +789,16 @@ class DatabaseSettings(Database):
 
             conn.commit()
 
+    def update_last_news_date(self, user_id: int, date: str) -> None:
+        """
+        Updates the LastNewsDate for a specific user.
+
+        Args:
+            user_id: The ID of the user.
+            date: The date string (YYYY-MM-DD).
+        """
+        self.update_user_settings(user_id, LastNewsDate=date)
+
     # def get_user_stats(self):
     #     """Возвращает статистику пользователей"""
     #     with self.connect() as conn:
@@ -956,19 +969,21 @@ class DatabaseBooks():
 
     def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0,
                      author_id=0, person_type='author',
-                     locale: str = 'ru'):
+                     locale: str = 'ru', genre_filter=None):
         """Ищем книги по запросу пользователя"""
+        is_empty = not query
         sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type)
         # Строим запросы для поиска книг и подсчёта количества найденных книг
-        sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale)
+        sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale, is_empty, genre_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
-        params.extend([query] * 2)
+        if not is_empty:
+            params.extend([query] * 2)
 
         # #DEBUG
         # print(f"[DEBUG] search_books, sql_query = {sql_query}")
-        # print(f"DEBUG: params = {params}")
+        # print(f"[DEBUG] params = {params}")
 
         # выполняем запросы поиска книг и подсчёта количества найденных книг
         with self.connect() as conn:
@@ -1071,7 +1086,7 @@ class DatabaseBooks():
         LIMIT {MAX_SERIES_SEARCH}
         """
 
-    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
+    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None):
         """Ищет серии по запросу"""
         sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
 
@@ -1080,7 +1095,7 @@ class DatabaseBooks():
         params.extend([query] * 2)
 
         # запрос для поиска серий
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, False, genre_filter)
         sql_query = self.build_sql_query_series(sql_query_nested, sql_where)
 
         # #DEBUG
@@ -1185,16 +1200,16 @@ class DatabaseBooks():
     def build_sql_query_authors(cls,sql_query_nested, sql_where) -> str:
         """Собирает SQL запрос поиска авторов и переводчиков"""
         return f"""
-        SELECT 
+        SELECT
             CONCAT(COALESCE(LastName, ''), ' ', COALESCE(FirstName, ''), ' ', COALESCE(MiddleName, '')) as AuthorName,
             COUNT(DISTINCT FileName) as book_count,
             AuthorID,
             PersonType
         FROM (
             -- Authors
-            SELECT 
-                LastName, 
-                FirstName, 
+            SELECT
+                LastName,
+                FirstName,
                 MiddleName,
                 FileName,
                 AuthorID,
@@ -1208,9 +1223,9 @@ class DatabaseBooks():
             UNION ALL
             
             -- Translators
-            SELECT 
-                TransLastName as LastName, 
-                TransFirstName as FirstName,  
+            SELECT
+                TransLastName as LastName,
+                TransFirstName as FirstName,
                 TransMiddleName as MiddleName,
                 FileName,
                 TransID as AuthorID,
@@ -1227,7 +1242,7 @@ class DatabaseBooks():
         LIMIT {MAX_AUTHORS_SEARCH}
         """
 
-    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru'):
+    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None):
         """Ищет авторов по запросу"""
         sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
 
@@ -1236,7 +1251,7 @@ class DatabaseBooks():
         params.extend([query] * 4)
 
         # Модифицируем запрос для поиска авторов
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, False, genre_filter)
         sql_query = self.build_sql_query_authors(sql_query_nested, sql_where)
 
         # print(f"[DEBUG] search_authors, sql_query={sql_query}")
@@ -1248,7 +1263,8 @@ class DatabaseBooks():
 
         return authors
 
-    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0, locale: str = 'ru'):
+    def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0, locale: str = 'ru',
+                         genre_filter=None):
         """Поиск популярных книг за период"""
         # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
 
@@ -1269,6 +1285,11 @@ class DatabaseBooks():
         # Rating filter uses actual LibRate from joined table, not alias
         if rating_filter and rating_filter != '':
             conditions.append(f"ROUND(COALESCE(r.LibRate, 0)) IN ({rating_filter})")
+
+        # Genre filter — uses g.GenreID from cb_libgenre table (joined via get_base_joins)
+        if genre_filter and genre_filter.strip():
+            if all(c.isdigit() or c == ',' for c in genre_filter):
+                conditions.append(f"g.GenreID IN ({genre_filter})")
 
         sql_where = " AND ".join(conditions)
 
@@ -1481,7 +1502,8 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author'):
+    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author',
+                           genre_filter=None):
         """Создает SQL-условие WHERE на основе списка слов и их операторов."""
         conditions = []
 
@@ -1506,13 +1528,16 @@ class DatabaseBooks():
         if author_id != 0:
             conditions.append(f"AuthorID = {author_id}" if person_type=='author' else f"TransID = {author_id}")
 
+        # Note: Genre filter is NOT added here because this WHERE clause is used outside the subquery
+        # where table aliases are not available. Genre filter is handled separately in build_sql_query_books.
+
         # в соновном sql вконце уже есть where, поэтому заменяем его на and
         sql_where = "WHERE " + " AND ".join(conditions) if conditions else "WHERE 1=1"
         return sql_where #, params
 
 
     @staticmethod
-    def build_sql_query_books(sql_where, sort_order='desc', search_area=SETTING_SEARCH_AREA_B, locale: str = 'ru'):
+    def build_sql_query_books(sql_where, sort_order='desc', search_area=SETTING_SEARCH_AREA_B, locale: str = 'ru', is_empty=False, genre_filter=None):
         fields = Book._fields
 
         # Всегда используем sum для Relevance
@@ -1523,7 +1548,7 @@ class DatabaseBooks():
 
         select_fields = ', '.join(processed_fields)
 
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, is_empty, genre_filter)
         from_clause = f"FROM ( {sql_query_nested} {sql_where} ) as subquery"
 
         sql_query = f"""

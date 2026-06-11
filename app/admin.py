@@ -342,6 +342,9 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
 
         bot = context.bot
 
+        from datetime import date
+        current_date = date.today().strftime('%Y-%m-%d')
+
         for user_id in recipients:
             username = username_map.get(user_id)
             # print(f"[BROADCAST DEBUG] Sending to user_id={user_id}, username={username}")
@@ -358,6 +361,8 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
                     username=username,
                     success=True
                 )
+                # Update LastNewsDate on successful send
+                db_settings.update_last_news_date(user_id, current_date)
             except Exception as e:
                 failed += 1
                 error_str = str(e)

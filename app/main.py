@@ -8,6 +8,7 @@ from telegram.request import HTTPXRequest
 from telegram.error import Forbidden, BadRequest, TimedOut
 
 from .handlers_basic import start_cmd, genres_cmd, settings_cmd, donate_cmd, help_cmd, about_cmd, news_cmd, pop_cmd
+from .handlers_info import handle_book_by_id, handle_author_by_id
 from .handlers_search import handle_message
 from .handlers_callback import button_callback
 from .handlers_group import handle_group_message
@@ -142,6 +143,8 @@ def main():
     # application.add_handler(CommandHandler("langs", langs_cmd))
     application.add_handler(CommandHandler("set", settings_cmd))
     application.add_handler(CommandHandler("donate", donate_cmd))
+    application.add_handler(CommandHandler("b", handle_book_by_id))
+    application.add_handler(CommandHandler("a", handle_author_by_id))
     # Обработчик ДЛЯ ГРУПП (только группы + сообщения для бота)
     application.add_handler(
         MessageHandler((filters.ChatType.GROUP | filters.ChatType.SUPERGROUP) & filters.TEXT, handle_group_message))

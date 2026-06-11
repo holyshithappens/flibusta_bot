@@ -18,6 +18,8 @@ commands:
   pop: "Популярные и новинки"
   set: "Настройки поиска"
   donate: "Поддержать разработчика"
+  book: "Информация о книге по ID"
+  author: "Информация об авторе по ID"
 
 # Settings menu
 settings:
@@ -31,6 +33,7 @@ settings:
     search_type: "Вывод результатов"
     search_area: "Область поиска"
     locale: "Язык интерфейса"
+    genre_filter: "Фильтр по жанрам"
 
 # Search
 search:
@@ -124,8 +127,11 @@ genres:
   title: "Посмотреть жанры:"
   error: "❌ Ошибка при загрузке жанров"
   not_found: "❌ Жанры не найдены для этой категории"
+  select_genres: "Выберите жанры для фильтрации:"
 
 author:
+  books: "📚 Книги автора"
+  books_translator: "📚 Книги переводчика"
   about_title: "👤 <b>Об авторе/переводчике:</b>"
   about_title_author: "👤 <b>Об авторе:</b>"
   about_title_translator: "👤 <b>О переводчике:</b>"
@@ -188,6 +194,9 @@ common:
   back: "🔙 Назад"
   reset: "Сбросить"
   reset_all: "🔄 Сбросить все"
+  select_all: "Выбрать все"
+  clear_all: "Очистить все"
+  clear_all_genres: "🗑️ Очистить все жанры"
 
   # Language reset option
   reset_lang: "✔ {lang} - сбросить"
@@ -385,3 +394,9 @@ about:
     • 📖 <a href="https://www.amazon.com/b?node=16571048011">Kindle</a> (все платформы)
 
   error: "❌ Не удалось получить информацию о библиотеке"
+
+# Прямой поиск по ID
+direct_id:
+  book_usage: "📖 <b>Использование:</b> /b <id_книги>\n\nПример: <code>/b 12345</code>"
+  author_usage: "👤 <b>Использование:</b> /a <id_автора>\n\nПример: <code>/a 678</code>"
+  invalid_id: "❌ <b>Неверный ID</b>\n\nПожалуйста, укажите числовой ID.\n\nПримеры:\n<code>/b 12345</code> - Информация о книге\n<code>/a 678</code> - Информация об авторе"

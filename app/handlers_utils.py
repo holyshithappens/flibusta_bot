@@ -3,7 +3,7 @@ from datetime import datetime
 from io import BytesIO, TextIOWrapper
 from typing import Any, List
 
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
@@ -308,8 +308,8 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
             if search_context == SEARCH_TYPE_SERIES:
                 keyboard.append([InlineKeyboardButton(t("search.pagination.series",context), callback_data="back_to_series")])
 
-            # Добавляем кнопку "Назад к авторам" при поиске по авторам
-            elif search_context == SEARCH_TYPE_AUTHORS:
+            # Добавляем кнопку "Назад к авторам" только если пользователь в режиме поиска по авторам (не из аннотации)
+            elif search_context == SEARCH_TYPE_AUTHORS and get_user_params(context).SearchType == SEARCH_TYPE_AUTHORS:
                 # Добавляем кнопку "Об авторе/переводчике" при поиске по авторам
                 author_id = get_current_author_id(context)
                 person_type = get_current_person_type(context)
@@ -320,6 +320,8 @@ def create_books_keyboard(page, pages_of_books, context, search_context=SEARCH_T
                     about_button_text = t("search.author_about_author", context)
                 keyboard.append([InlineKeyboardButton(about_button_text, callback_data=f"author_info:{author_id}")])
                 keyboard.append([InlineKeyboardButton(t("search.pagination.authors",context), callback_data="back_to_authors")])
+
+            add_close_button(keyboard, context)
 
     return keyboard
 
@@ -342,6 +344,8 @@ def create_series_keyboard(page, pages_of_series, context):
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_SERIES, page, pages_of_series, context)
 
+            add_close_button(keyboard, context)
+
     return keyboard
 
 
@@ -363,7 +367,55 @@ def create_authors_keyboard(page, pages_of_authors, context):
             # Добавляем кнопки для навигации
             add_navigation_buttons(keyboard, SEARCH_TYPE_AUTHORS, page, pages_of_authors, context)
 
+            add_close_button(keyboard, context)
+
     return keyboard
+
+
+def create_genre_filter_keyboard(parent_genre: str, current_genre_ids: list, genres: list, context,
+                                 back_callback: str = "back_to_settings") -> InlineKeyboardMarkup:
+    """
+    Creates keyboard for child genre selection with checkmarks.
+
+    Args:
+        parent_genre: Name of parent genre category
+        current_genre_ids: List of currently selected genre IDs
+        genres: List of (genre_name, count, genre_id) tuples
+        context: Telegram callback context
+        back_callback: Callback data for back button (default: "back_to_settings")
+
+    Returns:
+        InlineKeyboardMarkup with child genre buttons
+    """
+    keyboard = []
+
+    for genre_name, count, genre_id in genres:
+        is_selected = str(genre_id) in current_genre_ids
+        emoji = "✔" if is_selected else ""
+        count_text = f" ({count:,})".replace(",", " ") if count else " (0)"
+        button_text = f"{emoji} {genre_name}{count_text}"
+
+        keyboard.append([InlineKeyboardButton(
+            button_text,
+            callback_data=f"toggle_genre_{genre_id}"
+        )])
+
+    # Add Select All / Clear All button
+    all_selected = all(str(g[2]) in current_genre_ids for g in genres)
+    switch_text = t("common.clear_all", context) if all_selected else t("common.select_all", context)
+
+    keyboard.append([InlineKeyboardButton(
+        switch_text,
+        callback_data=f"switch_genre_group_{parent_genre}"
+    )])
+
+    # Add back button
+    keyboard.append([InlineKeyboardButton(
+        t('common.back', context),
+        callback_data=back_callback
+    )])
+
+    return InlineKeyboardMarkup(keyboard)
 
 
 # def get_book_title_safe(context: CallbackContext, book_id: int) -> str:
