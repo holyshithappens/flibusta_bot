@@ -97,7 +97,7 @@ async def handle_search_books(update: Update, context: CallbackContext):
     )
 
 
-async def async_search_books(context: CallbackContext, query_text: str, processing_msg, user, series_id=0, author_id=0, person_type='author'):
+async def async_search_books(context: CallbackContext, query_text: str, processing_msg, user, series_id=0, author_id=0, person_type='author', search_type=None):
     """Асинхронная задача поиска книг"""
     try:
         start_time = time()
@@ -116,7 +116,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                 lambda: DB_BOOKS.search_pop_books(
                     user_params.Lang, user_params.BookSize, user_params.Rating,
                     days,
-                    locale=user_params.Locale or 'ru'
+                    locale=user_params.Locale or 'ru',
+                    genre_filter=user_params.GenreFilter
                 )
             )
         else:
@@ -128,7 +129,8 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
                     series_id=series_id,
                     author_id=author_id,
                     person_type=person_type,
-                    locale=user_params.Locale or 'ru'
+                    locale=user_params.Locale or 'ru',
+                    genre_filter=user_params.GenreFilter
                 )
             )
         found_books_count = len(books)
@@ -138,7 +140,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
         # Структурированное логирование
         user_id, chat_id = ContextManager._get_ids_from_context(context)
         # Логгируем поиск популярных книг тут
-        search_type = SEARCH_TYPE_BOOKS if switch_search else user_params.SearchType
+        log_search_type = SEARCH_TYPE_BOOKS if switch_search else (search_type if search_type else user_params.SearchType)
         search_area = switch_search if switch_search else user_params.SearchArea
 
         structured_logger.log_search(
@@ -146,7 +148,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
             username=user.username or user.first_name or "Unknown",
             # query=query_text if switch_search else switch_search,
             query=query_text or switch_search or "popular",
-            search_type=search_type,
+            search_type=log_search_type,
             search_area=search_area,
             results_count=len(books),
             duration_ms=duration_ms,
@@ -161,7 +163,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
         )
 
         # Обрабатываем результаты
-        await process_search_books(context, books, found_books_count, processing_msg, query_text, user, author_id, person_type)
+        await process_search_books(context, books, found_books_count, processing_msg, query_text, user, author_id, person_type, search_type)
 
     except Exception as e:
         # Обработка ошибок
@@ -169,7 +171,7 @@ async def async_search_books(context: CallbackContext, query_text: str, processi
 
 
 async def process_search_books(context: CallbackContext, books, found_books_count: int, processing_msg, query_text: str,
-                               user, author_id=0, person_type='author'):
+                               user, author_id=0, person_type='author', search_type=None):
     """Обработка и отображение результатов поиска"""
     series_name = None
     author_name = None
@@ -177,7 +179,13 @@ async def process_search_books(context: CallbackContext, books, found_books_coun
     # Популярные
     show_pop = get_switch_search(context)
     # Группировка выдачи только не для новинок и популярных! Для них только по книгам
-    search_type = user_params.SearchType if not show_pop else SEARCH_TYPE_BOOKS
+    # Use provided search_type if available, otherwise fall back to user settings
+    if search_type and not show_pop:
+        pass  # Use the provided search_type
+    elif show_pop:
+        search_type = SEARCH_TYPE_BOOKS
+    else:
+        search_type = user_params.SearchType
     # Область поиска
     search_area = user_params.SearchArea
     # Проверяем, найдены ли книги
@@ -298,7 +306,8 @@ async def async_search_series(context: CallbackContext, query_text: str, process
             lambda: DB_BOOKS.search_series(
                 query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
                 search_area=user_params.SearchArea,
-                locale=user_params.Locale or 'ru'
+                locale=user_params.Locale or 'ru',
+                genre_filter=user_params.GenreFilter
             )
         )
         found_series_count = len(series)
@@ -382,9 +391,9 @@ async def handle_search_series_books(update, context, action, params):
         # Ищем книги серии в комбинации с предыдущим запросом
         query_text = get_last_search_query(context)
 
-        # Запускаем асинхронный поиск
+        # Запускаем асинхронный поиск с указанием контекста поиска по сериям
         asyncio.create_task(
-            async_search_books(context, query_text, query.message if query.message else query, user, series_id=series_id)
+            async_search_books(context, query_text, query.message if query.message else query, user, series_id=series_id, search_type=SEARCH_TYPE_SERIES)
         )
 
     except (ValueError, IndexError) as e:
@@ -434,7 +443,8 @@ async def async_search_authors(context: CallbackContext, query_text: str, proces
             lambda: DB_BOOKS.search_authors(
                 query_text, user_params.Lang, user_params.BookSize, user_params.Rating,
                 search_area=user_params.SearchArea,
-                locale=user_params.Locale or 'ru'
+                locale=user_params.Locale or 'ru',
+                genre_filter=user_params.GenreFilter
             )
         )
         found_authors_count = len(authors)
@@ -533,9 +543,9 @@ async def handle_search_author_books(update, context, action, params):
             # Ищем книги автора/переводчика в комбинации с предыдущим запросом
             query_text = get_last_search_query(context)
 
-        # Запускаем асинхронный поиск
+        # Запускаем асинхронный поиск с указанием контекста поиска по авторам
         asyncio.create_task(
-            async_search_books(context, query_text, processing_msg, user, author_id=author_id, person_type=person_type)
+            async_search_books(context, query_text, processing_msg, user, author_id=author_id, person_type=person_type, search_type=SEARCH_TYPE_AUTHORS)
         )
 
         # # user_params = DB_SETTINGS.get_user_settings(user.id)

@@ -33,6 +33,7 @@ settings:
     search_type: "Results display"
     search_area: "Search area"
     locale: "Interface language"
+    genre_filter: "Genre filter"
 
 # Search
 search:
@@ -120,6 +121,7 @@ genres:
   title: "Browse genres:"
   error: "❌ Error loading genres"
   not_found: "❌ No genres found for this category"
+  select_genres: "Select genres to filter:"
 
 author:
   books: "📚 Author's books"
@@ -182,6 +184,9 @@ common:
   back: "🔙 Back"
   reset: "Reset"
   reset_all: "🔄 Reset all"
+  select_all: "Select all"
+  clear_all: "Clear all"
+  clear_all_genres: "🗑️ Clear all genres"
 
   # Language reset option
   reset_lang: "✔ {lang} - reset"

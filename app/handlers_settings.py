@@ -1,12 +1,14 @@
+from typing import Dict, List, Set, Tuple
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from .handlers_utils import add_close_button, edit_or_reply_message, create_back_button
+from .handlers_utils import add_close_button, edit_or_reply_message, create_back_button, create_genre_filter_keyboard
 from .database import DB_BOOKS
 from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
-    SETTING_SEARCH_AREA, SETTING_LOCALE, UI_SEPARATOR
+    SETTING_SEARCH_AREA, SETTING_LOCALE, UI_SEPARATOR, SETTING_GENRE_FILTER
 from .context import get_user_params, update_user_params
 from .core.structured_logger import structured_logger
 from .i18n import t, set_user_locale, get_setting_title
@@ -408,6 +410,12 @@ def create_settings_menu(context:CallbackContext):
                         current_display = f"({t(display,context)})"
                         break
 
+            elif setting_type == SETTING_GENRE_FILTER:
+                current_value = getattr(user_params, 'GenreFilter', '')
+                if current_value:
+                    genre_count = len([g for g in current_value.split(',') if g])
+                    current_display = f"({genre_count})" if genre_count else ""
+
         except Exception as e:
             print(f"Error getting setting {setting_type}: {e}")
 
@@ -493,3 +501,112 @@ def create_rating_filter_keyboard(current_ratings, options, context):
     keyboard += create_back_button(context)
 
     return InlineKeyboardMarkup(keyboard)
+
+
+def get_parent_genre_state(parent_genre: str, child_genre_list: List[Tuple],
+                           active_genre_ids: Set[str]) -> str:
+    """
+    Returns emoji indicator for parent genre based on child selection state.
+
+    Args:
+        parent_genre: Name of parent genre category
+        child_genre_list: List of (genre_name, count, genre_id) tuples
+        active_genre_ids: Set of currently selected genre IDs
+
+    Returns:
+        Empty string, "🔸", or "✔" based on selection state
+    """
+    child_ids = {str(g[2]) for g in child_genre_list}
+    if not child_ids:
+        return ""
+
+    selected_count = len(child_ids & active_genre_ids)
+    total_count = len(child_ids)
+
+    if selected_count == 0:
+        return ""
+    elif selected_count == total_count:
+        return "✔"
+    else:
+        return "🔸"
+
+
+def create_genre_filter_parent_keyboard(context, parent_genres: List[Tuple],
+                                         active_genre_ids: Set[str], locale: str,
+                                         all_child_genres: Dict[str, List[Tuple]]) -> List[List[InlineKeyboardButton]]:
+    """
+    Creates parent genre keyboard with 3-state indicators.
+
+    Args:
+        context: Telegram callback context
+        parent_genres: List of (genre_name, count) tuples
+        active_genre_ids: Set of genre ID strings currently active as filters
+        locale: User's locale for fetching child genres
+        all_child_genres: Pre-fetched dict of {parent_genre_name: [(genre_name, count, genre_id), ...]}
+                           to avoid N+1 query problem
+
+    Returns:
+        List of keyboard button rows
+    """
+    keyboard = []
+
+    for idx, (genre_name, count) in enumerate(parent_genres):
+        # Use pre-fetched child genres (avoids N+1 query)
+        child_genres = all_child_genres.get(genre_name, [])
+
+        # Calculate 3-state indicator
+        state_emoji = get_parent_genre_state(genre_name, child_genres, active_genre_ids)
+
+        # Show book count in brackets (not active count)
+        count_text = f" ({count:,})".replace(",", " ") if count else " (0)"
+        button_text = f"{state_emoji} {genre_name}{count_text}".strip()
+
+        keyboard.append([InlineKeyboardButton(
+            button_text,
+            callback_data=f"show_genre_filter:{idx}"
+        )])
+
+    # Add Clear All Genres button
+    if active_genre_ids:
+        keyboard.append([InlineKeyboardButton(
+            t("common.clear_all_genres", context),
+            callback_data="clear_all_genres"
+        )])
+
+    # Add back button
+    keyboard += create_back_button(context)
+
+    return keyboard
+
+
+async def handle_set_genre_filter(update, context, action, params):
+    """
+    Shows genre filter settings menu.
+    Entry point from main settings menu (/set).
+    """
+    query = update.callback_query
+    user_params = get_user_params(context)
+    locale = user_params.Locale or 'ru'
+
+    # Get parent genres
+    parent_genres = DB_BOOKS.get_parent_genres_count(locale)
+
+    # Get current active genre IDs (filter out empty strings from split)
+    current_filter = user_params.GenreFilter
+    active_genre_ids = set(g for g in current_filter.split(',') if g) if current_filter else set()
+
+    # Pre-fetch all child genres to avoid N+1 query in keyboard builder
+    all_child_genres = {}
+    for genre_name, _ in parent_genres:
+        all_child_genres[genre_name] = DB_BOOKS.get_genres_with_counts(genre_name, locale)
+
+    keyboard = create_genre_filter_parent_keyboard(
+        context, parent_genres, active_genre_ids, locale, all_child_genres
+    )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    try:
+        await edit_or_reply_message(query, t('settings.menu.genre_filter', context), reply_markup)
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise e
