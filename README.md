@@ -21,9 +21,7 @@ Telegram bot for searching and downloading books from the Flibusta digital libra
 - **Structured logging** — JSON format with analytical views
 - **Admin broadcast** — mass messaging to all users with test mode and skip list
 - **Person type display** — shows author/translator type in UI buttons and headers
-<<<<<<< HEAD
 - **Genre filtering** — persistent genre-based filter applied to all searches
->>>>>>> develop
 - **Crypto donations** — SOL, BTC, ETH, POL, SUI, TON, TRX support
 
 ## Quick Start
