@@ -591,6 +591,9 @@ async def handle_set_genre_filter(update, context, action, params):
     # Get parent genres
     parent_genres = DB_BOOKS.get_parent_genres_count(locale)
 
+    # Preload child genres cache for all parent genres (one query)
+    DB_BOOKS.load_all_child_genres_cache(locale)
+
     # Get current active genre IDs (filter out empty strings from split)
     current_filter = user_params.GenreFilter
     active_genre_ids = set(g for g in current_filter.split(',') if g) if current_filter else set()

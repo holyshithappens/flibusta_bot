@@ -55,6 +55,9 @@ async def genres_cmd(update: Update, context: CallbackContext):
         # print(f"DEBUG: genres_cmd results = {results}")
         # print(f"DEBUG: Number of results = {len(results)}")
 
+        # Preload child genres cache for all parent genres (one query)
+        DB_BOOKS.load_all_child_genres_cache(locale)
+
         keyboard = []
         for genre_name, count in results:
             count_text = f"({count:,})".replace(","," ") if count else "(0)"
