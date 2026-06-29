@@ -18,6 +18,7 @@ from .admin import (
     admin_broadcast, broadcast_receive_message,
     handle_broadcast_callback, BROADCAST_WAITING_MESSAGE,
 )
+from .database import DB_BOOKS
 from .constants import CLEANUP_INTERVAL
 from .health import cleanup_old_sessions
 from .flibusta_client import flibusta_client
@@ -164,6 +165,23 @@ def main():
         # job_queue.run_repeating(log_stats, interval=MONITORING_INTERVAL, first=10)
         # Периодическая очистка старых пользовательских сессий
         job_queue.run_repeating(cleanup_old_sessions, interval=CLEANUP_INTERVAL, first=CLEANUP_INTERVAL)
+
+    # Preload genre caches for both supported locales
+    try:
+        for locale in ['ru', 'en']:
+            DB_BOOKS.get_parent_genres_count(locale)
+            DB_BOOKS.load_all_child_genres_cache(locale)
+        structured_logger.log_system(
+            EventType.SYSTEM_STARTUP,
+            "Genre caches preloaded for locales: ru, en",
+            {}
+        )
+    except Exception as e:
+        structured_logger.log_system(
+            EventType.SYSTEM_STARTUP,
+            f"Failed to preload genre caches: {e}",
+            {}
+        )
 
     application.add_handler(PreCheckoutQueryHandler(pre_checkout))
     application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
