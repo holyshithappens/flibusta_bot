@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.7.0"
-__version_info__ = (1, 7, 0)
+__version__ = "1.7.1"
+__version_info__ = (1, 7, 1)
 
 # История версий:
+# 1.7.1 (2026-06-29) - Imp: improve caching of genres
 # 1.7.0 (2026-06-11) - Feat: add genre filtering in search, author and series views
 # 1.6.0 (2026-06-03) - Docs: update README and spec with recent improvements
 # 1.5.1 (2026-06-02) - Feat: log date of user received broadcast message
