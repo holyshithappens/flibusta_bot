@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS UserSettings (
                     Rating TEXT DEFAULT '',
                     SearchArea TEXT DEFAULT 'b',
                     Locale VARCHAR(5) DEFAULT '',
+                    GenreFilter TEXT DEFAULT '',
                     PRIMARY KEY(User_ID)
                 );
 
