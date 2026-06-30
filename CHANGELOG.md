@@ -5,6 +5,11 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.7.2] - 2026-06-30
+
+### Added
+- Version bump to 1.7.2
+
 ## [1.7.1] - 2026-06-29
 
 ### Added

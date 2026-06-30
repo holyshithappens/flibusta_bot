@@ -300,6 +300,7 @@ help:
     🔄 <b>Word grouping</b> - use (): <code>+(elf goblin orc dwarf) +(lonely evil sad huge)</code>
     📏 <b>Word proximity</b> - use @N after a phrase in double quotes: <code>"currently lives" @3</code>
     🔎 <b>Annotation search</b> - in settings enable "Search area" → "by book annotations" or "by author annotations"
+    🏷️ <b>Genre filter</b> - use the genre filter in settings to narrow down search by specific genres
 
     <u>Search scope:</u>
     📖 Main search covers: <b>book title, authors, genres, series, and publication year</b>
@@ -323,7 +324,7 @@ help:
     👤 <code>"currently lives" @3</code> - authors currently living
     
     <u>Result limits:</u>
-    ⚡️ Search results are temporarily limited to <b>2000 books, 200 authors, and 200 series</b> for performance
+    ⚡️ Search results are temporarily limited to <b>1000 books, 100 authors, and 100 series</b> for performance
 
     <u>Available display formats (in settings):</u>
     📚 <b>By books</b> - list of books
@@ -354,8 +355,7 @@ about:
     • 📖 Book and author annotations and reader reviews
     • 🖼️ Book covers and author photos from Flibusta
     • 📥 Download in fb2, epub, mobi formats
-    • ⭐ Filter by rating, size, and language
-    • ⚙️ Flexible search settings
+    • ⭐ Filter by rating, size, genres and language
     • 👥 All author features also apply to translators: search, results display, annotations
     
     {reader_recommendations}
