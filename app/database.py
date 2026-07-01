@@ -1630,7 +1630,7 @@ class DatabaseBooks():
             if current_max != cached_max:
                 # Database updated - clear all class-level caches
                 DatabaseBooks._class_cached_langs = None
-                DatabaseBooks._class_cached_parent_genres = None
+                DatabaseBooks._class_cached_parent_genres = {}
                 DatabaseBooks._class_cached_genres = {}
                 DatabaseBooks._class_stats = {}
 
