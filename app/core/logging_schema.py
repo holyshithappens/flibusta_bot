@@ -46,6 +46,7 @@ class EventType(Enum):
     SYSTEM_STARTUP = "system.startup"
     SYSTEM_SHUTDOWN = "system.shutdown"
     DATABASE_ERROR = "system.db.error"
+    DATABASE_UPDATE = "system.db.update"
     API_ERROR = "system.api.error"
 
     # Ошибки
