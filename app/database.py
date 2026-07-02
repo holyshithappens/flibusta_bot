@@ -6,6 +6,8 @@ from typing import Dict, List, Any, Coroutine
 import mysql.connector
 from contextlib import contextmanager
 
+from .core.structured_logger import structured_logger
+from .core.logging_schema import EventType
 from .flibusta_client import FlibustaClient, flibusta_client
 from .constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
     SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH, \
@@ -1634,8 +1636,31 @@ class DatabaseBooks():
                 DatabaseBooks._class_cached_genres = {}
                 DatabaseBooks._class_stats = {}
 
+                structured_logger.log_system(
+                    EventType.DATABASE_UPDATE,
+                    "Cache invalidated due to database update",
+                    {"old_max": cached_max, "new_max": current_max}
+                    )
+
+                # Preload genre caches for both supported locales
+                try:
+                    for locale in ['ru', 'en']:
+                        DB_BOOKS.get_parent_genres_count(locale)
+                        DB_BOOKS.load_all_child_genres_cache(locale)
+                    structured_logger.log_system(
+                        EventType.DATABASE_UPDATE,
+                        "Genre caches preloaded for locales: ru, en",
+                        {}
+                    )
+                except Exception as e:
+                    structured_logger.log_system(
+                        EventType.DATABASE_UPDATE,
+                        f"Failed to preload genre caches: {e}",
+                        {}
+                    )
+
                 # logger.log_system_action("Cache invalidated due to database update",
-                #                          f"old_max={cached_max}, new_max={current_max}, difference={current_max - cached_max if isinstance(cached_max, int) else None}")
+                #                          f"old_max={cached_max}, new_max={current_max}")
         except Exception as e:
             # logger.log_system_action("Cache invalidation check failed", str(e))
             pass
