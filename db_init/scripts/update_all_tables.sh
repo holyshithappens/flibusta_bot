@@ -17,9 +17,10 @@ SCRIPTS_DIR="$(dirname "$0")"
 : "${FLIBUSTA_DB_PASS:=flibusta}"
 : "${FLIBUSTA_DB_NAME:=flibusta}"
 : "${FLIBUSTA_SQL_URL_BASE:=https://flibusta.is/sql/}"
-
 : "${FLIBUSTA_DB_MAINT_USER:=root}"
 : "${FLIBUSTA_DB_MAINT_PASS:=rootpassword}"
+: "${FLIBUSTA_DOWNLOAD_RETRIES:=3}"
+: "${FLIBUSTA_DOWNLOAD_RETRY_DELAY:=10}"
 
 _run_sql_admin() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Executing maintenance SQL: $1"
@@ -122,17 +123,32 @@ download_sql_files() {
     local total_count=0
 
     while IFS='=' read -r table filename; do
-        # Skip comments and empty lines
         [[ "$table" =~ ^#.*$ ]] && continue
         [[ -z "$table" ]] && continue
-        total_count=$((total_count + 1)) || { echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Arithmetic error with total_count"; exit 1; }
+        total_count=$((total_count + 1))
         local url="${FLIBUSTA_SQL_URL_BASE}${filename}"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - Downloading $filename for table $table..."
-        if wget -c -q -O "$filename" "$url" 2>/dev/null; then
+        local tmpfile="${filename}.tmp"
+        local attempt=1
+        local downloaded=false
+
+        while [ "$attempt" -le "$FLIBUSTA_DOWNLOAD_RETRIES" ]; do
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Downloading $filename for table $table (attempt $attempt/$FLIBUSTA_DOWNLOAD_RETRIES)..."
+            if wget -q -O "$tmpfile" "$url" 2>/dev/null; then
+                downloaded=true
+                break
+            fi
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - ⚠️  Attempt $attempt failed for $filename"
+            rm -f "$tmpfile"
+            attempt=$((attempt + 1))
+            [ "$attempt" -le "$FLIBUSTA_DOWNLOAD_RETRIES" ] && sleep "$FLIBUSTA_DOWNLOAD_RETRY_DELAY"
+        done
+
+        if [ "$downloaded" = true ]; then
+            mv -f "$tmpfile" "$filename"
             echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Downloaded $filename successfully"
             success_count=$((success_count + 1))
         else
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Failed to download $filename"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Failed to download $filename after $FLIBUSTA_DOWNLOAD_RETRIES attempts (keeping previous copy)"
         fi
     done < "$DB_DIR/scripts/tables.conf"
 
