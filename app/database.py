@@ -132,17 +132,17 @@ def _get_genre_table(locale: str) -> str:
     """Return correct genre table based on user's locale"""
     return 'cb_libgenrelist' if locale == 'ru' else 'cb_libgenrelist_en'
 
-STR_WITHOUT_GENRES = lambda locale: '-- Без жанров --' if locale == 'ru' else '-- Without genres --'
+# STR_WITHOUT_GENRES = lambda locale: '-- Без жанров --' if locale == 'ru' else '-- Without genres --'
 
 SQL_QUERY_PARENT_GENRES_COUNT = lambda locale: f"""
-	select coalesce(gl.GenreMeta,'{STR_WITHOUT_GENRES(locale)}'), count(b.BookId)
-      from cb_libbook b
-        left outer join cb_libgenre g on g.BookId = b.BookId
-        left outer join {_get_genre_table(locale)} gl on gl.GenreId = g.GenreId
-    where b.Deleted = '0'
-      -- AND (#s = '' OR b.Lang = #s)
-    group by coalesce(gl.GenreMeta, '{STR_WITHOUT_GENRES(locale)}')
-    order by 1
+	select gl.GenreMeta, count(b.BookId)
+	      from cb_libbook b
+	        left outer join cb_libgenre g on g.BookId = b.BookId
+	        left outer join {_get_genre_table(locale)} gl on gl.GenreId = g.GenreId
+	    where b.Deleted = '0'
+	      and gl.GenreMeta IS NOT NULL
+	  group by gl.GenreMeta
+	  order by 1
 """
 
 SQL_QUERY_CHILDREN_GENRES_COUNT = lambda locale: f"""
@@ -970,13 +970,12 @@ class DatabaseBooks():
         # If we already have any cached data for this locale, assume it's already loaded
         if locale in DatabaseBooks._class_cached_genres and DatabaseBooks._class_cached_genres[locale]:
             return
-        else:
-            DatabaseBooks._class_cached_genres[locale] = {}
         # Localized string for null genre
-        null_genre_str = STR_WITHOUT_GENRES(locale)
+        # null_genre_str = STR_WITHOUT_GENRES(locale)
         sql = f"""
             SELECT 
-                COALESCE(gl.GenreMeta, %s) AS parent,
+                -- COALESCE(gl.GenreMeta, #s) AS parent,
+                gl.GenreMeta as parent,
                 gl.GenreDesc AS child_desc,
                 COUNT(g.BookId) AS count,
                 gl.GenreId AS genre_id
@@ -984,24 +983,30 @@ class DatabaseBooks():
             LEFT JOIN cb_libgenre g ON g.BookId = b.BookId
             LEFT JOIN {_get_genre_table(locale)} gl ON gl.GenreId = g.GenreId
             WHERE b.Deleted = '0'
-            GROUP BY COALESCE(gl.GenreMeta, %s), gl.GenreDesc, gl.GenreId
+              and gl.GenreMeta is not null
+            GROUP BY 
+              -- COALESCE(gl.GenreMeta, #s), 
+              gl.GenreMeta, gl.GenreDesc, gl.GenreId
             ORDER BY parent, gl.GenreDesc
         """
-        params = (null_genre_str, null_genre_str)
-        with self.connect() as conn:
-            cursor = conn.cursor(buffered=True)
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-        # Group by parent
-        grouped = {}
-        for parent, child_desc, count, genre_id in rows:
-            if parent not in grouped:
-                grouped[parent] = []
-            grouped[parent].append((child_desc, count, genre_id))
-        # Update class cache
-        for parent_genre, child_list in grouped.items():
-            DatabaseBooks._class_cached_genres[locale][parent_genre] = child_list
-
+        try:
+            # params = (null_genre_str, null_genre_str)
+            with self.connect() as conn:
+                cursor = conn.cursor(buffered=True)
+                cursor.execute(sql) #, params)
+                rows = cursor.fetchall()
+            # Group by parent
+            grouped = {}
+            for parent, child_desc, count, genre_id in rows:
+                if parent not in grouped:
+                    grouped[parent] = []
+                grouped[parent].append((child_desc, count, genre_id))
+            # Update class cache
+            DatabaseBooks._class_cached_genres[locale] = {}
+            for parent_genre, child_list in grouped.items():
+                DatabaseBooks._class_cached_genres[locale][parent_genre] = child_list
+        except Exception as e:
+            print (f"Exception: load_all_child_genres_cache - {str(e)}")
 
     def get_langs(self):
         """Получает языки с кешированием"""
