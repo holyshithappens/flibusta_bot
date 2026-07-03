@@ -5,6 +5,11 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.7.4] - 2026-07-03
+
+### Fixed
+- Удаление пустого жанра из вывода и фильтрации
+
 ## [1.7.3] - 2026-07-01
 
 ### Fixed
