@@ -2,8 +2,8 @@
 Версия проекта
 """
 
-__version__ = "1.7.4"
-__version_info__ = (1, 7, 4)
+__version__ = "1.7.5"
+__version_info__ = (1, 7, 5)
 
 # История версий:
 # 1.7.4 (2026-07-03) - Fix: remove null genre from output and filtering
