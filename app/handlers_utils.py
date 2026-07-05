@@ -372,13 +372,13 @@ def create_authors_keyboard(page, pages_of_authors, context):
     return keyboard
 
 
-def create_genre_filter_keyboard(parent_genre: str, current_genre_ids: list, genres: list, context,
+def create_genre_filter_keyboard(parent_genre_index: int, current_genre_ids: list, genres: list, context,
                                  back_callback: str = "back_to_settings") -> InlineKeyboardMarkup:
     """
     Creates keyboard for child genre selection with checkmarks.
 
     Args:
-        parent_genre: Name of parent genre category
+        parent_genre_index: Index of parent genre category
         current_genre_ids: List of currently selected genre IDs
         genres: List of (genre_name, count, genre_id) tuples
         context: Telegram callback context
@@ -406,7 +406,7 @@ def create_genre_filter_keyboard(parent_genre: str, current_genre_ids: list, gen
 
     keyboard.append([InlineKeyboardButton(
         switch_text,
-        callback_data=f"switch_genre_group_{parent_genre}"
+        callback_data=f"switch_genre_group_{parent_genre_index}"
     )])
 
     # Add back button

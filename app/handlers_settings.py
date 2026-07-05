@@ -566,6 +566,8 @@ def create_genre_filter_parent_keyboard(context, parent_genres: List[Tuple],
             callback_data=f"show_genre_filter:{idx}"
         )])
 
+        # print(f"[DEBUG] button_text={button_text}, callback_data={idx}")
+
     # Add Clear All Genres button
     if active_genre_ids:
         keyboard.append([InlineKeyboardButton(
@@ -600,7 +602,7 @@ async def handle_set_genre_filter(update, context, action, params):
 
     # Pre-fetch all child genres to avoid N+1 query in keyboard builder
     all_child_genres = {}
-    for genre_name, _ in parent_genres:
+    for genre_name, *_ in parent_genres:
         all_child_genres[genre_name] = DB_BOOKS.get_genres_with_counts(genre_name, locale)
 
     keyboard = create_genre_filter_parent_keyboard(

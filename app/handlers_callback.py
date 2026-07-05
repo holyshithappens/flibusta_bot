@@ -459,7 +459,7 @@ async def handle_show_genre_filter_children(update, context, action, params):
             # Filter out empty strings: ''.split(',') returns ['']
             current_genre_ids = [g for g in current_filter.split(',') if g] if current_filter else []
 
-            reply_markup = create_genre_filter_keyboard(parent_genre, current_genre_ids, genres, context,
+            reply_markup = create_genre_filter_keyboard(genre_index, current_genre_ids, genres, context,
                                                          back_callback="back_to_genre_filter")
 
             await query.edit_message_text(
@@ -492,7 +492,7 @@ async def handle_back_to_genre_filter(update, context, action, params):
 
     # Pre-fetch child genres for 3-state indicators
     all_child_genres = {}
-    for genre_name, _ in parent_genres:
+    for genre_name, *_ in parent_genres:
         all_child_genres[genre_name] = DB_BOOKS.get_genres_with_counts(genre_name, locale)
 
     keyboard = create_genre_filter_parent_keyboard(
@@ -540,17 +540,18 @@ async def handle_toggle_genre(update, context, action, params):
     # We need to re-fetch the parent genre name from the callback data context
     # Since we don't have parent_genre directly, we need to find it
     parent_genre = None
-    for pg_name in DB_BOOKS.get_parent_genres_count(locale):
+    for g_index, pg_name in enumerate(DB_BOOKS.get_parent_genres_count(locale)):
         pg_name_str = pg_name[0]
         child_genres = DB_BOOKS.get_genres_with_counts(pg_name_str, locale)
         if any(str(g[2]) == genre_id for g in child_genres):
             parent_genres = child_genres
             parent_genre = pg_name_str
+            parent_genre_index = g_index
             break
 
     if parent_genre:
         current_genre_ids = [g for g in new_filter.split(',') if g] if new_filter else []
-        reply_markup = create_genre_filter_keyboard(parent_genre, current_genre_ids, parent_genres, context,
+        reply_markup = create_genre_filter_keyboard(parent_genre_index, current_genre_ids, parent_genres, context,
                                                      back_callback="back_to_genre_filter")
         try:
             await query.edit_message_text(
@@ -581,7 +582,11 @@ async def handle_switch_genre_group(update, context, action, params):
     Pattern: switch_genre_group_{parent_genre}
     """
     query = update.callback_query
-    parent_genre = action.removeprefix('switch_genre_group_')
+    parent_genre_index = int(action.removeprefix('switch_genre_group_'))
+
+    locale = get_or_detect_locale(update, context)
+    results = DB_BOOKS.get_parent_genres_count(locale)
+    parent_genre = results[parent_genre_index][0]
 
     # Get all child genre IDs for this parent
     locale = get_or_detect_locale(update, context)
@@ -608,7 +613,7 @@ async def handle_switch_genre_group(update, context, action, params):
 
     # Refresh keyboard — rebuild and show genre keyboard
     current_genre_ids = [g for g in new_filter.split(',') if g] if new_filter else []
-    reply_markup = create_genre_filter_keyboard(parent_genre, current_genre_ids, child_genres, context,
+    reply_markup = create_genre_filter_keyboard(parent_genre_index, current_genre_ids, child_genres, context,
                                                  back_callback="back_to_genre_filter")
     try:
         await query.edit_message_text(
@@ -649,7 +654,7 @@ async def handle_clear_all_genres(update, context, action, params):
 
     # Pre-fetch child genres for 3-state indicators
     all_child_genres = {}
-    for genre_name, _ in parent_genres:
+    for genre_name, *_ in parent_genres:
         all_child_genres[genre_name] = DB_BOOKS.get_genres_with_counts(genre_name, locale)
 
     keyboard = create_genre_filter_parent_keyboard(
