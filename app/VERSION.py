@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.7.5"
-__version_info__ = (1, 7, 5)
+__version__ = "1.7.6"
+__version_info__ = (1, 7, 6)
 
 # История версий:
+# 1.7.6 (2026-07-06) - Fix: correct genre filtering
 # 1.7.4 (2026-07-03) - Fix: remove null genre from output and filtering
 # 1.7.3 (2026-07-01) - Fix: fix TypeError in get_parent_genres_count
 # 1.7.2 (2026-06-30) - Maintenance release
