@@ -397,7 +397,7 @@ def create_genre_filter_keyboard(parent_genre_index: int, current_genre_ids: lis
 
         keyboard.append([InlineKeyboardButton(
             button_text,
-            callback_data=f"toggle_genre_{genre_id}"
+            callback_data=f"toggle_genre:{genre_id}:{parent_genre_index}"
         )])
 
     # Add Select All / Clear All button

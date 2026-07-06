@@ -111,7 +111,8 @@ async def handle_private_callback(update, context, action, params):
         return
 
     # Genre filter handlers
-    if action.startswith('toggle_genre_'):
+    # if action.startswith('toggle_genre_'):
+    if action == 'toggle_genre':
         await handle_toggle_genre(update, context, action, params)
         return
 
@@ -517,7 +518,9 @@ async def handle_toggle_genre(update, context, action, params):
     Pattern: toggle_genre_{genre_id}
     """
     query = update.callback_query
-    genre_id = action.removeprefix('toggle_genre_')
+    # genre_id = action.removeprefix('toggle_genre_')
+    genre_id = params[0]
+    parent_genre_idx = int(params[1])
 
     # Get current filter
     current_filter = get_user_params(context).GenreFilter
@@ -536,22 +539,26 @@ async def handle_toggle_genre(update, context, action, params):
 
     # Refresh keyboard — rebuild and show genre keyboard
     locale = get_or_detect_locale(update, context)
-    # Find the parent genre from the current genres list
-    # We need to re-fetch the parent genre name from the callback data context
-    # Since we don't have parent_genre directly, we need to find it
-    parent_genre = None
-    for g_index, pg_name in enumerate(DB_BOOKS.get_parent_genres_count(locale)):
-        pg_name_str = pg_name[0]
-        child_genres = DB_BOOKS.get_genres_with_counts(pg_name_str, locale)
-        if any(str(g[2]) == genre_id for g in child_genres):
-            parent_genres = child_genres
-            parent_genre = pg_name_str
-            parent_genre_index = g_index
-            break
+    # # Find the parent genre from the current genres list
+    # # We need to re-fetch the parent genre name from the callback data context
+    # # Since we don't have parent_genre directly, we need to find it
+    # parent_genre = None
+    # for g_index, pg_name in enumerate(DB_BOOKS.get_parent_genres_count(locale)):
+    #     pg_name_str = pg_name[0]
+    #     child_genres = DB_BOOKS.get_genres_with_counts(pg_name_str, locale)
+    #     if any(str(g[2]) == genre_id for g in child_genres):
+    #         parent_genres = child_genres
+    #         parent_genre = pg_name_str
+    #         parent_genre_index = g_index
+    #         break
+
+    results = DB_BOOKS.get_parent_genres_count(locale)
+    parent_genre = results[parent_genre_idx][0]
+    genres = DB_BOOKS.get_genres_with_counts(parent_genre, locale)
 
     if parent_genre:
         current_genre_ids = [g for g in new_filter.split(',') if g] if new_filter else []
-        reply_markup = create_genre_filter_keyboard(parent_genre_index, current_genre_ids, parent_genres, context,
+        reply_markup = create_genre_filter_keyboard(parent_genre_idx, current_genre_ids, genres, context,
                                                      back_callback="back_to_genre_filter")
         try:
             await query.edit_message_text(
