@@ -514,7 +514,7 @@ def get_parent_genre_state(parent_genre: str, child_genre_list: List[Tuple],
         active_genre_ids: Set of currently selected genre IDs
 
     Returns:
-        Empty string, "🔸", or "✔" based on selection state
+        Empty string, "🔸", or "🔹" based on selection state
     """
     child_ids = {str(g[2]) for g in child_genre_list}
     if not child_ids:
@@ -526,7 +526,8 @@ def get_parent_genre_state(parent_genre: str, child_genre_list: List[Tuple],
     if selected_count == 0:
         return ""
     elif selected_count == total_count:
-        return "✔"
+        # return "✔"
+        return "🔹"
     else:
         return "🔸"
 
