@@ -13,6 +13,7 @@ from .core.structured_logger import structured_logger
 from .health import log_stats
 from .core.logging_schema import EventType
 from .i18n import t, get_or_detect_locale
+from .context import get_user_params, update_user_params
 
 # ===== КОНСТАНТЫ И КОНФИГУРАЦИЯ =====
 CONTACT_INFO = {'email': os.getenv("FEEDBACK_EMAIL", "не указан"),
@@ -28,6 +29,11 @@ async def start_cmd(update: Update, context: CallbackContext):
 
     # Initialize locale (auto-detect if needed)
     get_or_detect_locale(update, context)
+
+    # Check and clear IsBlocked flag when user starts bot
+    user_settings = get_user_params(context)
+    if user_settings.IsBlocked:
+        update_user_params(context, IsBlocked=False)
 
     # Get localized welcome message
     welcome_text = t('welcome.title', context)

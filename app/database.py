@@ -775,6 +775,13 @@ class DatabaseSettings(Database):
             cursor.execute("SELECT User_ID FROM UserSettings")
             return [row[0] for row in cursor.fetchall()]
 
+    def get_active_user_ids(self) -> list[int]:
+        """Returns user_id values from UserSettings where IsBlocked=False (active users)."""
+        with self.connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT User_ID FROM UserSettings WHERE IsBlocked = 0")
+            return [row[0] for row in cursor.fetchall()]
+
     def update_user_settings(self, user_id, **kwargs):
         """
         Обновляет настройки пользователя в базе данных.

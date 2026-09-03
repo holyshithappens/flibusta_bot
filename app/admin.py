@@ -307,8 +307,9 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
 
         # Determine recipients with usernames
         db_settings = DatabaseSettings()
-        all_user_ids = db_settings.get_all_user_ids()
-        # print(f"[BROADCAST DEBUG] all_user_ids from UserSettings: {all_user_ids}")
+        # Use only active users (IsBlocked=False) for broadcast
+        active_user_ids = db_settings.get_active_user_ids()
+        # print(f"[BROADCAST DEBUG] active_user_ids from UserSettings: {active_user_ids}")
         # print(f"[BROADCAST DEBUG] BROADCAST_TEST_ONLY: {BROADCAST_TEST_ONLY}")
         # print(f"[BROADCAST DEBUG] BROADCAST_TEST_USER_IDS: {BROADCAST_TEST_USER_IDS}")
 
@@ -318,9 +319,9 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
         # print(f"[BROADCAST DEBUG] username_map: {username_map}")
 
         if BROADCAST_TEST_ONLY:
-            recipients = [uid for uid in all_user_ids if uid in BROADCAST_TEST_USER_IDS]
+            recipients = [uid for uid in active_user_ids if uid in BROADCAST_TEST_USER_IDS]
         else:
-            recipients = all_user_ids
+            recipients = active_user_ids
         # Exclude users from skip list
         if BROADCAST_SKIP_USER_IDS:
             recipients = [uid for uid in recipients if uid not in BROADCAST_SKIP_USER_IDS]
@@ -374,6 +375,8 @@ async def handle_broadcast_callback(update: Update, context: CallbackContext):
                     success=False,
                     error_message=error_str
                 )
+                # Block user on delivery failure
+                db_settings.update_user_settings(user_id, IsBlocked=True)
 
         # Summary
         mode_label = " (TEST)" if BROADCAST_TEST_ONLY else ""
