@@ -14,13 +14,14 @@ from .handlers_search import handle_authors_page_change, handle_series_page_chan
 from .handlers_settings import create_rating_filter_keyboard, show_settings_menu, handle_set_actions, \
     handle_set_max_books, handle_set_lang_search, handle_set_size_limit, handle_set_book_format, \
     handle_set_search_type, handle_set_rating_filter, handle_set_search_area, handle_set_locale, \
-    handle_set_genre_filter, create_genre_filter_parent_keyboard
+    handle_set_genre_filter, create_genre_filter_parent_keyboard, \
+    handle_set_year_filter, handle_toggle_year, handle_clear_all_years
 from .handlers_utils import create_authors_keyboard, create_series_keyboard, handle_send_file, generate_books_csv, \
     create_genre_filter_keyboard
 from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, \
     SETTING_SEARCH_AREA, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, SETTING_SIZE_LIMIT, \
-    SETTING_LOCALE, SETTING_GENRE_FILTER
+    SETTING_LOCALE, SETTING_GENRE_FILTER, SETTING_YEAR_FILTER
 from .context import get_pages_of_series, get_found_series_count, get_pages_of_authors, get_found_authors_count, \
     get_pages_of_books, get_user_params, update_user_params, get_last_series_page, \
     get_last_authors_page, set_switch_search, get_switch_search
@@ -91,6 +92,7 @@ async def handle_private_callback(update, context, action, params):
         f'set_{SETTING_SEARCH_AREA}': handle_set_search_area,
         f'set_{SETTING_LOCALE}': handle_set_locale,
         f'set_{SETTING_GENRE_FILTER}': handle_set_genre_filter,
+        f'set_{SETTING_YEAR_FILTER}': handle_set_year_filter,
         'show_series': handle_search_series_books,
         'back_to_series': handle_back_to_series,
         'show_author': handle_search_author_books,  # Добавляем обработчик для авторов
@@ -108,6 +110,15 @@ async def handle_private_callback(update, context, action, params):
     # Добавим обработку toggle рейтингов
     if action.startswith('toggle_rating_'):
         await handle_toggle_rating(update, context, action, params)
+        return
+
+    # Year filter handlers
+    if action == 'toggle_year':
+        await handle_toggle_year(update, context, action, params)
+        return
+
+    if action == 'clear_all_years':
+        await handle_clear_all_years(update, context, action, params)
         return
 
     # Genre filter handlers

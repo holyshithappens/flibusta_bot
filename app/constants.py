@@ -49,6 +49,10 @@ SETTING_SEARCH_AREA_BA = 'ba' # Поиск по аннотации книг
 SETTING_SEARCH_AREA_AA = 'aa' # Поиск по аннотации авторов
 SETTING_LOCALE = 'locale'  # User interface language
 SETTING_GENRE_FILTER = 'genre_filter'  # Genre-based filtering for book searches
+SETTING_YEAR_FILTER = 'year_filter'  # Year-based filtering for book searches
+
+# Граница "древних" книг: книги с Year < этого значения попадают в корзину ancient
+ANCIENT_YEARS_THRESHOLD = 1850
 
 # SETTING_SORT_ORDER_ASC = 'asc'
 # SETTING_SORT_ORDER_DESC = 'desc'
@@ -60,6 +64,7 @@ SETTING_TITLES = {
     SETTING_SIZE_LIMIT: 'settings.menu.size_limit',
     SETTING_RATING_FILTER: 'settings.menu.rating_filter',
     SETTING_GENRE_FILTER: 'settings.menu.genre_filter',
+    SETTING_YEAR_FILTER: 'settings.menu.year_filter',
     SETTING_BOOK_FORMAT: 'settings.menu.book_format',
     SETTING_SEARCH_TYPE: 'settings.menu.search_type',
     SETTING_SEARCH_AREA: 'settings.menu.search_area',

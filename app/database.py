@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import datetime, timedelta
 from collections import namedtuple
 from typing import Dict, List, Any, Coroutine
 
@@ -11,7 +12,7 @@ from .core.logging_schema import EventType
 from .flibusta_client import FlibustaClient, flibusta_client
 from .constants import FLIBUSTA_DB_SETTINGS_PATH, FLIBUSTA_DB_LOGS_PATH, MAX_BOOKS_SEARCH, \
     SETTING_SEARCH_AREA_B, SETTING_SEARCH_AREA_BA, SETTING_SEARCH_AREA_AA, MAX_SERIES_SEARCH, MAX_AUTHORS_SEARCH, \
-    POPULARITY_WEIGHT_RATE, POPULARITY_WEIGHT_RECS, POPULARITY_WEIGHT_REVIEWS
+    POPULARITY_WEIGHT_RATE, POPULARITY_WEIGHT_RECS, POPULARITY_WEIGHT_REVIEWS, ANCIENT_YEARS_THRESHOLD
 from .tools import load_bot_news
 
 # from logger import logger
@@ -24,7 +25,7 @@ UserSettingsType = namedtuple('UserSettingsType',
                               ['User_ID', 'MaxBooks', 'Lang',
                                # 'DateSortOrder',
                                'BookFormat', 'LastNewsDate', 'IsBlocked', 'BookSize', 'SearchType', 'Rating', 'SearchArea',
-                               'Locale', 'GenreFilter'])  # User's preferred UI language (empty = auto-detect); GenreFilter = comma-separated genre IDs
+                               'Locale', 'GenreFilter', 'YearFilter'])  # User's preferred UI language (empty = auto-detect); GenreFilter = comma-separated genre IDs; YearFilter = comma-separated year bin IDs
 
 # SQL-запросы
 # Базовые поля для SELECT
@@ -77,7 +78,7 @@ LEFT JOIN (
 """
 
 # Основной полнотекстовый поиск
-SQL_QUERY_BOOKS = lambda locale, is_empty=False, genre_filter=None: f"""
+SQL_QUERY_BOOKS = lambda locale, is_empty=False, genre_filter=None, year_filter=None: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
@@ -88,11 +89,12 @@ JOIN cb_libbook b ON b.BookID = fts.BookID
 WHERE b.Deleted = '0'
   {'' if is_empty else 'AND MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)'}
   {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
+  {DatabaseBooks._build_year_sql(year_filter)}
 ) as subq 
 """
 
 # Поиск по аннотациям книг
-SQL_QUERY_ABOOKS = lambda locale, is_empty=False, genre_filter=None: f"""
+SQL_QUERY_ABOOKS = lambda locale, is_empty=False, genre_filter=None, year_filter=None: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
@@ -103,11 +105,12 @@ JOIN cb_libbook b ON b.BookID = ba.BookID
 WHERE b.Deleted = '0'
   {'' if is_empty else 'AND MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)'}
   {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
+  {DatabaseBooks._build_year_sql(year_filter)}
 ) as subq2
 """
 
 # Поиск по аннотациям авторов
-SQL_QUERY_AAUTHORS = lambda locale, is_empty=False, genre_filter=None: f"""
+SQL_QUERY_AAUTHORS = lambda locale, is_empty=False, genre_filter=None, year_filter=None: f"""
 select * from (
 SELECT 
     {BASE_FIELDS},
@@ -119,6 +122,7 @@ JOIN cb_libbook b ON b.BookID = ab.BookID
 WHERE b.Deleted = '0'
   AND MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE)
   {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
+  {DatabaseBooks._build_year_sql(year_filter)}
 ) as subq2
 """
 
@@ -617,10 +621,9 @@ class DatabaseLogs(Database):
                 downloads_by_day[row[0]] = row[2] or 0
 
             # Формируем полный список дней
-            import datetime
             dates = []
             for i in range(days):
-                date = (datetime.datetime.now() - datetime.timedelta(days=i)).strftime('%Y-%m-%d')
+                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
                 dates.append(date)
 
             # Заполняем данные для всех дней (даже если их нет в БД)
@@ -697,7 +700,21 @@ class DatabaseSettings(Database):
 
     def __init__(self, db_path = FLIBUSTA_DB_SETTINGS_PATH):
         super().__init__(db_path)
-        # self._ensure_locale_column()
+    #     self._ensure_year_filter_column()
+    #
+    # def _ensure_year_filter_column(self):
+    #     """Ensures the YearFilter column exists in UserSettings table (migration for existing DBs)."""
+    #     try:
+    #         with self.connect() as conn:
+    #             cursor = conn.cursor()
+    #             cursor.execute("PRAGMA table_info(UserSettings)")
+    #             columns = [col[1] for col in cursor.fetchall()]
+    #
+    #             if 'YearFilter' not in columns:
+    #                 cursor.execute("ALTER TABLE UserSettings ADD COLUMN YearFilter TEXT DEFAULT ''")
+    #                 conn.commit()
+    #     except Exception as e:
+    #         print(f"Note: Could not add YearFilter column (may already exist): {e}")
 
     # def _ensure_locale_column(self):
     #     """Ensures the Locale column exists in UserSettings table (migration for existing DBs)."""
@@ -839,6 +856,7 @@ class DatabaseBooks():
     _class_cached_langs = None
     _class_cached_parent_genres = {}
     _class_cached_genres = {}  # Словарь для кеширования жанров по родительским категориям
+    _class_cached_year_bins = None
     _class_stats = {}  # Статистика по библиотеке
 
     def __init__(self, db_config):
@@ -1024,15 +1042,155 @@ class DatabaseBooks():
                 DatabaseBooks._class_cached_langs = cursor.fetchall()
         return DatabaseBooks._class_cached_langs
 
+    def get_year_bins(self, bins_cnt:int=32):
+        """Returns cached year bins as (bin_id, books_count) tuples or computes and caches them.
+
+        The bin_id is the stable identifier stored in user settings; the button label is
+        derived from it at keyboard creation time (see get_year_bin_display).
+        """
+        if DatabaseBooks._class_cached_year_bins is not None:
+            return DatabaseBooks._class_cached_year_bins
+
+        current_year = datetime.now().year
+        bins = []
+
+        # Query 1: Invalid categories
+        sql_invalid = f"""
+            SELECT
+                CASE
+                    WHEN Year = 0 THEN '0'
+                    WHEN Year < 0 THEN 'negative'
+                    WHEN Year > {current_year} THEN 'future'
+                    WHEN Year < {ANCIENT_YEARS_THRESHOLD} THEN 'ancient'
+                END AS bin_id,
+                COUNT(*) AS books_count
+            FROM cb_libbook
+            WHERE Deleted = 0
+              AND (Year = 0 OR Year < 0 OR Year > {current_year} OR Year < {ANCIENT_YEARS_THRESHOLD})
+            GROUP BY bin_id
+        """
+        with self.connect() as conn:
+            cursor = conn.cursor(buffered=True)
+            cursor.execute(sql_invalid)
+            for bin_id, books_count in cursor.fetchall():
+                bins.append((bin_id, books_count))
+
+        # Query 2: 60-bin CTE for valid year intervals
+        sql_bins = f"""
+            WITH year_counts AS (
+                SELECT
+                    Year,
+                    COUNT(*) AS books_in_year
+                FROM
+                    cb_libbook
+                WHERE
+                    Year >= {ANCIENT_YEARS_THRESHOLD} AND Year <= {current_year}
+                    AND Deleted = 0
+                GROUP BY
+                    Year
+            ),
+            cum_sums AS (
+                SELECT
+                    Year,
+                    books_in_year,
+                    SUM(books_in_year) OVER (ORDER BY Year) AS cum_books,
+                    SUM(books_in_year) OVER () AS total_books
+                FROM
+                    year_counts
+            ),
+            binned_years AS (
+                SELECT
+                    *,
+                    FLOOR((cum_books - 1) / (total_books / {bins_cnt})) + 1 AS bin
+                FROM
+                    cum_sums
+            )
+            SELECT
+                bin,
+                MIN(Year) AS min_year,
+                MAX(Year) AS max_year,
+                SUM(books_in_year) AS books_in_bin
+            FROM
+                binned_years
+            GROUP BY
+                bin
+            ORDER BY
+                bin
+        """
+        with self.connect() as conn:
+            cursor = conn.cursor(buffered=True)
+            try:
+                cursor.execute(sql_bins)
+                for bin_num, min_year, max_year, books_in_bin in cursor.fetchall():
+                    if min_year == max_year:
+                        bin_id = str(min_year)
+                    else:
+                        bin_id = f"{min_year}-{max_year}"
+                    bins.append((bin_id, books_in_bin))
+            except Exception:
+                pass
+
+        # Merge duplicates by bin_id (sums counts), so each bin is rendered once
+        merged = {}
+        for bin_id, books_count in bins:
+            if bin_id in merged:
+                merged[bin_id] += (books_count or 0)
+            else:
+                merged[bin_id] = books_count or 0
+        bins = list(merged.items())
+
+        # Sort: invalid categories first (by count desc), then valid bins
+        invalid_bins = [(b, c) for b, c in bins if b in ('0', 'negative', 'ancient', 'future')]
+        valid_bins = [(b, c) for b, c in bins if b not in ('0', 'negative', 'ancient', 'future')]
+        invalid_bins.sort(key=lambda x: -x[1])
+
+        DatabaseBooks._class_cached_year_bins = invalid_bins + valid_bins
+        return DatabaseBooks._class_cached_year_bins
+
+    @staticmethod
+    def build_year_filter_condition(year_filter: str) -> str:
+        """Convert comma-separated bin IDs to SQL WHERE conditions."""
+        current_year = datetime.now().year
+        parts = []
+        for bin_id in year_filter.split(','):
+            bin_id = bin_id.strip()
+            if bin_id == 'negative':
+                parts.append("b.Year < 0")
+            elif bin_id == 'ancient':
+                parts.append(f"b.Year > 0 AND b.Year < {ANCIENT_YEARS_THRESHOLD}")
+            elif bin_id == 'future':
+                parts.append(f"b.Year > {current_year}")
+            elif bin_id == '0':
+                parts.append("b.Year = 0")
+            elif '-' in bin_id:
+                start, end = bin_id.split('-', 1)
+                parts.append(f"b.Year BETWEEN {start} AND {end}")
+            else:
+                parts.append(f"b.Year = {bin_id}")
+        return ' OR '.join(parts)
+
+    @staticmethod
+    def _build_year_sql(year_filter: str) -> str:
+        """Generate SQL condition for year filter inside inner query."""
+        if not year_filter or not year_filter.strip():
+            return ""
+        condition = DatabaseBooks.build_year_filter_condition(year_filter)
+        if condition:
+            return f"AND ({condition})"
+        return ""
+
+    def invalidate_year_bins_cache(self):
+        """Clear the year bins cache."""
+        DatabaseBooks._class_cached_year_bins = None
 
     def search_books(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0,
                      author_id=0, person_type='author',
-                     locale: str = 'ru', genre_filter=None):
+                     locale: str = 'ru', genre_filter=None, year_filter=None):
         """Ищем книги по запросу пользователя"""
         is_empty = not query
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type, genre_filter)
         # Строим запросы для поиска книг и подсчёта количества найденных книг
-        sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale, is_empty, genre_filter)
+        sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale, is_empty, genre_filter, year_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
@@ -1144,16 +1302,16 @@ class DatabaseBooks():
         LIMIT {MAX_SERIES_SEARCH}
         """
 
-    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None):
+    def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None, year_filter=None):
         """Ищет серии по запросу"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, genre_filter=genre_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
         params.extend([query] * 2)
 
         # запрос для поиска серий
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, False, genre_filter)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, False, genre_filter, year_filter)
         sql_query = self.build_sql_query_series(sql_query_nested, sql_where)
 
         # #DEBUG
@@ -1300,16 +1458,16 @@ class DatabaseBooks():
         LIMIT {MAX_AUTHORS_SEARCH}
         """
 
-    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None):
+    def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None, year_filter=None):
         """Ищет авторов по запросу"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, genre_filter=genre_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
         params.extend([query] * 4)
 
         # Модифицируем запрос для поиска авторов
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, False, genre_filter)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, False, genre_filter, year_filter)
         sql_query = self.build_sql_query_authors(sql_query_nested, sql_where)
 
         # print(f"[DEBUG] search_authors, sql_query={sql_query}")
@@ -1322,7 +1480,7 @@ class DatabaseBooks():
         return authors
 
     def search_pop_books(self, lang, size_limit, rating_filter=None, days_back: int = 0, locale: str = 'ru',
-                         genre_filter=None):
+                         genre_filter=None, year_filter=None):
         """Поиск популярных книг за период"""
         # assert lang.isalpha() and len(lang) <= 3, "Invalid lang"
 
@@ -1348,6 +1506,12 @@ class DatabaseBooks():
         if genre_filter and genre_filter.strip():
             if all(c.isdigit() or c == ',' for c in genre_filter):
                 conditions.append(f"g.GenreID IN ({genre_filter})")
+
+        # Year filter
+        if year_filter and year_filter.strip():
+            year_conditions = DatabaseBooks.build_year_filter_condition(year_filter)
+            if year_conditions:
+                conditions.append(f"({year_conditions})")
 
         sql_where = " AND ".join(conditions)
 
@@ -1586,8 +1750,10 @@ class DatabaseBooks():
         if author_id != 0:
             conditions.append(f"AuthorID = {author_id}" if person_type=='author' else f"TransID = {author_id}")
 
+        # Year filter
         # Note: Genre filter is NOT added here because this WHERE clause is used outside the subquery
         # where table aliases are not available. Genre filter is handled separately in build_sql_query_books.
+        # Year filter is also handled in build_sql_query_books inner query.
 
         # в соновном sql вконце уже есть where, поэтому заменяем его на and
         sql_where = "WHERE " + " AND ".join(conditions) if conditions else "WHERE 1=1"
@@ -1595,7 +1761,7 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_query_books(sql_where, sort_order='desc', search_area=SETTING_SEARCH_AREA_B, locale: str = 'ru', is_empty=False, genre_filter=None):
+    def build_sql_query_books(sql_where, sort_order='desc', search_area=SETTING_SEARCH_AREA_B, locale: str = 'ru', is_empty=False, genre_filter=None, year_filter=None):
         fields = Book._fields
 
         # Всегда используем sum для Relevance
@@ -1606,7 +1772,7 @@ class DatabaseBooks():
 
         select_fields = ', '.join(processed_fields)
 
-        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, is_empty, genre_filter)
+        sql_query_nested = SELECT_SQL_QUERY.get(search_area)(locale, is_empty, genre_filter, year_filter)
         from_clause = f"FROM ( {sql_query_nested} {sql_where} ) as subquery"
 
         sql_query = f"""
@@ -1646,6 +1812,7 @@ class DatabaseBooks():
                 DatabaseBooks._class_cached_langs = None
                 DatabaseBooks._class_cached_parent_genres = {}
                 DatabaseBooks._class_cached_genres = {}
+                DatabaseBooks._class_cached_year_bins = None
                 DatabaseBooks._class_stats = {}
 
                 structured_logger.log_system(

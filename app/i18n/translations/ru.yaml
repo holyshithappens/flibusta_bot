@@ -34,6 +34,7 @@ settings:
     search_area: "Область поиска"
     locale: "Язык интерфейса"
     genre_filter: "Фильтр по жанрам"
+    year_filter: "Фильтр по годам"
 
 # Search
 search:
@@ -197,6 +198,14 @@ common:
   select_all: "Выбрать все"
   clear_all: "Очистить все"
   clear_all_genres: "🗑️ Очистить все жанры"
+  clear_all_years: "🗑️ Очистить все годы"
+
+  # Корзины фильтра по годам
+  year_bins:
+    unknown: "Неизвестные"
+    negative: "Отрицательные"
+    ancient: "Древние (<{year})"
+    future: "Будущие (>{year})"
 
   # Language reset option
   reset_lang: "✔ {lang} - сбросить"

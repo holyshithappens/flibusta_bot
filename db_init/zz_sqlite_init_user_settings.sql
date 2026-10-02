@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS UserSettings (
 
 CREATE UNIQUE INDEX IF NOT EXISTS IXUserSettings_User_ID
                 ON UserSettings (User_ID);
+
+ALTER TABLE UserSettings ADD YearFilter TEXT DEFAULT ('');

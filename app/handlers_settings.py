@@ -1,4 +1,5 @@
 from typing import Dict, List, Set, Tuple
+from datetime import datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
@@ -8,7 +9,8 @@ from .handlers_utils import add_close_button, edit_or_reply_message, create_back
 from .database import DB_BOOKS
 from .constants import SETTING_MAX_BOOKS, SETTING_LANG_SEARCH, SETTING_SIZE_LIMIT, \
     SETTING_BOOK_FORMAT, SETTING_SEARCH_TYPE, SETTING_OPTIONS, SETTING_TITLES, SETTING_RATING_FILTER, BOOK_RATINGS, \
-    SETTING_SEARCH_AREA, SETTING_LOCALE, UI_SEPARATOR, SETTING_GENRE_FILTER
+    SETTING_SEARCH_AREA, SETTING_LOCALE, UI_SEPARATOR, SETTING_GENRE_FILTER, SETTING_YEAR_FILTER, \
+    ANCIENT_YEARS_THRESHOLD
 from .context import get_user_params, update_user_params
 from .core.structured_logger import structured_logger
 from .i18n import t, set_user_locale, get_setting_title
@@ -265,6 +267,10 @@ async def handle_set_actions(update, context, action, params):
             chat_type="private",
             chat_id=user.id
         )
+    elif action == f'set_{SETTING_YEAR_FILTER}':
+        setting_type = SETTING_YEAR_FILTER
+        await handle_set_year_filter(update, context, action, params)
+        return
     else:
         return
 
@@ -415,6 +421,12 @@ def create_settings_menu(context:CallbackContext):
                 if current_value:
                     genre_count = len([g for g in current_value.split(',') if g])
                     current_display = f"({genre_count})" if genre_count else ""
+
+            elif setting_type == SETTING_YEAR_FILTER:
+                current_value = getattr(user_params, 'YearFilter', '')
+                if current_value:
+                    year_count = len([y for y in current_value.split(',') if y])
+                    current_display = f"({year_count})" if year_count else ""
 
         except Exception as e:
             print(f"Error getting setting {setting_type}: {e}")
@@ -616,3 +628,274 @@ async def handle_set_genre_filter(update, context, action, params):
     except BadRequest as e:
         if "Message is not modified" not in str(e):
             raise e
+
+
+async def handle_set_year_filter(update, context, action, params):
+    """Shows year filter settings menu."""
+    query = update.callback_query
+    user_params = get_user_params(context)
+    current_filter = user_params.YearFilter
+
+    # Get year bins
+    year_bins = DB_BOOKS.get_year_bins()
+
+    # Parse current filter
+    current_selected = set(b.strip() for b in current_filter.split(',') if b)
+
+    # Build merged list: current bins + any stored bin_ids not found in current bins
+    current_bin_ids = {b[0] for b in year_bins}
+    all_bin_ids = set(b[0] for b in year_bins)
+
+    # Add orphaned stored filters
+    for bin_id in current_selected:
+        if bin_id not in current_bin_ids:
+            all_bin_ids.add(bin_id)
+
+    # Build keyboard
+    reply_markup = create_year_filter_keyboard(year_bins, current_selected, all_bin_ids, context)
+
+    try:
+        await edit_or_reply_message(query, t('settings.menu.year_filter', context), reply_markup)
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise e
+
+
+async def handle_toggle_year(update, context, action, params):
+    """Toggles a year bin in the year filter."""
+    query = update.callback_query
+    bin_id = params[0]
+    user_params = get_user_params(context)
+
+    current_filter = user_params.YearFilter
+    current_selected = set(b.strip() for b in current_filter.split(',') if b)
+
+    if bin_id in current_selected:
+        current_selected.remove(bin_id)
+    else:
+        current_selected.add(bin_id)
+
+    new_filter = ','.join(sorted(current_selected))
+    update_user_params(context, YearFilter=new_filter)
+
+    # Refresh keyboard
+    year_bins = DB_BOOKS.get_year_bins()
+    current_bin_ids = {b[0] for b in year_bins}
+    all_bin_ids = set(b[0] for b in year_bins)
+    for b_id in current_selected:
+        if b_id not in current_bin_ids:
+            all_bin_ids.add(b_id)
+
+    keyboard = create_year_filter_keyboard(year_bins, current_selected, all_bin_ids, context)
+    reply_markup = keyboard
+
+    try:
+        await query.edit_message_text(t('settings.menu.year_filter', context), reply_markup=reply_markup)
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise e
+
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="year_filter",
+        old_value=current_filter,
+        new_value=new_filter,
+        chat_type="private",
+        chat_id=query.message.chat.id
+    )
+
+
+async def handle_clear_all_years(update, context, action, params):
+    """Clears all year filters."""
+    query = update.callback_query
+    old_filter = get_user_params(context).YearFilter
+    update_user_params(context, YearFilter='')
+
+    # Refresh keyboard
+    year_bins = DB_BOOKS.get_year_bins()
+    keyboard = create_year_filter_keyboard(year_bins, set(), set(), context)
+    reply_markup = keyboard
+
+    try:
+        await query.edit_message_text(t('settings.menu.year_filter', context), reply_markup=reply_markup)
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise e
+
+    structured_logger.log_settings_change(
+        user_id=query.from_user.id,
+        username=query.from_user.username or query.from_user.first_name or "Unknown",
+        setting_name="year_filter",
+        old_value=old_filter,
+        new_value="",
+        chat_type="private",
+        chat_id=query.message.chat.id
+    )
+
+
+def get_year_bin_display(bin_id: str, context) -> str:
+    """Возвращает локализованное название корзины годов по её bin_id."""
+    if bin_id == '0':
+        return t('common.year_bins.unknown', context)
+    if bin_id == 'negative':
+        return t('common.year_bins.negative', context)
+    if bin_id == 'ancient':
+        return t('common.year_bins.ancient', context, year=ANCIENT_YEARS_THRESHOLD)
+    if bin_id == 'future':
+        return t('common.year_bins.future', context, year=datetime.now().year)
+    return bin_id
+
+
+def create_year_filter_keyboard(year_bins, selected_bins, all_bin_ids, context):
+    """
+    Creates keyboard for year filter selection with checkmarks and book counts.
+
+    Args:
+        year_bins: List of (bin_id, book_count) tuples from DB
+        selected_bins: Set of currently selected bin_ids
+        all_bin_ids: Set of all bin_ids including orphaned stored filters
+        context: Telegram callback context
+    """
+    keyboard = []
+    row = []
+    rendered = set()
+
+    for bin_id, book_count in year_bins:
+        if bin_id in rendered:
+            continue
+        rendered.add(bin_id)
+        is_selected = bin_id in selected_bins
+        emoji = "✔" if is_selected else ""
+        count_text = f" ({book_count:,})".replace(",", " ") if book_count else " (0)"
+        button_text = f"{emoji} {get_year_bin_display(bin_id, context)}{count_text}"
+
+        row.append(InlineKeyboardButton(
+            button_text,
+            callback_data=f"toggle_year:{bin_id}"
+        ))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+
+    if row:
+        keyboard.append(row)
+        row = []
+
+    # Add orphaned stored filters that are not in current bins
+    for bin_id in sorted(all_bin_ids - rendered):
+        if bin_id in rendered:
+            continue
+        rendered.add(bin_id)
+        emoji = "✔" if bin_id in selected_bins else ""
+        button_text = f"{emoji} {get_year_bin_display(bin_id, context)}"
+        row.append(InlineKeyboardButton(
+            button_text,
+            callback_data=f"toggle_year:{bin_id}"
+        ))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+
+    if row:
+        keyboard.append(row)
+
+    # Add Clear All button if selections exist
+    if selected_bins:
+        keyboard.append([InlineKeyboardButton(
+            t("common.clear_all_years", context),
+            callback_data="clear_all_years"
+        )])
+
+    # Add back button
+    keyboard += create_back_button(context)
+
+    return InlineKeyboardMarkup(keyboard)
+
+
+# def create_settings_menu(context:CallbackContext):
+#     """Создает главное меню настроек"""
+#     keyboard = []
+#
+#     for setting_type, text in SETTING_TITLES.items():
+#         # Получаем текущее значение настройки, если передан контекст
+#         current_display = ""
+#         try:
+#             user_params = get_user_params(context)
+#             # Форматируем значение для отображения
+#             if setting_type == SETTING_MAX_BOOKS:
+#                 current_value = user_params.MaxBooks
+#                 current_display = f"({current_value})"
+#
+#             elif setting_type == SETTING_LANG_SEARCH:
+#                 current_value = user_params.Lang
+#                 current_display = f"({current_value})" if current_value else ""
+#
+#             elif setting_type == SETTING_SIZE_LIMIT:
+#                 current_value = user_params.BookSize
+#                 for option in SETTING_OPTIONS[SETTING_SIZE_LIMIT]:
+#                     if option == UI_SEPARATOR:
+#                         continue
+#                     value, display = option
+#                     if value == current_value:
+#                         current_display = f"({t(display,context)})" if value else ""
+#                         break
+#
+#             elif setting_type == SETTING_BOOK_FORMAT:
+#                 current_value = user_params.BookFormat
+#                 current_display = f"({t(current_value,context)})"
+#
+#             elif setting_type == SETTING_SEARCH_TYPE:
+#                 current_value = user_params.SearchType
+#                 for option in SETTING_OPTIONS[SETTING_SEARCH_TYPE]:
+#                     if option == UI_SEPARATOR:
+#                         continue
+#                     value, display = option
+#                     if value == current_value:
+#                         current_display = f"({t(display,context)})"
+#                         break
+#
+#             elif setting_type == SETTING_RATING_FILTER:
+#                 current_value = user_params.Rating
+#                 if current_value:
+#                     ratings = current_value.split(',')
+#                     emojis = "".join([BOOK_RATINGS.get(r, ("⚪️", ""))[0] for r in ratings if r])
+#                     current_display = f"({emojis})" if emojis else ""
+#
+#             elif setting_type == SETTING_SEARCH_AREA:
+#                 current_value = user_params.SearchArea
+#                 for option in SETTING_OPTIONS[SETTING_SEARCH_AREA]:
+#                     if option == UI_SEPARATOR:
+#                         continue
+#                     value, display = option
+#                     if value == current_value:
+#                         current_display = f"({t(display,context)})"
+#                         break
+#
+#             elif setting_type == SETTING_LOCALE:
+#                 current_value = getattr(user_params, 'Locale', '') or 'ru'
+#                 for option in SETTING_OPTIONS[SETTING_LOCALE]:
+#                     value, display = option
+#                     if value == current_value:
+#                         current_display = f"({t(display,context)})"
+#                         break
+#
+#             elif setting_type == SETTING_GENRE_FILTER:
+#                 current_value = getattr(user_params, 'GenreFilter', '')
+#                 if current_value:
+#                     genre_count = len([g for g in current_value.split(',') if g])
+#                     current_display = f"({genre_count})" if genre_count else ""
+#
+#             elif setting_type == SETTING_YEAR_FILTER:
+#                 current_value = getattr(user_params, 'YearFilter', '')
+#                 if current_value:
+#                     year_count = len([y for y in current_value.split(',') if y])
+#                     current_display = f"({year_count})" if year_count else ""
+#
+#         except Exception as e:
+#             print(f"Error getting setting {setting_type}: {e}")
+#
+#         button_text = f"{t(text,context)} {current_display}".strip()
+#         keyboard.append([InlineKeyboardButton(button_text, callback_data=f"set_{setting_type}")])
+#
+#     return keyboard

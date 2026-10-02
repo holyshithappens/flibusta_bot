@@ -34,6 +34,7 @@ settings:
     search_area: "Search area"
     locale: "Interface language"
     genre_filter: "Genre filter"
+    year_filter: "Year filter"
 
 # Search
 search:
@@ -187,6 +188,14 @@ common:
   select_all: "Select all"
   clear_all: "Clear all"
   clear_all_genres: "🗑️ Clear all genres"
+  clear_all_years: "🗑️ Clear all years"
+
+  # Year filter bins
+  year_bins:
+    unknown: "Unknown"
+    negative: "Negative"
+    ancient: "Ancient (<{year})"
+    future: "Future (>{year})"
 
   # Language reset option
   reset_lang: "✔ {lang} - reset"

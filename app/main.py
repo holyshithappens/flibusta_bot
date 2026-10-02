@@ -183,6 +183,21 @@ def main():
             {}
         )
 
+    # Preload year bins
+    try:
+        DB_BOOKS.get_year_bins()
+        structured_logger.log_system(
+            EventType.SYSTEM_STARTUP,
+            "Year bins preloaded",
+            {}
+        )
+    except Exception as e:
+        structured_logger.log_system(
+            EventType.SYSTEM_STARTUP,
+            f"Failed to preload year bins: {e}",
+            {}
+        )
+
     application.add_handler(PreCheckoutQueryHandler(pre_checkout))
     application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
