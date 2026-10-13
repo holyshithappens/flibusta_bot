@@ -64,8 +64,8 @@ LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtorname an ON an.AvtorID = a.AvtorID
 LEFT JOIN cb_libtranslator t ON t.BookID = b.BookID
 LEFT JOIN cb_libavtorname tn ON tn.AvtorID = t.TranslatorId
-LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre group by bookid) g ON g.BookID = b.BookID
--- LEFT JOIN cb_libgenre g ON g.BookID = b.BookID
+-- LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre group by bookid) g ON g.BookID = b.BookID -- wrong result when genre filtering
+LEFT JOIN cb_libgenre g ON g.BookID = b.BookID -- use it instead of previous when genre filtering
 LEFT JOIN {genre_table} gl ON gl.GenreID = g.GenreID
 -- LEFT JOIN (select bookid, min(SeqID) as SeqID from cb_libseq group by bookid) s ON s.BookID = b.BookID
 LEFT JOIN cb_libseq s ON s.BookID = b.BookID
@@ -1541,7 +1541,7 @@ class DatabaseBooks():
         LIMIT {MAX_BOOKS_SEARCH};
         """
 
-        # print(f"DEBUG: {sql_query}")
+        print(f"DEBUG: {sql_query}")
 
         with self.connect() as conn:
             cursor = conn.cursor(buffered=True)
@@ -1696,7 +1696,7 @@ class DatabaseBooks():
             WHEN 0 THEN {weighted_all_time}
             WHEN 1 THEN {weighted_recent}
         END DESC
-    LIMIT {MAX_BOOKS_SEARCH * 3} 
+    LIMIT {MAX_BOOKS_SEARCH * 10} 
         """
 
 
@@ -1719,7 +1719,7 @@ class DatabaseBooks():
     {get_base_joins(locale)}
     WHERE {sql_where}
     ORDER BY b.BookID desc 
-    LIMIT {MAX_BOOKS_SEARCH * 3} 
+    LIMIT {MAX_BOOKS_SEARCH * 10} 
         """
 
 
