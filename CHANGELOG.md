@@ -5,6 +5,11 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.9.1] - 2026-10-15
+
+### Fixed
+- Исправлена фильтрация книг при поиске по авторам: устранены ошибки в JOIN и LIMIT при фильтрации по автору
+
 ## [1.9.0] - 2026-10-13
 
 ### Added
