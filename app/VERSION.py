@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.9.1"
-__version_info__ = (1, 9, 1)
+__version__ = "1.9.2"
+__version_info__ = (1, 9, 2)
 
 # История версий:
+# 1.9.2 (2026-10-15) - Docs: update about section filter list with years of publication (ru/en)
 # 1.9.1 (2026-10-15) - Hotfix: fix searching author's books
 # 1.9.0 (2026-10-13) - Feat: filter by years of publication, fix genre filtering
 # 1.8.0 (2026-09-12) - Feat: block users on broadcast delivery failure
