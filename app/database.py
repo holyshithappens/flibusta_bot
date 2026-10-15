@@ -1188,7 +1188,7 @@ class DatabaseBooks():
                      locale: str = 'ru', genre_filter=None, year_filter=None):
         """Ищем книги по запросу пользователя"""
         is_empty = not query
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type, genre_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, series_id, author_id, person_type)
         # Строим запросы для поиска книг и подсчёта количества найденных книг
         sql_query = self.build_sql_query_books(sql_where, 'desc', search_area, locale, is_empty, genre_filter, year_filter)
 
@@ -1304,7 +1304,7 @@ class DatabaseBooks():
 
     def search_series(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None, year_filter=None):
         """Ищет серии по запросу"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, genre_filter=genre_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
@@ -1460,7 +1460,7 @@ class DatabaseBooks():
 
     def search_authors(self, query, lang, size_limit, rating_filter=None, search_area=SETTING_SEARCH_AREA_B, series_id=0, author_id=0, locale: str = 'ru', genre_filter=None, year_filter=None):
         """Ищет авторов по запросу"""
-        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter, genre_filter=genre_filter)
+        sql_where = self.build_sql_where_ft(lang, size_limit, rating_filter)
 
         params = []
         # Пара одинаковых параметров в виде полного запроса для FullText поиска
@@ -1541,7 +1541,7 @@ class DatabaseBooks():
         LIMIT {MAX_BOOKS_SEARCH};
         """
 
-        print(f"DEBUG: {sql_query}")
+        # print(f"DEBUG: {sql_query}")
 
         with self.connect() as conn:
             cursor = conn.cursor(buffered=True)
@@ -1724,8 +1724,7 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author',
-                           genre_filter=None):
+    def build_sql_where_ft(lang, size_limit, rating_filter=None, series_id=0, author_id=0, person_type='author'):
         """Создает SQL-условие WHERE на основе списка слов и их операторов."""
         conditions = []
 

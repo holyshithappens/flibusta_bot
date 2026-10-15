@@ -527,6 +527,9 @@ async def handle_search_author_books(update, context, action, params):
     """Показывает книги выбранного автора/переводчика"""
     query = update.callback_query
     try:
+        # # DEBUG
+        # print(f"handle_search_author_books: params={str(params)}")
+
         author_id = int(params[0])
         person_type = params[1] if len(params) > 1 else 'author'
         show_loading = len(params) > 2 and params[2] == 'msg'  # Check for loading flag
@@ -546,6 +549,9 @@ async def handle_search_author_books(update, context, action, params):
 
             # Ищем книги автора/переводчика в комбинации с предыдущим запросом
             query_text = get_last_search_query(context)
+
+        # Сбрасываем переключатель показа новинок/популярных
+        set_switch_search(context, None)
 
         # Запускаем асинхронный поиск с указанием контекста поиска по авторам
         asyncio.create_task(
