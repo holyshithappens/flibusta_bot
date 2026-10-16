@@ -55,17 +55,19 @@ BASE_FIELDS = """
 """
 
 # Базовые JOIN (БЕЗ FROM)
-def get_base_joins(locale: str = 'ru') -> str:
-    """Return base JOINs with locale-aware genre table"""
+def get_base_joins(locale: str = 'ru', genre_filter: str = None) -> str:
+    """Return base JOINs with locale-aware genre table and optional genre filtering"""
     genre_table = _get_genre_table(locale)
+    genre_filter_sql = ""
+    if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter):
+        genre_filter_sql = f"WHERE genreid IN ({genre_filter})"
     return f"""
 -- LEFT JOIN (select bookid, min(avtorid) as avtorid from cb_libavtor group by bookid) a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtor a ON a.BookID = b.BookID
 LEFT JOIN cb_libavtorname an ON an.AvtorID = a.AvtorID
 LEFT JOIN cb_libtranslator t ON t.BookID = b.BookID
 LEFT JOIN cb_libavtorname tn ON tn.AvtorID = t.TranslatorId
--- LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre group by bookid) g ON g.BookID = b.BookID -- wrong result when genre filtering
-LEFT JOIN cb_libgenre g ON g.BookID = b.BookID -- use it instead of previous when genre filtering
+LEFT JOIN (select bookid, min(genreid) as genreid from cb_libgenre {genre_filter_sql} group by bookid) g ON g.BookID = b.BookID
 LEFT JOIN {genre_table} gl ON gl.GenreID = g.GenreID
 -- LEFT JOIN (select bookid, min(SeqID) as SeqID from cb_libseq group by bookid) s ON s.BookID = b.BookID
 LEFT JOIN cb_libseq s ON s.BookID = b.BookID
@@ -85,7 +87,7 @@ SELECT
     {'1' if is_empty else 'MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)'} as Relevance
 FROM cb_libbook_fts fts
 JOIN cb_libbook b ON b.BookID = fts.BookID
-{get_base_joins(locale)}
+{get_base_joins(locale, genre_filter)}
 WHERE b.Deleted = '0'
   {'' if is_empty else 'AND MATCH(fts.FT) AGAINST(%s IN BOOLEAN MODE)'}
   {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
@@ -101,7 +103,7 @@ SELECT
     {'1' if is_empty else 'MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)'} as Relevance
 FROM cb_libbannotations ba
 JOIN cb_libbook b ON b.BookID = ba.BookID
-{get_base_joins(locale)}
+{get_base_joins(locale, genre_filter)}
 WHERE b.Deleted = '0'
   {'' if is_empty else 'AND MATCH(ba.Body) AGAINST(%s IN BOOLEAN MODE)'}
   {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
@@ -118,7 +120,7 @@ SELECT
 FROM cb_libaannotations aa
 JOIN cb_libavtor ab ON ab.AvtorId = aa.AvtorId
 JOIN cb_libbook b ON b.BookID = ab.BookID
-{get_base_joins(locale)}
+{get_base_joins(locale, genre_filter)}
 WHERE b.Deleted = '0'
   AND MATCH(aa.Body) AGAINST(%s IN BOOLEAN MODE)
   {"AND g.GenreID IN (" + genre_filter + ")" if genre_filter and genre_filter.strip() and all(c.isdigit() or c == ',' for c in genre_filter) else ""}
@@ -1517,12 +1519,12 @@ class DatabaseBooks():
 
         if days_back == 0:
             # Поиск новинок
-            sql_query_nested = DatabaseBooks.build_sql_query_nov(sql_where, locale)
+            sql_query_nested = DatabaseBooks.build_sql_query_nov(sql_where, locale, genre_filter)
         else:
             # Поиск популярных
             filter_recent = 1 if days_back < 999 else 0
             current_date = self.lib_last_update
-            sql_query_nested = DatabaseBooks.build_sql_query_pop(filter_recent, current_date, sql_where, days_back, locale)
+            sql_query_nested = DatabaseBooks.build_sql_query_pop(filter_recent, current_date, sql_where, days_back, locale, genre_filter)
 
         select_fields = ', '.join(Book._fields)
 
@@ -1611,7 +1613,7 @@ class DatabaseBooks():
     #     return authors
 
     @staticmethod
-    def build_sql_query_pop(filter_recent: int, current_date: str, sql_where: str, days_back: int, locale: str = 'ru'):
+    def build_sql_query_pop(filter_recent: int, current_date: str, sql_where: str, days_back: int, locale: str = 'ru', genre_filter: str = None):
         """Build SQL query for popular books with weighted scoring.
 
         Popularity formula:
@@ -1661,7 +1663,7 @@ class DatabaseBooks():
         END AS relevance_oppos,
         ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    {get_base_joins(locale)}
+    {get_base_joins(locale, genre_filter)}
     LEFT JOIN (
         SELECT bookid, COUNT(DISTINCT id) AS cnt
         FROM cb_librate
@@ -1701,7 +1703,7 @@ class DatabaseBooks():
 
 
     @staticmethod
-    def build_sql_query_nov(sql_where, locale: str = 'ru'):
+    def build_sql_query_nov(sql_where, locale: str = 'ru', genre_filter: str = None):
         """Поиск новинок"""
 
         return f"""
@@ -1716,7 +1718,7 @@ class DatabaseBooks():
         0 AS relevance_oppos,
         ROW_NUMBER() OVER (PARTITION BY b.BookId ORDER BY b.BookId) AS rn
     FROM cb_libbook b
-    {get_base_joins(locale)}
+    {get_base_joins(locale, genre_filter)}
     WHERE {sql_where}
     ORDER BY b.BookID desc 
     LIMIT {MAX_BOOKS_SEARCH * 10} 
