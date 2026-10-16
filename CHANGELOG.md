@@ -5,6 +5,11 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.9.3] - 2026-10-16
+
+### Fixed
+- Исправлена фильтрация жанров во всех вариантах поиска: фильтр теперь применяется в подзапросе `get_base_joins` (через `WHERE genreid IN (...)` в `select bookid, min(genreid) from cb_libgenre group by bookid`), что гарантирует корректные результаты при полнотекстовом поиске, поиске по аннотациям книг, поиске по аннотациям авторов, популярных книгах и новинках
+
 ## [1.9.2] - 2026-10-15
 
 ### Fixed
