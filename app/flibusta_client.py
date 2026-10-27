@@ -64,22 +64,58 @@ class FlibustaClient:
         self._is_logged_in = False
 
     async def _create_session(self):
-        timeout = aiohttp.ClientTimeout(total=30)
-        return aiohttp.ClientSession(
-            timeout=timeout,
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        )
+        timeout = aiohttp.ClientTimeout(total=10)
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        # return aiohttp.ClientSession(
+        #     timeout=timeout,
+        #     headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        # )
+
+        # Проверяем, задан ли прокси в окружении
+        proxy_url = os.getenv("FLIBUSTA_PROXY") # or os.getenv("HTTP_PROXY")
+
+        if proxy_url:
+            # Пробуем достучаться до прокси (например, через простой запрос)
+            try:
+                # timeout_test = aiohttp.ClientTimeout(total=5)
+                async with aiohttp.ClientSession(timeout=timeout) as test_session:
+                    # Проверяем сам прокси (запрос к целевому сайту через него)
+                    async with test_session.get(FLIBUSTA_BASE_URL, timeout=timeout, proxy=proxy_url) as resp:
+                        print(f"Прокси доступен, статус: {resp.status}")
+                # Если дошли сюда — прокси работает, используем его
+                return aiohttp.ClientSession(trust_env=False, timeout=timeout, headers=headers, proxy=proxy_url) #trust_env=True
+            except Exception as e:
+                print(f"Прокси недоступен ({e}), переключаюсь на прямое соединение")
+                # Прокси не работает — создаём сессию, которая его игнорирует
+                return aiohttp.ClientSession(trust_env=False, timeout=timeout, headers=headers)
+        else:
+            # Прокси не задан — прямое соединение
+            return aiohttp.ClientSession(trust_env=False, timeout=timeout, headers=headers)
 
     async def _get_session(self, auth=False):
-        if not auth:
-            if self._session is None:
+        try:
+            if not auth:
+                if self._session is None:
+                    self._session = await self._create_session()
+                async with self._session.get(FLIBUSTA_BASE_URL) as resp:
+                    if resp.status != 200:
+                        self._session = await self._create_session()
+                return self._session
+            else:
+                if self._auth_session is None or not self._is_logged_in:
+                    await self.login()
+                async with self._auth_session.get(FLIBUSTA_BASE_URL) as resp:
+                    if resp.status != 200:
+                        await self.login()
+                return self._auth_session
+        except Exception as e:
+            print(f"Ошибка соединения ({e})")
+            if not auth:
                 self._session = await self._create_session()
-            return self._session
-        else:
-            if self._auth_session is None or not self._is_logged_in:
+                return self._session
+            else:
                 await self.login()
-            return self._auth_session
-        # return await (self.auth_session() if auth else self.session())
+                return self._auth_session
 
     async def login(self):
         try:

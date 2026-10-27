@@ -143,7 +143,11 @@ async def cleanup_old_sessions(context: CallbackContext):
             cleanup_memory()
             await log_stats(context)
 
+        # сбрасываем кэш БД
         DB_BOOKS.invalidate_db_cache()
+        # # сбрасываем соединения
+        # from .flibusta_client import flibusta_client
+        # await flibusta_client.reconnect()
 
     except Exception as e:
         print(f"❌ Cleanup error: {e}")
