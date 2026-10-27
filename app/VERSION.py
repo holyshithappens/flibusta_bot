@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.9.3"
-__version_info__ = (1, 9, 3)
+__version__ = "1.9.4"
+__version_info__ = (1, 9, 4)
 
 # История версий:
+# 1.9.4 (2026-10-27) - Hotfix: add download connection via proxy
 # 1.9.3 (2026-10-16) - Fix: genre filtering moved into subquery in get_base_joins across all search variants
 # 1.9.2 (2026-10-15) - Docs: update about section filter list with years of publication (ru/en)
 # 1.9.1 (2026-10-15) - Hotfix: fix searching author's books
