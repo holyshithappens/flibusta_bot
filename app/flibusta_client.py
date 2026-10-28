@@ -64,7 +64,7 @@ class FlibustaClient:
         self._is_logged_in = False
 
     async def _create_session(self):
-        timeout = aiohttp.ClientTimeout(total=10)
+        timeout = aiohttp.ClientTimeout(total=20)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         # return aiohttp.ClientSession(
         #     timeout=timeout,
