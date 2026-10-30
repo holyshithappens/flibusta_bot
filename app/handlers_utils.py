@@ -162,49 +162,49 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
         parse_mode=ParseMode.HTML
     )
 
-    try:
-        download_url = await upload_to_tmpfiles(book_data, f"{file_name}.{file_ext}")
-        if download_url:
-            direct_download_url = download_url.replace(
-                "https://tmpfiles.org/",
-                "https://tmpfiles.org/dl/",
-                1
-            )
-            message = (
-                f"<a href='{direct_download_url}'>{t('download.download_link',context)}</a>\n" +
-                t("download.link_expires",context)
-            )
-            await query.message.reply_text(
-                text=message,
-                parse_mode=ParseMode.HTML,
-                disable_web_page_preview=True,
-                disable_notification=True
-            )
-            structured_logger.log_download(
-                user_id=query.from_user.id,
-                username=query.from_user.username or query.from_user.first_name or "Unknown",
-                book_id=file_name,
-                book_title=book_title,
-                format=book_format,
-                file_size=len(book_data) if book_data else 0,
-                success=True,
-                via_tmpfiles=True,
-                chat_type="private",
-                chat_id=query.from_user.id
-            )
-    except Exception as upload_error:
-        print(f"Ошибка загрузки на tmpfiles: {upload_error}")
-        await processing_msg.edit_text(t("download.send_failed", context))
-        structured_logger.log_error(
-            error_type="upload_failed",
-            error_message="Failed to upload book to cloud storage",
-            context={
-                "file_name": file_name,
-                "file_ext": file_ext
-            },
-            user_id=query.from_user.id,
-            username=query.from_user.username or query.from_user.first_name or "Unknown"
+    # try:
+    download_url = await upload_to_tmpfiles(book_data, f"{file_name}.{file_ext}")
+    if download_url:
+        direct_download_url = download_url.replace(
+            "https://tmpfiles.org/",
+            "https://tmpfiles.org/dl/",
+            1
         )
+        message = (
+            f"<a href='{direct_download_url}'>{t('download.download_link',context)}</a>\n" +
+            t("download.link_expires",context)
+        )
+        await query.message.reply_text(
+            text=message,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            disable_notification=True
+        )
+        structured_logger.log_download(
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown",
+            book_id=file_name,
+            book_title=book_title,
+            format=book_format,
+            file_size=len(book_data) if book_data else 0,
+            success=True,
+            via_tmpfiles=True,
+            chat_type="private",
+            chat_id=query.from_user.id
+        )
+    # except Exception as upload_error:
+    #     print(f"Ошибка загрузки на tmpfiles: {upload_error}")
+    #     await processing_msg.edit_text(t("download.send_failed", context))
+    #     structured_logger.log_error(
+    #         error_type="upload_failed",
+    #         error_message="Failed to upload book to cloud storage",
+    #         context={
+    #             "file_name": file_name,
+    #             "file_ext": file_ext
+    #         },
+    #         user_id=query.from_user.id,
+    #         username=query.from_user.username or query.from_user.first_name or "Unknown"
+    #     )
 
 
 async def edit_or_reply_message(query, text, reply_markup=None):
