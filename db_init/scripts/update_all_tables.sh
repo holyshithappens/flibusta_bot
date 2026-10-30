@@ -21,6 +21,7 @@ SCRIPTS_DIR="$(dirname "$0")"
 : "${FLIBUSTA_DB_MAINT_PASS:=rootpassword}"
 : "${FLIBUSTA_DOWNLOAD_RETRIES:=3}"
 : "${FLIBUSTA_DOWNLOAD_RETRY_DELAY:=10}"
+: "${FLIBUSTA_PROXY:=}"
 
 _run_sql_admin() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Executing maintenance SQL: $1"
@@ -133,9 +134,18 @@ download_sql_files() {
 
         while [ "$attempt" -le "$FLIBUSTA_DOWNLOAD_RETRIES" ]; do
             echo "$(date '+%Y-%m-%d %H:%M:%S') - Downloading $filename for table $table (attempt $attempt/$FLIBUSTA_DOWNLOAD_RETRIES)..."
-            if wget -q -O "$tmpfile" "$url" 2>/dev/null; then
-                downloaded=true
-                break
+            # Если прокси задан, используем его для wget
+            if [ -n "$FLIBUSTA_PROXY" ]; then
+                if http_proxy="$FLIBUSTA_PROXY" https_proxy="$FLIBUSTA_PROXY" \
+                   wget -q -O "$tmpfile" "$url" 2>/dev/null; then
+                    downloaded=true
+                    break
+                fi
+            else
+                if wget -q -O "$tmpfile" "$url" 2>/dev/null; then
+                    downloaded=true
+                    break
+                fi
             fi
             echo "$(date '+%Y-%m-%d %H:%M:%S') - ⚠️  Attempt $attempt failed for $filename"
             rm -f "$tmpfile"
