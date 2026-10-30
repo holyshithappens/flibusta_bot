@@ -98,7 +98,7 @@ class LogEvent:
 
     def to_json(self) -> str:
         """Преобразование в JSON"""
-        return json.dumps(self.to_dict(), ensure_ascii=False)
+        return json.dumps(self.to_dict(), ensure_ascii=False, default=str)
 
 
 # ===== СПЕЦИАЛИЗИРОВАННЫЕ СОБЫТИЯ =====

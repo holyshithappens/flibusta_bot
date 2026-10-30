@@ -91,36 +91,57 @@ async def process_book_download(update, context, book_id: int, book_format, for_
         await processing_msg.delete()
         return public_filename
 
-    except TimedOut:
-        if processing_msg and book_data:
-            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context)
-
-            structured_logger.log_download(
-                user_id=query.from_user.id,
-                username=query.from_user.username or query.from_user.first_name or "Unknown",
-                book_id=book_id,
-                book_title=public_filename,
-                format=book_format,
-                file_size=len(book_data),
-                success=True,
-                via_tmpfiles=True,
-                chat_type="private",
-                chat_id=query.from_user.id
-            )
+    # except TimedOut:
+    #     if processing_msg and book_data:
+    #         await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context)
+    #
+    #         structured_logger.log_download(
+    #             user_id=query.from_user.id,
+    #             username=query.from_user.username or query.from_user.first_name or "Unknown",
+    #             book_id=book_id,
+    #             book_title=public_filename,
+    #             format=book_format,
+    #             file_size=len(book_data),
+    #             success=True,
+    #             via_tmpfiles=True,
+    #             chat_type="private",
+    #             chat_id=query.from_user.id
+    #         )
 
     except Exception as e:
         """Обрабатывает ошибку загрузки"""
         print(f"Общая ошибка при отправке книги: {e}")
+
+        # Если книга скачалась, но не удалось отправить в Telegram (например, превышен лимит размера 50 МБ),
+        # пробуем загрузить на внешнее хранилище и прислать пользователю прямую ссылку
+        if processing_msg and book_data:
+            try:
+                await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename, book_format)
+                return public_filename
+            except Exception as upload_error:
+                print(f"Ошибка загрузки на tmpfiles: {upload_error}")
+                await processing_msg.edit_text(t("download.send_failed", context))
+                structured_logger.log_error(
+                    error_type="upload_failed",
+                    error_message="Failed to upload book to cloud storage",
+                    context={
+                        "file_name": public_filename,
+                        "format": book_format
+                    },
+                    user_id=query.from_user.id,
+                    username=query.from_user.username or query.from_user.first_name or "Unknown"
+                )
+                return None
+
         await processing_msg.edit_text(
             t("download.preparation_error",context,book_url=book_url)
         )
-        # logger.log_user_action(query.from_user.id, "error sending book direct", book_url)
         structured_logger.log_error(
             error_type="download_failed",
             error_message=str(e),
             context={
                 "book_id": book_id,
-                "format": format
+                "format": book_format
             },
             user_id=query.from_user.id,
             username=query.from_user.username or query.from_user.first_name or "Unknown"
@@ -129,7 +150,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
     return None
 
 
-async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query, context):
+async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query, context, book_title:str=None, book_format:str=None):
     """Обрабатывает ошибку таймаута"""
     await processing_msg.edit_text(
         t("download.using_external_service", context),
@@ -153,6 +174,19 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
                 parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True,
                 disable_notification=True
+            )
+            await processing_msg.delete()
+            structured_logger.log_download(
+                user_id=query.from_user.id,
+                username=query.from_user.username or query.from_user.first_name or "Unknown",
+                book_id=file_name,
+                book_title=book_title,
+                format=book_format,
+                file_size=len(book_data) if book_data else 0,
+                success=True,
+                via_tmpfiles=True,
+                chat_type="private",
+                chat_id=query.from_user.id
             )
     except Exception as upload_error:
         print(f"Ошибка загрузки на tmpfiles: {upload_error}")
