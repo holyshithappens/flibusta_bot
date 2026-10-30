@@ -55,7 +55,11 @@ async def process_book_download(update, context, book_id: int, book_format, for_
             book_data, original_filename = await flibusta_client.download_book(book_id, book_format, auth=True)
             public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
 
-        if book_data:
+        if book_data and len(book_data) > 49 * 1024 * 1024:
+            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename,
+                                       book_format)
+
+        elif book_data:
             # Сообщение об истечении срока аренды vps
             message = get_short_donation_notice(context)
 
@@ -117,6 +121,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
         if processing_msg and book_data:
             try:
                 await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename, book_format)
+                await processing_msg.delete()
                 return public_filename
             except Exception as upload_error:
                 print(f"Ошибка загрузки на tmpfiles: {upload_error}")
@@ -175,7 +180,6 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
                 disable_web_page_preview=True,
                 disable_notification=True
             )
-            await processing_msg.delete()
             structured_logger.log_download(
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown",
