@@ -81,20 +81,20 @@ def form_header_books(
 
 async def upload_to_tmpfiles(file, file_name: str) -> Optional[str]:
     """Загружает файл на tmpfiles.org и возвращает URL для скачивания"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            form_data = aiohttp.FormData()
-            form_data.add_field("file", file, filename=file_name)
-            params = {"duration": "15m"}
+    # try:
+    async with aiohttp.ClientSession() as session:
+        form_data = aiohttp.FormData()
+        form_data.add_field("file", file, filename=file_name)
+        params = {"duration": "15m"}
 
-            async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return result["data"]["url"]
-                return None
-    except Exception as e:
-        print(f"Ошибка загрузки: {e}")
-        return None
+        async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params) as response:
+            if response.status == 200:
+                result = await response.json()
+                return result["data"]["url"]
+            return None
+    # except Exception as e:
+    #     print(f"Ошибка загрузки: {e}")
+    #     return None
 
 
 # ===== ВСПОМОГАТЕЛЬНЫЕ ОБРАБОТЧИКИ ДЛЯ ГРУППОВОГО ЧАТА =====
