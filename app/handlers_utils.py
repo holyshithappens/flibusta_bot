@@ -205,7 +205,16 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
     #         user_id=query.from_user.id,
     #         username=query.from_user.username or query.from_user.first_name or "Unknown"
     #     )
-
+    else:
+        # Upload failed — notify user
+        await processing_msg.edit_text(t("download.send_failed", context))
+        structured_logger.log_error(
+            error_type="upload_failed",
+            error_message="tmpfiles.org upload returned None",
+            context={"file_name": file_name, "file_ext": file_ext},
+            user_id=query.from_user.id,
+            username=query.from_user.username or query.from_user.first_name or "Unknown"
+        )
 
 async def edit_or_reply_message(query, text, reply_markup=None):
     """Редактирует существующее сообщение или отправляет новое"""

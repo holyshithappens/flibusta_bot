@@ -79,18 +79,23 @@ def form_header_books(
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====
 
 
-async def upload_to_tmpfiles(file, file_name: str) -> Optional[str]:
+async def upload_to_tmpfiles(file, file_name: str, timeout: int = 180) -> Optional[str]:
     """Загружает файл на tmpfiles.org и возвращает URL для скачивания"""
+    timeout_config = aiohttp.ClientTimeout(total=timeout, connect=30, sock_connect=30, sock_read=30)
     # try:
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=timeout_config) as session:
         form_data = aiohttp.FormData()
-        form_data.add_field("file", file, filename=file_name)
+        form_data.add_field("file", file, filename=file_name, content_type="application/octet-stream")
         params = {"duration": "15m"}
-
-        async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params) as response:
-            if response.status == 200:
-                result = await response.json()
-                return result["data"]["url"]
+        try:
+            async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params, timeout=timeout_config) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result["data"]["url"]
+                print(f"tmpfiles.org upload failed: status={response.status}")
+                return None
+        except Exception as e:
+            print(f"tmpfiles.org upload error: {e}")
             return None
     # except Exception as e:
     #     print(f"Ошибка загрузки: {e}")
