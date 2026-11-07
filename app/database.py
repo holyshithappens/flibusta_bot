@@ -1249,7 +1249,7 @@ class DatabaseBooks():
             # print(f"DEBUG: cover_url = {cover_url}")
             # Получение ссылки на обложку со страницы книги, если нет в БД
             if cover_url is None:
-                cover_url = await flibusta_client.get_book_cover_url(book_id)
+                cover_url = await flibusta_client.get_book_cover_url(book_id, FlibustaClient.MODE_DIRECT)
                 # print(f"DEBUG: cover_url = {cover_url}")
 
             return {

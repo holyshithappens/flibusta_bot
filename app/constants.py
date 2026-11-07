@@ -1,3 +1,5 @@
+import os
+
 # Пути к базам данных и файлам
 PREFIX_FILE_PATH = "./data"
 PREFIX_TMP_PATH = "./tmp"  # путь для временных файлов и резервных копий
@@ -24,6 +26,10 @@ MAX_SERIES_SEARCH = 100
 
 #WEB
 FLIBUSTA_BASE_URL = "https://www.flibusta.is"
+
+# Tor/Onion settings
+FLIBUSTA_ONION_URL = os.getenv("FLIBUSTA_ONION_URL", "http://flibustaongezhld6dibs2dps6vm4nvqg2kp7vgowbu76tzopgnhazqd.onion")
+FLIBUSTA_TOR_PROXY = os.getenv("FLIBUSTA_TOR_PROXY", "socks5://127.0.0.1:9050")
 
 BOOK_FORMAT_FB2 = 'fb2'
 BOOK_FORMAT_MOBI = 'mobi'

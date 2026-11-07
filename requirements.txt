@@ -1,6 +1,7 @@
 python-telegram-bot
 python-telegram-bot[job-queue]
 aiohttp
+aiohttp-socks
 mysql-connector-python
 psutil
 beautifulsoup4
