@@ -1,0 +1,32 @@
+# docker-compose.bot.yml
+# Independent lifecycle for the bot. This is what deploy.sh restarts on every
+# release. It reaches MariaDB over the shared external network "flibusta-net"
+# (created by docker-compose.db.yml) — the DB container is never touched here.
+
+services:
+  bot:
+    image: holyshithappens/flbst-bot-mdb
+    container_name: flibusta-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DB_HOST=flibusta-db
+      - FLIBUSTA_TOR_PROXY=socks5://tor:9050
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.8'
+    mem_swappiness: 50
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    user: "1000:1000"
+    networks:
+      - flibusta-net
+
+networks:
+  flibusta-net:
+    name: flibusta-net
+    external: true

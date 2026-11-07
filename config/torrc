@@ -1,0 +1,33 @@
+# Tor configuration for Flibusta bot
+# Run as daemon
+RunAsDaemon 0
+
+# SOCKS5 proxy port
+SocksPort 0.0.0.0:9050
+
+# Allow connections from Docker network
+SocksPolicy accept 172.0.0.0/8
+SocksPolicy accept 10.0.0.0/8
+SocksPolicy accept 192.168.0.0/16
+SocksPolicy reject *
+
+# Logging
+Log notice stdout
+
+# Circuit timeout (longer for slow .onion sites)
+CircuitBuildTimeout 60
+LearnCircuitBuildTimeout 1
+
+# Use entry guards for stability
+UseEntryGuards 1
+NumEntryGuards 8
+
+# Connection timeouts
+KeepalivePeriod 60
+NewCircuitPeriod 30
+
+# Disable SocksPort authentication
+SocksPort 0.0.0.0:9050 NoAuth
+
+# ClientOnly - don't run as relay
+ClientOnly 1

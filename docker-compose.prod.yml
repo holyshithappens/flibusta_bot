@@ -40,7 +40,21 @@ services:
       timeout: 5s
       retries: 3
 
-  bot:
+  tor:
+    image: alpine/tor:latest
+    container_name: flibusta-tor
+    restart: unless-stopped
+    ports:
+      - "9050:9050"
+    volumes:
+      - ./config/torrc:/etc/tor/torrc:ro
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+
+bot:
     image: holyshithappens/flbst-bot-mdb
     container_name: flibusta-bot
     restart: unless-stopped
@@ -48,18 +62,21 @@ services:
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
       - DB_HOST=db
+      - FLIBUSTA_TOR_PROXY=socks5://tor:9050
     deploy:
       resources:
         limits:
           memory: 256M
           cpus: '0.8'
-    mem_swappiness: 50          # ← don't let this container use swap at all
+    mem_swappiness: 50
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
+      tor:
+        condition: service_started
     user: "1000:1000"
 
 volumes:
