@@ -47,12 +47,12 @@ async def process_book_download(update, context, book_id: int, book_format, for_
         )
 
         # Первая попытка — без авторизации
-        book_data, original_filename = await flibusta_client.download_book(book_id, book_format, auth=False)
+        book_data, original_filename = await flibusta_client.download_book_resilient(book_id, book_format, auth=False)
         public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
 
         # Если не удалось — вторая попытка с авторизацией
         if not book_data:
-            book_data, original_filename = await flibusta_client.download_book(book_id, book_format, auth=True)
+            book_data, original_filename = await flibusta_client.download_book_resilient(book_id, book_format, auth=True)
             public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
 
         if book_data and len(book_data) > 49 * 1024 * 1024:
