@@ -17,35 +17,44 @@ class FlibustaClient:
     MODE_PROXY = "proxy"
     MODE_TOR = "tor"
 
-    def __init__(self, username, password, connection_mode: str = None):
+    DEFAULT_PRIORITY = [MODE_DIRECT, MODE_PROXY, MODE_TOR]
+
+    def __init__(self, username, password, connection_priority: list = None):
         self._session = None
         self._auth_session = None
         self._username = username
         self._password = password
         self._is_logged_in = False
+        self._working_mode = None
 
-        if connection_mode is None:
-            use_tor = os.getenv("FLIBUSTA_USE_TOR", "false").lower() == "true"
-            self._connection_mode = self.MODE_TOR if use_tor else self.MODE_DIRECT
+        if connection_priority is None:
+            priority_env = os.getenv("FLIBUSTA_CONNECTION_PRIORITY")
+            if priority_env:
+                self._connection_priority = [m.strip() for m in priority_env.split(",")]
+            else:
+                self._connection_priority = self.DEFAULT_PRIORITY
         else:
-            self._connection_mode = connection_mode
+            self._connection_priority = connection_priority
 
-    def set_connection_mode(self, mode: str):
-        if mode in (self.MODE_DIRECT, self.MODE_PROXY, self.MODE_TOR):
-            self._connection_mode = mode
+    def set_connection_priority(self, priority: list):
+        valid_modes = {self.MODE_DIRECT, self.MODE_PROXY, self.MODE_TOR}
+        if all(m in valid_modes for m in priority):
+            self._connection_priority = priority
             self._session = None
             self._auth_session = None
             self._is_logged_in = False
+            self._working_mode = None
         else:
-            raise ValueError(f"Invalid connection mode: {mode}")
+            raise ValueError(f"Invalid mode in priority. Valid: {valid_modes}")
 
     def get_current_base_url(self) -> str:
-        if self._connection_mode == self.MODE_TOR:
+        mode = self._working_mode or self._connection_priority[0]
+        if mode == self.MODE_TOR:
             return self._onion_url
         return self._base_url
 
-    def _get_proxy_config(self) -> dict | None:
-        if self._connection_mode == self.MODE_TOR:
+    def _get_proxy_config(self, mode: str) -> dict | None:
+        if mode == self.MODE_TOR:
             proxy_url = self._tor_proxy
             parsed = urlparse(proxy_url)
             return {
@@ -56,7 +65,7 @@ class FlibustaClient:
                 'username': parsed.username,
                 'password': parsed.password,
             }
-        elif self._connection_mode == self.MODE_PROXY:
+        elif mode == self.MODE_PROXY:
             proxy_url = os.getenv("FLIBUSTA_PROXY")
             if proxy_url:
                 parsed = urlparse(proxy_url)
@@ -77,18 +86,18 @@ class FlibustaClient:
                 }
         return None
 
-    async def _create_session(self, auth: bool = False):
+    async def _create_session_for_mode(self, mode: str, auth: bool = False):
         # Longer timeouts for Tor connections
-        if self._connection_mode == self.MODE_TOR:
+        if mode == self.MODE_TOR:
             timeout = aiohttp.ClientTimeout(total=300, connect=60, sock_connect=60, sock_read=120)
             test_timeout = aiohttp.ClientTimeout(total=60)
         else:
             timeout = aiohttp.ClientTimeout(total=120, connect=30, sock_connect=30, sock_read=30)
             test_timeout = aiohttp.ClientTimeout(total=10)
-        
+
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-        proxy_config = self._get_proxy_config()
+        proxy_config = self._get_proxy_config(mode)
         connector = None
 
         if proxy_config:
@@ -114,10 +123,10 @@ class FlibustaClient:
             )
 
         try:
-            test_url = self.get_current_base_url()
+            test_url = self._onion_url if mode == self.MODE_TOR else self._base_url
             async with session.get(test_url, timeout=test_timeout) as resp:
                 if resp.status == 200:
-                    print(f"Connection successful via {self._connection_mode}: {resp.status}")
+                    print(f"Connection successful via {mode}: {resp.status}")
                     return session
                 else:
                     await session.close()
@@ -125,18 +134,30 @@ class FlibustaClient:
                         await connector.close()
                     raise Exception(f"Connection test failed with status {resp.status}")
         except Exception as e:
-            print(f"Connection failed via {self._connection_mode} ({e})")
+            print(f"Connection failed via {mode} ({e})")
             await session.close()
             if connector:
                 await connector.close()
             raise
+
+    async def _create_session(self, auth: bool = False):
+        """Try each mode in priority order until one works"""
+        for mode in self._connection_priority:
+            try:
+                session = await self._create_session_for_mode(mode, auth)
+                self._working_mode = mode
+                return session
+            except Exception:
+                continue
+        raise Exception("All connection modes failed")
 
     async def _get_session(self, auth=False):
         try:
             if not auth:
                 if self._session is None:
                     self._session = await self._create_session()
-                async with self._session.get(self.get_current_base_url()) as resp:
+                test_url = self.get_current_base_url()
+                async with self._session.get(test_url) as resp:
                     if resp.status != 200:
                         await self._session.close()
                         self._session = await self._create_session()
@@ -144,7 +165,8 @@ class FlibustaClient:
             else:
                 if self._auth_session is None or not self._is_logged_in:
                     await self.login()
-                async with self._auth_session.get(self.get_current_base_url()) as resp:
+                test_url = self.get_current_base_url()
+                async with self._auth_session.get(test_url) as resp:
                     if resp.status != 200:
                         await self.login()
                 return self._auth_session
@@ -211,7 +233,8 @@ class FlibustaClient:
             if self._auth_session is None:
                 self._auth_session = await self._create_session(auth=True)
 
-            login_url = self.get_login_url(self._connection_mode)
+            mode = self._working_mode or self._connection_priority[0]
+            login_url = self.get_login_url(mode)
             async with self._auth_session.get(login_url) as response:
                 html = await response.text()
 
@@ -249,7 +272,7 @@ class FlibustaClient:
         self._is_logged_in = False
 
     async def download_book(self, book_id, book_format, auth=False, connection_mode: str = None):
-        mode = connection_mode or self._connection_mode
+        mode = connection_mode or (self._working_mode or self._connection_priority[0])
         session = await self._get_session(auth)
         download_url = self.get_download_url(book_id, book_format, mode)
 
@@ -277,11 +300,8 @@ class FlibustaClient:
 
     async def download_book_resilient(self, book_id, book_format, auth=False):
         modes_to_try = [
-            self._connection_mode,
-            self.MODE_TOR,
-            self.MODE_PROXY,
-            self.MODE_DIRECT
-        ]
+            self._working_mode or self._connection_priority[0],
+        ] + self._connection_priority
 
         seen = set()
         unique_modes = [m for m in modes_to_try if not (m in seen or seen.add(m))]
@@ -331,7 +351,7 @@ class FlibustaClient:
                 if cover_img and cover_img.get('src'):
                     cover_url = cover_img['src']
                     if not cover_url.startswith('http'):
-                        mode = connection_mode or self._connection_mode
+                        mode = connection_mode or self._working_mode or self._connection_priority[0]
                         base = self._onion_url if mode == self.MODE_TOR else self._base_url
                         cover_url = f"{base}{cover_url}"
                     return cover_url
