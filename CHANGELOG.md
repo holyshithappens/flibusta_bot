@@ -5,6 +5,23 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.10.0] - 2026-11-08
+
+### Added
+- Поддержка подключения к Flibusta через Tor/onion (http://flibustaongezhld6dibs2dps6vm4nvqg2kp7vgowbu76tzopgnhazqd.onion)
+- Приоритетная система соединений: `FLIBUSTA_CONNECTION_PRIORITY=direct,proxy,tor` (заменяет `FLIBUSTA_USE_TOR`)
+- Автоматический фоллбек: при неудаче прямого соединения пробуются proxy, затем Tor
+- Зависимость `aiohttp-socks` для поддержки SOCKS5 прокси с удалённым DNS (rdns=True для .onion)
+- Увеличенные таймауты для Tor-соединений (300с суммарный, 120с чтение)
+- Метод `download_book_resilient()` для надежного скачивания с перебором всех режимов
+- Подготовка поддержки I2P сети (flibusta.i2p)
+- Docker Compose: добавлен сервис Tor (alpine/tor) для продакшена и dev окружений
+- Конфигурация Tor (`config/torrc`) для контейнеризованного запуска
+
+### Fixed
+- Исправлена генерация URL обложек: для Telegram всегда используется HTTPS (flibusta.is), не .onion
+- Исправлена индикация режима соединения в логах
+
 ## [1.9.5] - 2026-11-05
 
 ### Fixed

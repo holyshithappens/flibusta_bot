@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.9.5"
-__version_info__ = (1, 9, 5)
+__version__ = "1.10.0"
+__version_info__ = (1, 10, 0)
 
 # История версий:
+# 1.10.0 (2026-11-08) - Feat: Tor/I2P connection support with priority-based fallback
 # 1.9.5 (2026-11-05) - Hotfix: download timeout increased, proxy support for DB backup, cleanup interval restored
 # 1.9.4 (2026-10-27) - Hotfix: add download connection via proxy
 # 1.9.3 (2026-10-16) - Fix: genre filtering moved into subquery in get_base_joins across all search variants
