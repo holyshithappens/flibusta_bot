@@ -174,8 +174,8 @@ case "${1:-}" in
         prompt_user_input_docker
         DEPLOY_REF=$(read_deploy_ref)
         copy_config_files
-        copy_sql_init_files
-        init_sqlite_dbs
+#        copy_sql_init_files
+#        init_sqlite_dbs
         copy_news_file
         build_and_push_test_image "$DEPLOY_REF"
         deploy_containers

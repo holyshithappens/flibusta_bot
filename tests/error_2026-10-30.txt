@@ -1,0 +1,148 @@
+Try to download this book via bot:
+📚 Мифы народов мира. 2 том. (К-Я) (https://www.flibusta.is/b/153960)
+
+👤 Автор(ы): Автор Неизвестен -- Мифы. Легенды. Эпос. Сказания (https://www.flibusta.is/a/113550), Токарев Сергей Александрович (https://www.flibusta.is/a/49911)
+📑 Жанр(ы): Мифы. Легенды. Эпос (https://www.flibusta.is/g/59), Энциклопедии (https://www.flibusta.is/g/84)
+📅 Год: 1992
+🗣️ Язык: ru
+📃 Страниц: 721
+📦 Размер: 52.2M
+
+Bot output this error in chat:
+❌ Произошла ошибка при подготовке книги https://www.flibusta.is/b/153960. Возможно она доступна только в локальной базе
+
+And I see this output in logs:
+flibusta-bot | Общая ошибка при отправке книги: httpx.ReadError:
+flibusta-bot | Task exception was never retrieved
+flibusta-bot | future: <Task finished name='Task-37655' coro=<handle_send_file() done, defined at /app/app/handlers_utils.py:20> exception=TypeError('Object of type builtin_function_or_method is not JSON serializable')>
+flibusta-bot | Traceback (most recent call last):
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+flibusta-bot |     yield
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+flibusta-bot |     resp = await self._pool.handle_async_request(req)
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+flibusta-bot |     raise exc from None
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+flibusta-bot |     response = await connection.handle_async_request(
+flibusta-bot |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection.py", line 103, in handle_async_request
+flibusta-bot |     return await self._connection.handle_async_request(request)
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 136, in handle_async_request
+flibusta-bot |     raise exc
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 106, in handle_async_request
+flibusta-bot |     ) = await self._receive_response_headers(**kwargs)
+flibusta-bot |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 177, in _receive_response_headers
+flibusta-bot |     event = await self._receive_event(timeout=timeout)
+flibusta-bot |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 217, in _receive_event
+flibusta-bot |     data = await self._network_stream.read(
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 32, in read
+flibusta-bot |     with map_exceptions(exc_map):
+flibusta-bot |   File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+flibusta-bot |     self.gen.throw(typ, value, traceback)
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+flibusta-bot |     raise to_exc(exc) from exc
+flibusta-bot | httpcore.ReadError
+flibusta-bot |
+flibusta-bot | The above exception was the direct cause of the following exception:
+flibusta-bot |
+flibusta-bot | Traceback (most recent call last):
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/request/_httpxrequest.py", line 279, in do_request
+flibusta-bot |     res = await self._client.request(
+flibusta-bot |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1540, in request
+flibusta-bot |     return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
+flibusta-bot |     response = await self._send_handling_auth(
+flibusta-bot |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+flibusta-bot |     response = await self._send_handling_redirects(
+flibusta-bot |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+flibusta-bot |     response = await self._send_single_request(request)
+flibusta-bot |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
+flibusta-bot |     response = await transport.handle_async_request(request)
+flibusta-bot |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+flibusta-bot |     with map_httpcore_exceptions():
+flibusta-bot |   File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+flibusta-bot |     self.gen.throw(typ, value, traceback)
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+flibusta-bot |     raise mapped_exc(message) from exc
+flibusta-bot | httpx.ReadError
+flibusta-bot |
+flibusta-bot | The above exception was the direct cause of the following exception:
+flibusta-bot |
+flibusta-bot | Traceback (most recent call last):
+flibusta-bot |   File "/app/app/handlers_utils.py", line 62, in process_book_download
+flibusta-bot |     await query.message.reply_document(
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/_message.py", line 2741, in reply_document
+flibusta-bot |     return await self.get_bot().send_document(
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/ext/_extbot.py", line 2828, in send_document
+flibusta-bot |     return await super().send_document(
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/_bot.py", line 1955, in send_document
+flibusta-bot |     return await self._send_message(
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/ext/_extbot.py", line 630, in _send_message
+flibusta-bot |     result = await super()._send_message(
+flibusta-bot |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/_bot.py", line 820, in _send_message
+flibusta-bot |     result = await self._post(
+flibusta-bot |              ^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/_bot.py", line 704, in _post
+flibusta-bot |     return await self._do_post(
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/ext/_extbot.py", line 370, in _do_post
+flibusta-bot |     return await super()._do_post(
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/_bot.py", line 733, in _do_post
+flibusta-bot |     result = await request.post(
+flibusta-bot |              ^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/request/_baserequest.py", line 198, in post
+flibusta-bot |     result = await self._request_wrapper(
+flibusta-bot |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/request/_baserequest.py", line 305, in _request_wrapper
+flibusta-bot |     code, payload = await self.do_request(
+flibusta-bot |                     ^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/site-packages/telegram/request/_httpxrequest.py", line 303, in do_request
+flibusta-bot |     raise NetworkError(f"httpx.{err.__class__.__name__}: {err}") from err
+flibusta-bot | telegram.error.NetworkError: httpx.ReadError:
+flibusta-bot |
+flibusta-bot | During handling of the above exception, another exception occurred:
+flibusta-bot |
+flibusta-bot | Traceback (most recent call last):
+flibusta-bot |   File "/app/app/handlers_utils.py", line 27, in handle_send_file
+flibusta-bot |     public_filename = await process_book_download(update, context, book_id, book_format, for_user)
+flibusta-bot |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/app/app/handlers_utils.py", line 118, in process_book_download
+flibusta-bot |     structured_logger.log_error(
+flibusta-bot |   File "/app/app/core/structured_logger.py", line 318, in log_error
+flibusta-bot |     self.log_event(event)
+flibusta-bot |   File "/app/app/core/structured_logger.py", line 70, in log_event
+flibusta-bot |     self.file_logger.info(event.to_json())
+flibusta-bot |                           ^^^^^^^^^^^^^^^
+flibusta-bot |   File "/app/app/core/logging_schema.py", line 101, in to_json
+flibusta-bot |     return json.dumps(self.to_dict(), ensure_ascii=False)
+flibusta-bot |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/json/__init__.py", line 238, in dumps
+flibusta-bot |     **kw).encode(obj)
+flibusta-bot |           ^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/json/encoder.py", line 200, in encode
+flibusta-bot |     chunks = self.iterencode(o, _one_shot=True)
+flibusta-bot |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/json/encoder.py", line 258, in iterencode
+flibusta-bot |     return _iterencode(o, 0)
+flibusta-bot |            ^^^^^^^^^^^^^^^^^
+flibusta-bot |   File "/usr/local/lib/python3.11/json/encoder.py", line 180, in default
+flibusta-bot |     raise TypeError(f'Object of type {o.__class__.__name__} '
+flibusta-bot | TypeError: Object of type builtin_function_or_method is not JSON serializable
+
+Why this happens? How to avoid this error and download the book?

@@ -13,36 +13,22 @@ services:
       - MYSQL_PASSWORD=${DB_PASSWORD:-flibusta}
       - TZ=Europe/Moscow
     ports:
-      - "3306:3306"
+      - "3306:3306" # Для разработки открываем порт 3306
     deploy:
       resources:
         limits:
           memory: 2G
           cpus: '0.8'
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mariadb_data:/var/lib/mysql  # Тот же volume
       - ./db_init:/docker-entrypoint-initdb.d:ro
-      - ./config/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      - ./config/my.cnf:/etc/mysql/conf.d/custom.cnf:ro  # ✅ Монтируем конфиг
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       start_period: 30s
       interval: 10s
       timeout: 5s
       retries: 3
-
-  tor:
-    image: alpine/tor:latest
-    container_name: flibusta-tor
-    restart: unless-stopped
-    ports:
-      - "9050:9050"
-    volumes:
-      - ./config/torrc:/etc/tor/torrc:ro
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.2'
 
   bot:
     image: holyshithappens/flbst-bot-mdb:dev
@@ -52,7 +38,6 @@ services:
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
       - DB_HOST=db
-      - FLIBUSTA_TOR_PROXY=socks5://tor:9050
     deploy:
       resources:
         limits:
@@ -64,8 +49,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      tor:
-        condition: service_started
     user: "1000:1000"
 
 volumes:

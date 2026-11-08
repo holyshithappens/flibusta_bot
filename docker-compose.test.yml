@@ -10,7 +10,7 @@ services:
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
       - DB_HOST=flibusta-db
-      - FLIBUSTA_TOR_PROXY=socks5://host.docker.internal:9050
+#      - FLIBUSTA_TOR_PROXY=socks5://172.17.0.1:9050
     deploy:
       resources:
         limits:

@@ -1,0 +1,41 @@
+# docker-compose.db.yml
+# Independent lifecycle for the database. Deploy/restart this ONLY when you
+# actually need to change DB config, image version, or volume — never as a
+# side effect of a bot release.
+
+services:
+  db:
+    image: mariadb:12.0
+    container_name: flibusta-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-flibusta}
+      - MYSQL_USER=${DB_USER:-flibusta}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-flibusta}
+      - TZ=Europe/Moscow
+    deploy:
+      resources:
+        limits:
+          memory: 1.2G
+          cpus: '1.5'
+    mem_swappiness: 20
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./config/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - flibusta-net
+
+networks:
+  flibusta-net:
+    name: flibusta-net
+    driver: bridge
+
+volumes:
+  mariadb_data:
