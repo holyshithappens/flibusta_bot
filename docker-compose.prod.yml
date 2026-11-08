@@ -54,7 +54,7 @@ services:
 #          memory: 128M
 #          cpus: '0.2'
 
-bot:
+  bot:
     image: holyshithappens/flbst-bot-mdb
     container_name: flibusta-bot
     restart: unless-stopped
@@ -75,8 +75,8 @@ bot:
     depends_on:
       db:
         condition: service_healthy
-      tor:
-        condition: service_started
+#      tor:
+#        condition: service_started
     user: "1000:1000"
 
 volumes:
