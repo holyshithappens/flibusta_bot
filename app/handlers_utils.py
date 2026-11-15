@@ -1,4 +1,5 @@
 import csv
+import re
 from datetime import datetime
 from io import BytesIO, TextIOWrapper
 from typing import Any, List
@@ -15,8 +16,53 @@ from .i18n import t, get_or_detect_locale
 from .tools import format_size, upload_to_tmpfiles,  get_short_donation_notice
 from .core.structured_logger import structured_logger
 from .flibusta_client import flibusta_client, FlibustaClient
+from .database import DB_BOOKS
 
 # ===== УТИЛИТЫ И ХЕЛПЕРЫ =====
+
+def _generate_filename_from_book_info(book_info: dict, book_format: str) -> str | None:
+    """Generate a meaningful filename from book metadata."""
+    if not book_info:
+        return None
+    
+    title = book_info.get('title', '').strip()
+    authors = book_info.get('authors', '').strip()
+
+    # print(f"DEBUG: book_info={book_info}")
+    # print(f"DEBUG: authors={authors}")
+
+    # Extract first author name
+    author_name = ''
+    if authors:
+        # Authors format: "AvtorID,LastName FirstName MiddleName,AvtorID,LastName FirstName MiddleName,..."
+        parts = authors.split(',')
+        # print(f"DEBUG: parts={parts}")
+        if len(parts) >= 2:
+            # First author: parts[1] = LastName, parts[2] = FirstName
+            full_name = parts[1].strip()
+            # first_name = parts[2].strip()
+            author_name = f"{full_name}".strip()
+    
+    # Build filename
+    if title and author_name:
+        filename = f"{author_name} - {title}"
+    elif title:
+        filename = title
+    elif author_name:
+        filename = author_name
+    else:
+        return None
+    
+    # Clean filename for filesystem compatibility
+    filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+    filename = filename.strip()
+    
+    if not filename:
+        return None
+    
+    return f"{filename}.{book_format}"
+
+
 async def handle_send_file(update, context, action, params, for_user = None):
     """Обрабатывает отправку файла"""
     # query = update.callback_query
@@ -48,12 +94,28 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
         # Первая попытка — без авторизации
         book_data, original_filename = await flibusta_client.download_book_resilient(book_id, book_format, auth=False)
-        public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
+        # public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
 
         # Если не удалось — вторая попытка с авторизацией
         if not book_data:
             book_data, original_filename = await flibusta_client.download_book_resilient(book_id, book_format, auth=True)
-            public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
+            # public_filename = original_filename if original_filename else f"{book_id}.{book_format}"
+
+        if original_filename:
+            public_filename = original_filename
+        else:
+            # Try to get book info for fallback filename
+            book_info = None
+            try:
+                locale = get_or_detect_locale(update, context)
+                book_info = await DB_BOOKS.get_book_info(book_id, locale)
+            except Exception as e:
+                print(f"Exception in process_book_download: {str(e)}")  # Ignore errors, will use fallback
+            if book_info:
+                public_filename = _generate_filename_from_book_info(book_info,
+                                                                    book_format) or f"{book_id}.{book_format}"
+            else:
+                public_filename = f"{book_id}.{book_format}"
 
         if book_data and len(book_data) > 49 * 1024 * 1024:
             await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename,
@@ -249,7 +311,7 @@ def generate_books_csv(pages_of_books: List[List[Any]]) -> tuple[str, BytesIO]:
     The csv.writer automatically quotes fields containing:
     - Commas (,)
     - Double quotes (")
-    - Newlines (\\n)
+    - Newlines (\n)
 
     This ensures proper CSV formatting for all field values.
 
@@ -441,7 +503,6 @@ def create_genre_filter_keyboard(parent_genre_index: int, current_genre_ids: lis
         emoji = "✔" if is_selected else ""
         count_text = f" ({count:,})".replace(",", " ") if count else " (0)"
         button_text = f"{emoji} {genre_name}{count_text}"
-
         keyboard.append([InlineKeyboardButton(
             button_text,
             callback_data=f"toggle_genre:{genre_id}:{parent_genre_index}"
@@ -477,7 +538,7 @@ def create_genre_filter_keyboard(parent_genre_index: int, current_genre_ids: lis
 #         Название книги или "Book #{book_id}"
 #     """
 #
-#     # 2. Запрашиваем из БД (используем старый DatabaseBooks)
+#     # 2. Запрашиваем из БД (используем старый класс)
 #     try:
 #         from database import DB_BOOKS
 #

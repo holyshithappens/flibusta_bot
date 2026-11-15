@@ -21,7 +21,9 @@ class FlibustaClient:
 
     def __init__(self, username, password, connection_priority: list = None):
         self._session = None
+        self._session_mode = None
         self._auth_session = None
+        self._auth_session_mode = None
         self._username = username
         self._password = password
         self._is_logged_in = False
@@ -41,17 +43,30 @@ class FlibustaClient:
         if all(m in valid_modes for m in priority):
             self._connection_priority = priority
             self._session = None
+            self._session_mode = None
             self._auth_session = None
+            self._auth_session_mode = None
             self._is_logged_in = False
             self._working_mode = None
         else:
             raise ValueError(f"Invalid mode in priority. Valid: {valid_modes}")
 
     def get_current_base_url(self) -> str:
-        mode = self._working_mode or self._connection_priority[0]
+        mode = self._resolve_mode()
         if mode == self.MODE_TOR:
             return self._onion_url
         return self._base_url
+
+    def _resolve_mode(self, connection_mode: str = None) -> str:
+        """Resolve the effective connection mode.
+
+        Explicit override takes precedence, otherwise the first mode in the
+        connection priority list is used. The last *successful* mode is NOT
+        preferred here: once that mode starts failing (e.g. the Tor proxy goes
+        down) pinning to it would make every subsequent request retry the dead
+        mode instead of falling back to a working one.
+        """
+        return connection_mode or self._connection_priority[0]
 
     def _get_proxy_config(self, mode: str) -> dict | None:
         if mode == self.MODE_TOR:
@@ -140,47 +155,58 @@ class FlibustaClient:
                 await connector.close()
             raise
 
-    async def _create_session(self, auth: bool = False):
-        """Try each mode in priority order until one works"""
-        for mode in self._connection_priority:
-            try:
-                session = await self._create_session_for_mode(mode, auth)
-                self._working_mode = mode
-                return session
-            except Exception:
-                continue
-        raise Exception("All connection modes failed")
+    async def _get_session(self, auth=False, mode: str = None):
+        """Return a cached session, creating/recreating it only when needed.
 
-    async def _get_session(self, auth=False):
+        Sessions are reused across requests (connection pooling handled by
+        aiohttp internally) instead of being rebuilt per call. A session is
+        only rebuilt when its connection mode no longer matches the requested
+        one, or when the previous one failed.
+
+        The per-request connectivity probe that previously ran on every call
+        is intentionally dropped: ``_create_session_for_mode`` already probes
+        the base URL at creation time, so re-probing here only added a full
+        round-trip to the onion/clearnet site on the hot path.
+        """
+        mode = self._resolve_mode(mode)
         try:
             if not auth:
-                if self._session is None:
-                    self._session = await self._create_session()
-                test_url = self.get_current_base_url()
-                async with self._session.get(test_url) as resp:
-                    if resp.status != 200:
+                if self._session is None or self._session_mode != mode:
+                    if self._session:
                         await self._session.close()
-                        self._session = await self._create_session()
+                    self._session = await self._create_session_for_mode(mode)
+                    self._session_mode = mode
                 return self._session
             else:
-                if self._auth_session is None or not self._is_logged_in:
+                if self._auth_session is None or self._auth_session_mode != mode or not self._is_logged_in:
+                    if self._auth_session:
+                        await self._auth_session.close()
+                    self._auth_session = await self._create_session_for_mode(mode, auth=True)
+                    self._auth_session_mode = mode
                     await self.login()
-                test_url = self.get_current_base_url()
-                async with self._auth_session.get(test_url) as resp:
-                    if resp.status != 200:
-                        await self.login()
                 return self._auth_session
         except Exception as e:
             print(f"Connection error ({e}), recreating session...")
             if not auth:
                 if self._session:
                     await self._session.close()
-                self._session = await self._create_session()
+                self._session = None
+                self._session_mode = None
+                self._session = await self._create_session_for_mode(mode)
+                self._session_mode = mode
                 return self._session
             else:
                 if self._auth_session:
                     await self._auth_session.close()
+                self._auth_session = None
+                self._auth_session_mode = None
                 await self.login()
+                # Never return None: callers do ``session.get(...)`` and a
+                # None session surfaces as "'NoneType' object has no attribute
+                # 'get'" mid-request. Re-raise instead so the caller can fall
+                # back to another mode.
+                if self._auth_session is None:
+                    raise
                 return self._auth_session
 
     @classmethod
@@ -230,10 +256,13 @@ class FlibustaClient:
 
     async def login(self):
         try:
-            if self._auth_session is None:
-                self._auth_session = await self._create_session(auth=True)
+            mode = self._resolve_mode()
+            if self._auth_session is None or self._auth_session_mode != mode:
+                if self._auth_session:
+                    await self._auth_session.close()
+                self._auth_session = await self._create_session_for_mode(mode, auth=True)
+                self._auth_session_mode = mode
 
-            mode = self._working_mode or self._connection_priority[0]
             login_url = self.get_login_url(mode)
             async with self._auth_session.get(login_url) as response:
                 html = await response.text()
@@ -272,8 +301,11 @@ class FlibustaClient:
         self._is_logged_in = False
 
     async def download_book(self, book_id, book_format, auth=False, connection_mode: str = None):
-        mode = connection_mode or (self._working_mode or self._connection_priority[0])
-        session = await self._get_session(auth)
+        mode = self._resolve_mode(connection_mode)
+        # Use a session whose connector matches the URL mode, so that
+        # download_book_resilient's per-mode fallback genuinely exercises each
+        # connector (direct / proxy / tor) rather than reusing one session.
+        session = await self._get_session(auth, mode=mode)
         download_url = self.get_download_url(book_id, book_format, mode)
 
         try:
@@ -299,14 +331,13 @@ class FlibustaClient:
             return None, None
 
     async def download_book_resilient(self, book_id, book_format, auth=False):
-        modes_to_try = [
-            self._working_mode or self._connection_priority[0],
-        ] + self._connection_priority
+        # Always start from the head of the priority list rather than the last
+        # successful mode. If the previously-working mode has since died (e.g.
+        # the Tor proxy went down), pinning to it would make every download
+        # retry the dead mode and never fall back to a working one.
+        modes_to_try = list(self._connection_priority)
 
-        seen = set()
-        unique_modes = [m for m in modes_to_try if not (m in seen or seen.add(m))]
-
-        for mode in unique_modes:
+        for mode in modes_to_try:
             try:
                 book_data, filename = await self.download_book(
                     book_id, book_format, auth, connection_mode=mode
@@ -322,18 +353,22 @@ class FlibustaClient:
     async def close(self):
         if self._session:
             await self._session.close()
+            self._session = None
+            self._session_mode = None
         if self._auth_session:
             await self._auth_session.close()
+            self._auth_session = None
+            self._auth_session_mode = None
 
     async def get_book_cover_url(self, book_id: str, connection_mode: str = None):
-        mode = connection_mode or self._connection_mode
+        mode = self._resolve_mode(connection_mode)
         try:
             url = self.get_book_url(book_id, mode)
-            session = await self._get_session(auth=False)
+            session = await self._get_session(auth=False, mode=mode)
             cover_url = await self._extract_cover_url_from_page(url, session, mode)
             if cover_url:
                 return cover_url
-            session = await self._get_session(auth=True)
+            session = await self._get_session(auth=True, mode=mode)
             return await self._extract_cover_url_from_page(url, session, mode)
         except Exception as e:
             print(f"Cover retrieval error: {e}")
@@ -351,7 +386,7 @@ class FlibustaClient:
                 if cover_img and cover_img.get('src'):
                     cover_url = cover_img['src']
                     if not cover_url.startswith('http'):
-                        mode = connection_mode or self._working_mode or self._connection_priority[0]
+                        mode = self._resolve_mode(connection_mode)
                         base = self._onion_url if mode == self.MODE_TOR else self._base_url
                         cover_url = f"{base}{cover_url}"
                     return cover_url

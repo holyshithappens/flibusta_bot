@@ -50,7 +50,9 @@ def cleanup_memory():
 
 async def log_stats(context: CallbackContext):
     """Только логирование статистики"""
+    return
     stats = log_system_stats()
+
     # print(f"Memory used: {stats['memory_used']:.1f}MB")
 
 
