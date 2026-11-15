@@ -79,14 +79,14 @@ def form_header_books(
 # ===== СЛУЖЕБНЫЕ ФУНКЦИИ =====
 
 
-async def upload_to_tmpfiles(file, file_name: str, timeout: int = 180) -> Optional[str]:
+async def upload_to_tmpfiles(file, file_name: str, timeout: int = 300) -> Optional[str]:
     """Загружает файл на tmpfiles.org и возвращает URL для скачивания"""
-    timeout_config = aiohttp.ClientTimeout(total=timeout, connect=30, sock_connect=30, sock_read=30)
+    timeout_config = aiohttp.ClientTimeout(total=timeout, connect=60, sock_connect=60, sock_read=120)
     # try:
     async with aiohttp.ClientSession(timeout=timeout_config) as session:
         form_data = aiohttp.FormData()
         form_data.add_field("file", file, filename=file_name, content_type="application/octet-stream")
-        params = {"duration": "15m"}
+        params = {"expire": "900"}
         try:
             async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params, timeout=timeout_config) as response:
                 if response.status == 200:
@@ -101,6 +101,75 @@ async def upload_to_tmpfiles(file, file_name: str, timeout: int = 180) -> Option
     #     print(f"Ошибка загрузки: {e}")
     #     return None
 
+
+import asyncio  # already imported? add at top if not
+import json
+from urllib.parse import quote
+
+async def upload_to_buzzheavier(
+    file,
+    file_name: str,
+    timeout: int = 300,
+    retries: int = 3,
+) -> Optional[str]:
+    """Загружает файл на buzzheavier.com (аналог tmpfiles.org) и возвращает URL."""
+    upload_base = os.getenv("BUZZHEAVIER_UPLOAD_BASE", "w.buzzheavier.com")
+    download_base = os.getenv("BUZZHEAVIER_DOWNLOAD_BASE", "buzzheavier.com")
+    # expiry in seconds; default 2h. Adjust via env.
+    expire_seconds = os.getenv("BUZZHEAVIER_EXPIRE_SECONDS", "3600")
+
+    timeout_config = aiohttp.ClientTimeout(
+        total=timeout, connect=60, sock_connect=60, sock_read=120,
+    )
+    headers = {"Accept": "application/json", "User-Agent": "flibusta-bot/1.0"}
+
+    safe_name = quote(file_name, safe="._-() ")
+    url = f"https://{upload_base}/{safe_name}?expiry={expire_seconds}"
+
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            async with aiohttp.ClientSession(timeout=timeout_config, headers=headers) as session:
+                async with session.put(url, data=file) as response:
+                    body = await response.text()
+                    if response.status in (200, 201):
+                        file_id = None
+                        try:
+                            parsed = json.loads(body)
+                            if isinstance(parsed, dict):
+                                file_id = (
+                                    (parsed.get("data") or {}).get("id")
+                                    or parsed.get("id")
+                                    or parsed.get("url")
+                                    or parsed.get("downloadUrl")
+                                )
+                        except json.JSONDecodeError:
+                            pass
+                        if not file_id and body.strip().startswith("http"):
+                            file_id = body.strip()
+                        if file_id:
+                            return file_id if file_id.startswith("http") \
+                                else f"https://{download_base}/{file_id}"
+                        print(f"buzzheavier upload: no id in response: {body[:300]}")
+                        last_err = "no id"
+                    else:
+                        print(f"buzzheavier upload failed: status={response.status} body={body[:300]}")
+                        last_err = f"status {response.status}"
+        except aiohttp.ClientError as e:
+            print(f"buzzheavier upload error (attempt {attempt}/{retries}): {e}")
+            last_err = str(e)
+        await asyncio.sleep(min(2 ** attempt, 10))
+
+    print(f"buzzheavier upload giving up after {retries} attempts: {last_err}")
+    return None
+
+async def upload_book_file(file, file_name: str) -> Optional[str]:
+    """Пробует tmpfiles.org, при неудаче — buzzheavier.com (аналог)."""
+    url = await upload_to_tmpfiles(file, file_name)
+    if url:
+        return url
+    print("tmpfiles failed, falling back to buzzheavier.com")
+    return await upload_to_buzzheavier(file, file_name)
 
 # ===== ВСПОМОГАТЕЛЬНЫЕ ОБРАБОТЧИКИ ДЛЯ ГРУППОВОГО ЧАТА =====
 

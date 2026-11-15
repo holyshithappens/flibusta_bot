@@ -268,7 +268,7 @@ download:
   preparation_error: "❌ An error occurred while preparing the book {book_url}. It may be available only in the local database"
   using_external_service: "⏳ The book is large, using an external service..."
   download_link: "📥 Download book"
-  link_expires: "⏳ Link valid for 15 minutes"
+  link_expires: "⏳ Link valid for 1 hour"
   send_failed: "❌ Could not send the book. Please try again later."
 
 csv:

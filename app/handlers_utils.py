@@ -13,7 +13,7 @@ from .context import get_user_params, get_current_author_id, get_current_person_
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from .i18n import t, get_or_detect_locale
-from .tools import format_size, upload_to_tmpfiles,  get_short_donation_notice
+from .tools import format_size, upload_to_tmpfiles, get_short_donation_notice, upload_to_buzzheavier
 from .core.structured_logger import structured_logger
 from .flibusta_client import flibusta_client, FlibustaClient
 from .database import DB_BOOKS
@@ -103,12 +103,14 @@ async def process_book_download(update, context, book_id: int, book_format, for_
 
         if original_filename:
             public_filename = original_filename
+            # print(f"DEBUG: original_filename={original_filename}")
         else:
             # Try to get book info for fallback filename
             book_info = None
             try:
                 locale = get_or_detect_locale(update, context)
                 book_info = await DB_BOOKS.get_book_info(book_id, locale)
+                # print(f"DEBUG: book_info={book_info}")
             except Exception as e:
                 print(f"Exception in process_book_download: {str(e)}")  # Ignore errors, will use fallback
             if book_info:
@@ -118,8 +120,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
                 public_filename = f"{book_id}.{book_format}"
 
         if book_data and len(book_data) > 49 * 1024 * 1024:
-            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename,
-                                       book_format)
+            await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename)
 
         elif book_data:
             # Сообщение об истечении срока аренды vps
@@ -182,11 +183,11 @@ async def process_book_download(update, context, book_id: int, book_format, for_
         # пробуем загрузить на внешнее хранилище и прислать пользователю прямую ссылку
         if processing_msg and book_data:
             try:
-                await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename, book_format)
+                await handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, public_filename)
                 await processing_msg.delete()
                 return public_filename
             except Exception as upload_error:
-                print(f"Ошибка загрузки на tmpfiles: {upload_error}")
+                print(f"Ошибка загрузки в облако: {upload_error}")
                 await processing_msg.edit_text(t("download.send_failed", context))
                 structured_logger.log_error(
                     error_type="upload_failed",
@@ -217,7 +218,7 @@ async def process_book_download(update, context, book_id: int, book_format, for_
     return None
 
 
-async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, query, context, book_title:str=None, book_format:str=None):
+async def handle_timeout_error(processing_msg, book_data, book_id, book_format, query, context, book_title:str=None):
     """Обрабатывает ошибку таймаута"""
     await processing_msg.edit_text(
         t("download.using_external_service", context),
@@ -225,7 +226,9 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
     )
 
     try:
-        download_url = await upload_to_tmpfiles(book_data, f"{file_name}.{file_ext}")
+        # download_url = await upload_to_tmpfiles(book_data, f"{book_id}.{book_format}")
+        download_url = await upload_to_buzzheavier(book_data, f"{book_title}")
+        # download_url = await upload_book_file(book_data, f"{book_title}")
         if download_url:
             direct_download_url = download_url.replace(
                 "https://tmpfiles.org/",
@@ -245,7 +248,7 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
             structured_logger.log_download(
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown",
-                book_id=file_name,
+                book_id=book_id,
                 book_title=book_title,
                 format=book_format,
                 file_size=len(book_data) if book_data else 0,
@@ -260,7 +263,7 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
             structured_logger.log_error(
                 error_type="upload_failed",
                 error_message="tmpfiles.org upload returned None",
-                context={"file_name": file_name, "file_ext": file_ext},
+                context={"file_name": book_title, "file_ext": book_format},
                 user_id=query.from_user.id,
                 username=query.from_user.username or query.from_user.first_name or "Unknown"
             )
@@ -271,8 +274,8 @@ async def handle_timeout_error(processing_msg, book_data, file_name, file_ext, q
             error_type="upload_failed",
             error_message="Failed to upload book to cloud storage",
             context={
-                "file_name": file_name,
-                "file_ext": file_ext
+                "file_name": book_title,
+                "file_ext": book_format
             },
             user_id=query.from_user.id,
             username=query.from_user.username or query.from_user.first_name or "Unknown"
