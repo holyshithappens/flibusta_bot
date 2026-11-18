@@ -85,13 +85,22 @@ async def upload_to_tmpfiles(file, file_name: str, timeout: int = 300) -> Option
     # try:
     async with aiohttp.ClientSession(timeout=timeout_config) as session:
         form_data = aiohttp.FormData()
+        upload_base = os.getenv("TMPFILES_UPLOAD_BASE", "https://tmpfiles.org/api/v1/upload")
+        # expiry in seconds; default 2h. Adjust via env.
+        expire_seconds = os.getenv("FILEHOSTING_EXPIRE_SECONDS", "3600")
         form_data.add_field("file", file, filename=file_name, content_type="application/octet-stream")
-        params = {"expire": "900"}
+        params = {"expire": expire_seconds}
         try:
-            async with session.post("https://tmpfiles.org/api/v1/upload", data=form_data, params=params, timeout=timeout_config) as response:
+            async with session.post(upload_base, data=form_data, params=params, timeout=timeout_config) as response:
                 if response.status == 200:
                     result = await response.json()
-                    return result["data"]["url"]
+                    url = result["data"]["url"]
+                    download_url = url.replace(
+                        "https://tmpfiles.org/",
+                        "https://tmpfiles.org/dl/",
+                        1
+                    )
+                    return download_url
                 print(f"tmpfiles.org upload failed: status={response.status}")
                 return None
         except Exception as e:
@@ -115,8 +124,8 @@ async def upload_to_buzzheavier(
     """Загружает файл на buzzheavier.com (аналог tmpfiles.org) и возвращает URL."""
     upload_base = os.getenv("BUZZHEAVIER_UPLOAD_BASE", "w.buzzheavier.com")
     download_base = os.getenv("BUZZHEAVIER_DOWNLOAD_BASE", "buzzheavier.com")
-    # expiry in seconds; default 2h. Adjust via env.
-    expire_seconds = os.getenv("BUZZHEAVIER_EXPIRE_SECONDS", "3600")
+    # expiry in seconds; default 1h. Adjust via env.
+    expire_seconds = os.getenv("FILEHOSTING_EXPIRE_SECONDS", "3600")
 
     timeout_config = aiohttp.ClientTimeout(
         total=timeout, connect=60, sock_connect=60, sock_read=120,

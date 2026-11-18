@@ -13,7 +13,7 @@ from .context import get_user_params, get_current_author_id, get_current_person_
 from .constants import  BOOK_RATINGS, SEARCH_TYPE_BOOKS, SEARCH_TYPE_SERIES, SEARCH_TYPE_AUTHORS, \
     DEFAULT_BOOK_FORMAT #,FLIBUSTA_BASE_URL
 from .i18n import t, get_or_detect_locale
-from .tools import format_size, upload_to_tmpfiles, get_short_donation_notice, upload_to_buzzheavier
+from .tools import format_size, upload_to_tmpfiles, get_short_donation_notice, upload_to_buzzheavier, upload_book_file
 from .core.structured_logger import structured_logger
 from .flibusta_client import flibusta_client, FlibustaClient
 from .database import DB_BOOKS
@@ -227,16 +227,16 @@ async def handle_timeout_error(processing_msg, book_data, book_id, book_format, 
 
     try:
         # download_url = await upload_to_tmpfiles(book_data, f"{book_id}.{book_format}")
-        download_url = await upload_to_buzzheavier(book_data, f"{book_title}")
-        # download_url = await upload_book_file(book_data, f"{book_title}")
+        # download_url = await upload_to_buzzheavier(book_data, f"{book_title}")
+        download_url = await upload_book_file(book_data, f"{book_title}")
         if download_url:
-            direct_download_url = download_url.replace(
-                "https://tmpfiles.org/",
-                "https://tmpfiles.org/dl/",
-                1
-            )
+            # direct_download_url = download_url.replace(
+            #     "https://tmpfiles.org/",
+            #     "https://tmpfiles.org/dl/",
+            #     1
+            # )
             message = (
-                f"<a href='{direct_download_url}'>{t('download.download_link',context)}</a>\n" +
+                f"<a href='{download_url}'>{t('download.download_link',context)}</a>\n" +
                 t("download.link_expires",context)
             )
             await query.message.reply_text(
