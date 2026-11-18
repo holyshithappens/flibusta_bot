@@ -84,7 +84,7 @@ def main():
     translations_dir = Path(__file__).parent / "i18n" / "translations"
     init_i18n(translations_dir)
 
-    request = HTTPXRequest(connect_timeout=60, read_timeout=60)
+    request = HTTPXRequest(connect_timeout=60, read_timeout=300, pool_timeout=60)
     #application = Application.builder().token(TOKEN).read_timeout(60).build()
     application = Application.builder().token(TOKEN).request(request).build()
 
