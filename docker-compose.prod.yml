@@ -78,6 +78,8 @@ services:
 #      tor:
 #        condition: service_started
     user: "1000:1000"
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
 
 volumes:
   mariadb_data:
