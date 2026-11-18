@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.10.0"
-__version_info__ = (1, 10, 0)
+__version__ = "1.10.1"
+__version_info__ = (1, 10, 1)
 
 # История версий:
+# 1.10.1 (2026-11-18) - Fix: tor connection mode refactor, big-book delivery via tmpfiles/buzzheavier fallback, link expiry 1h
 # 1.10.0 (2026-11-08) - Feat: Tor/I2P connection support with priority-based fallback
 # 1.9.5 (2026-11-05) - Hotfix: download timeout increased, proxy support for DB backup, cleanup interval restored
 # 1.9.4 (2026-10-27) - Hotfix: add download connection via proxy

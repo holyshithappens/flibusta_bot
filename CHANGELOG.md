@@ -5,6 +5,27 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.10.1] - 2026-11-18
+
+### Added
+- Унифицированная загрузка больших книг: `upload_book_file()` пробует tmpfiles.org, при неудаче — buzzheavier.com
+- Автоматическая генерация имени файла из метаданных книги (`_generate_filename_from_book_info`) при отсутствии `Content-Disposition`
+
+### Fixed
+- Исправлена логика выбора режима соединения: `_resolve_mode()` теперь явно разрешает режим, а `_get_session()` и `download_book()` принимают `mode`, чтобы сессия пересоздавалась только при смене режима
+- `download_book_resilient()` всегда начинает с головы списка приоритетов, вместо закрепления за последним успешным режимом (если Tor-прокси упал, не будет ретраить мёртвый режим)
+- Исправлено поведение `get_current_base_url()` и `login()` при отсутствии закреплённого режима
+- Удалена бесконечная рекурсия/повторная попытка при неудаче авторизации: `close()` сбрасывает `_session_mode`/`_auth_session_mode`
+- Исправлено логирование ошибки загрузки: сообщение «tmpfiles.org upload returned None» заменено на более общее «Failed to upload book to cloud storage»
+- Увеличена стабильность загрузки: retry по exponential backoff (до 3 попыток) для buzzheavier.com
+- Исправлен URL для direct-download: `upload_to_tmpfiles()` возвращает `https://tmpfiles.org/dl/...` напрямую
+- Время действия ссылки на большую книгу увеличено с 15 минут до 1 часа (en/ru)
+- Отключено логирование статистики в `health.log_stats()` (return early)
+
+### Changed
+- `handle_timeout_error()` и `process_book_download()` перешли на единый набор параметров `(book_id, book_format, book_title)`
+- CPU-лимит контейнера в `docker-compose.prod.yml` увеличен с 0.8 до 1.0
+
 ## [1.10.0] - 2026-11-08
 
 ### Added
