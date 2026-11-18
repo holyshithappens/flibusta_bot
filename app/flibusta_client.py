@@ -107,8 +107,8 @@ class FlibustaClient:
             timeout = aiohttp.ClientTimeout(total=300, connect=60, sock_connect=60, sock_read=120)
             test_timeout = aiohttp.ClientTimeout(total=60)
         else:
-            timeout = aiohttp.ClientTimeout(total=120, connect=30, sock_connect=30, sock_read=30)
-            test_timeout = aiohttp.ClientTimeout(total=10)
+            timeout = aiohttp.ClientTimeout(total=180, connect=30, sock_connect=30, sock_read=120)
+            test_timeout = aiohttp.ClientTimeout(total=30)
 
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
