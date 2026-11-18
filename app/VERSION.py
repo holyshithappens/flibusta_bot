@@ -2,10 +2,11 @@
 Версия проекта
 """
 
-__version__ = "1.10.1"
-__version_info__ = (1, 10, 1)
+__version__ = "1.10.2"
+__version_info__ = (1, 10, 2)
 
 # История версий:
+# 1.10.2 (2026-11-18) - Fix: увеличены таймауты Flibusta, увеличен read_timeout Telegram (60→300с) для снижения TimedOut при отправке книг, отключено IPv6 в контейнерах
 # 1.10.1 (2026-11-18) - Fix: tor connection mode refactor, big-book delivery via tmpfiles/buzzheavier fallback, link expiry 1h
 # 1.10.0 (2026-11-08) - Feat: Tor/I2P connection support with priority-based fallback
 # 1.9.5 (2026-11-05) - Hotfix: download timeout increased, proxy support for DB backup, cleanup interval restored

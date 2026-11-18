@@ -5,6 +5,13 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.10.2] - 2026-11-18
+
+### Fixed
+- Увеличены таймауты=Flibusta для непосредственного соединения: `total` 120→180с, `sock_read` 30→120с, `test_timeout` 10→30с (`app/flibusta_client.py`)
+- Увеличен таймаут запросов Telegram: `HTTPXRequest(read_timeout=60→300, pool_timeout=60)` в `app/main.py`, что снижает количество ложных `TimedOut` при отправке книг
+- Отключено IPv6 в контейнерах (`net.ipv6.conf.all.disable_ipv6=1`) в `docker-compose.prod.yml` и `docker-compose.test.yml` для стабильной работы в средах без IPv6
+
 ## [1.10.1] - 2026-11-18
 
 ### Added
